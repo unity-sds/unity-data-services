@@ -5,7 +5,7 @@
 
 ![logo](https://user-images.githubusercontent.com/3129134/163255685-857aa780-880f-4c09-b08c-4b53bf4af54d.png)
 
-<h1 align="center">[INSERT YOUR REPO / PROJ NAME HERE]</h1>
+<h1 align="center">Unity Cumulus Lambda Functions</h1>
 <!-- ☝️ Replace with your repo name ☝️ -->
 
 </div>
