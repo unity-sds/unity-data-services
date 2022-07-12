@@ -23,6 +23,9 @@ jobs:
 
           # run script
           "${GITHUB_WORKSPACE}/ci.cd/store_version.sh"
+          dd="${{ env.REGISTRY }}/uds1:${{ env.software_version }}"
+          echo "dd=$dd"
+
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2
