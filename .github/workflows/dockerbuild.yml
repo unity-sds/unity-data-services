@@ -14,14 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
-        with:
-          python-version: '3.7'
-      - run: |
-          # make file runnable, might not be necessary
-          chmod +x "${GITHUB_WORKSPACE}/ci.cd/store_version.sh"
-          # run script
-          "${GITHUB_WORKSPACE}/ci.cd/store_version.sh"
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2
