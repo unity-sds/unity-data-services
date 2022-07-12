@@ -52,5 +52,5 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache
           context: "{{defaultContext}}"
           file: "docker/Dockerfile_download_granules.public"
-          push: true
+          push: false
           tags: "${{ env.REGISTRY }}/uds1:${{ env.software_version }}"
