@@ -62,4 +62,4 @@ jobs:
           context: "{{defaultContext}}"
           file: "docker/Dockerfile_download_granules.public"
           push: true
-          tags: "${{ env.REGISTRY }}/uds1:${{ env.software_version }}"
+          tags: "uds1:${{ env.software_version }}"
