@@ -2,9 +2,9 @@ name: Build Docker file CI
 
 on:
   push:
-    branches: [ github.action.docker ]
+    branches: [ main ]
   pull_request:
-    branches: [ github.action.docker ]
+    branches: [ main ]
 
 env:
   REGISTRY: ghcr.io
