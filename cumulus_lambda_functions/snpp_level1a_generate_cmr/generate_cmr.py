@@ -95,6 +95,12 @@ INPUT_EVENT_SCHEMA = {
                     "required": [
                         "meta"
                     ]
+                },
+                "extra_config": {
+                    "required": [],
+                    "properties": {
+                        "add_extra_keys": {"type": "boolean"}
+                    }
                 }
             },
             "required": []
@@ -140,6 +146,37 @@ class GenerateCmr:
         self.__s3.target_bucket = self._pds_file_dict['bucket']
         self.__s3.target_key = self._pds_file_dict['key']
         return self.__s3.read_small_txt_file()
+
+    def __is_adding_extra_keys(self):
+        if 'extra_config' not in self.__event['cma']:
+            return True
+        if 'add_extra_keys' not in self.__event['cma']['extra_config']:
+            return True
+        return self.__event['cma']['extra_config']['add_extra_keys']
+
+    def __generate_output_dict(self, echo_metadata_md5: str):
+        output_dict = {
+
+
+
+                                "checksumType": "md5",
+                                "checksum": echo_metadata_md5,
+                                "type": "metadata",
+
+                                "key": self.__s3.target_key,
+                                "fileName": os.path.basename(self.__s3.target_key),
+                                "bucket": self.__s3.target_bucket,
+                                "size": int(self.__s3.get_size()),
+                            }
+        if not self.__is_adding_extra_keys():
+            return output_dict
+        output_dict = {**output_dict, **{
+            "path": os.path.dirname(self.__s3.target_key),
+            "name": os.path.basename(self.__s3.target_key),
+            "source_bucket": self.__s3.target_bucket,
+            "url_path": f's3://{self.__s3.target_bucket}/{self.__s3.target_key}',
+        }}
+        return output_dict
 
     def start(self):
         """
@@ -371,21 +408,7 @@ class GenerateCmr:
                         "granuleId": granule_id,
                         "dataType": collection_name,
                         "version": collection_version,
-                        "files": self.__input_file_list + [{
-
-                                "path": os.path.dirname(self.__s3.target_key),
-                                "checksumType": "md5",
-                                "checksum": echo_metadata_md5,
-                                "type": "metadata",
-
-                                "key": self.__s3.target_key,
-                                "name": os.path.basename(self.__s3.target_key),
-                                "fileName": os.path.basename(self.__s3.target_key),
-                                "bucket": self.__s3.target_bucket,
-                                "source_bucket": self.__s3.target_bucket,
-                                "url_path": f's3://{self.__s3.target_bucket}/{self.__s3.target_key}',
-                                "size": int(self.__s3.get_size()),
-                            }],
+                        "files": self.__input_file_list + [self.__generate_output_dict(echo_metadata_md5)],
                         # "files": self.__input_file_list,
                         "sync_granule_duration": 20302,
                         "createdAt": TimeUtils.get_current_unix_milli(),
