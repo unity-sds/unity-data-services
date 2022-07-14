@@ -156,18 +156,15 @@ class GenerateCmr:
 
     def __generate_output_dict(self, echo_metadata_md5: str):
         output_dict = {
+            "checksumType": "md5",
+            "checksum": echo_metadata_md5,
+            "type": "metadata",
 
-
-
-                                "checksumType": "md5",
-                                "checksum": echo_metadata_md5,
-                                "type": "metadata",
-
-                                "key": self.__s3.target_key,
-                                "fileName": os.path.basename(self.__s3.target_key),
-                                "bucket": self.__s3.target_bucket,
-                                "size": int(self.__s3.get_size()),
-                            }
+            "key": self.__s3.target_key,
+            "fileName": os.path.basename(self.__s3.target_key),
+            "bucket": self.__s3.target_bucket,
+            "size": int(self.__s3.get_size()),
+        }
         if not self.__is_adding_extra_keys():
             return output_dict
         output_dict = {**output_dict, **{
