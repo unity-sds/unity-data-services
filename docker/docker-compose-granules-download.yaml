@@ -6,19 +6,27 @@ services:
       - /tmp/cumulus_granules:/etc/granules
     command: ["download"]
     environment:
-      UNITY_BEARER_TOKEN: 'token without the header "Bearer"'
       AWS_ACCESS_KEY_ID: 'dd'
       AWS_SECRET_ACCESS_KEY: 'dddd'
       AWS_SESSION_TOKEN: 'dddd'
       AWS_REGION: 'us-west-2'
-      LOG_LEVEL: '20'
-      DOWNLOAD_DIR: '/etc/granules'
+
+      UNITY_BEARER_TOKEN: 'token without the header "Bearer". The alternative is the following group'
+
+      USERNAME: 'plain text | AWS parameter store key | base64 encoded str'
+      PASSWORD: 'plain text | AWS parameter store key | base64 encoded str'
+      PASSWORD_TYPE: 'PLAIN | PARAM_STORE | BASE64'
+      CLIENT_ID: 'ask U-CS. ex: 7a1fglm2d54eoggj13lccivp25'
+      COGNITO_URL: 'ask U-CS. ex: https://cognito-idp.us-west-2.amazonaws.com'
+
       DAPA_API: 'https://k3a3qmarxh.execute-api.us-west-2.amazonaws.com/dev'
       COLLECTION_ID: 'ATMS_SCIENCE_Group___001'
+      DOWNLOAD_DIR: '/etc/granules'
       LIMITS: '100'
       DATE_FROM: '2016-01-17T00:00:00Z'
       DATE_TO: '2016-01-17T12:00:00Z'
       VERIFY_SSL: 'FALSE'
+      LOG_LEVEL: '20'
     networks:
       - internal
 networks:

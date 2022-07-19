@@ -2,8 +2,7 @@ import json
 import logging
 import os
 
-import requests
-
+from cumulus_lambda_functions.cumulus_dapa_client.dapa_client import DapaClient
 from cumulus_lambda_functions.lib.aws.aws_s3 import AwsS3
 from cumulus_lambda_functions.lib.utils.file_utils import FileUtils
 
@@ -11,8 +10,6 @@ LOGGER = logging.getLogger(__name__)
 
 
 class DownloadGranules:
-    DAPA_API_KEY = 'DAPA_API'
-    UNITY_BEARER_TOKEN_KEY = 'UNITY_BEARER_TOKEN'
     COLLECTION_ID_KEY = 'COLLECTION_ID'
     DOWNLOAD_DIR_KEY = 'DOWNLOAD_DIR'
 
@@ -22,23 +19,19 @@ class DownloadGranules:
     VERIFY_SSL_KEY = 'VERIFY_SSL'
 
     def __init__(self):
-        self.__dapa_api = ''
-        self.__unity_bearer_token = ''
         self.__collection_id = ''
         self.__date_from = ''
         self.__date_to = ''
-        self.__limit = 100
+        self.__limit = 1000
         self.__download_dir = '/tmp'
         self.__verify_ssl = True
         self.__s3 = AwsS3()
 
     def __set_props_from_env(self):
-        missing_keys = [k for k in [self.DAPA_API_KEY, self.COLLECTION_ID_KEY, self.DOWNLOAD_DIR_KEY, self.UNITY_BEARER_TOKEN_KEY] if k not in os.environ]
+        missing_keys = [k for k in [self.COLLECTION_ID_KEY, self.DOWNLOAD_DIR_KEY] if k not in os.environ]
         if len(missing_keys) > 0:
             raise ValueError(f'missing environment keys: {missing_keys}')
 
-        self.__dapa_api = os.environ.get(self.DAPA_API_KEY)
-        self.__unity_bearer_token = os.environ.get(self.UNITY_BEARER_TOKEN_KEY)
         self.__collection_id = os.environ.get(self.COLLECTION_ID_KEY)
         self.__download_dir = os.environ.get(self.DOWNLOAD_DIR_KEY)
         self.__download_dir = self.__download_dir[:-1] if self.__download_dir.endswith('/') else self.__download_dir
@@ -51,25 +44,6 @@ class DownloadGranules:
         self.__date_to = os.environ.get(self.DATE_TO_KEY, '')
         self.__verify_ssl = os.environ.get(self.VERIFY_SSL_KEY, 'TRUE').strip().upper() == 'TRUE'
         return self
-
-    def __generate_dapa_url(self):
-        self.__dapa_api = self.__dapa_api[:-1] if self.__dapa_api.endswith('/') else self.__dapa_api
-        dapa_granules_api = f'{self.__dapa_api}/am-uds-dapa/collections/{self.__collection_id}/items?limit={self.__limit}&offset=0'
-        if self.__date_from != '' or self.__date_to != '':
-            dapa_granules_api = f"{dapa_granules_api}&datetime={self.__date_from if self.__date_from != '' else '..'}/{self.__date_to if self.__date_to != '' else '..'}"
-        LOGGER.debug(f'dapa_granules_api: {dapa_granules_api}')
-        return dapa_granules_api
-
-    def __get_granules(self, dapa_granules_api):  # TODO pagination if needed
-        LOGGER.debug(f'getting granules for: {dapa_granules_api}')
-        header = {'Authorization': f'Bearer {self.__unity_bearer_token}'}
-        response = requests.get(url=dapa_granules_api, headers=header, verify=self.__verify_ssl)
-        if response.status_code > 400:
-            raise RuntimeError(f'querying granules ends in error. status_code: {response.status_code}. url: {dapa_granules_api}. details: {response.text}')
-        granules_result = json.loads(response.text)
-        if 'features' not in granules_result:
-            raise RuntimeError(f'missing features in response. invalid response: response: {granules_result}')
-        return granules_result['features']
 
     def __get_downloading_urls(self, granules_result: list):
         if len(granules_result) < 1:
@@ -121,8 +95,8 @@ class DownloadGranules:
         self.__set_props_from_env()
         LOGGER.debug(f'creating download dir: {self.__download_dir}')
         FileUtils.mk_dir_p(self.__download_dir)
-        dapa_granules_api = self.__generate_dapa_url()
-        granules_result = self.__get_granules(dapa_granules_api)
+        dapa_client = DapaClient().with_verify_ssl(self.__verify_ssl)
+        granules_result = dapa_client.get_granules(self.__collection_id, self.__limit, 0, self.__date_from, self.__date_to)
         downloading_urls = self.__get_downloading_urls(granules_result)
         error_list = []
         for each in downloading_urls:
