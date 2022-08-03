@@ -12,7 +12,7 @@ servers:
     description: 'JPL AWS Cloud API Gateway'
 
 paths:
- '/am-uds-dapa/collections':
+  '/am-uds-dapa/collections':
     get:
       summary: 'list all collections in Cumulus'
       parameters:
@@ -26,23 +26,27 @@ paths:
           description: "How many items in 1 page. defaulted to 10"
           in: "query"
           required: false
-          type: "string"
+          schema:
+            type: "string"
         - name: "offset"
           description: "How many items to skip. if limit == 10, offset = 10 for 2nd page, so on and so forth"
           in: "query"
           required: false
-          type: "string"
+          schema:
+            type: "string"
       responses:
         '200':
           description: 'Successful query'
           content:
             application/json:
               schema:
+                type: object
                 properties:
                   features:
-                    description: 'STAC collection array'
+                    example: 'STAC collection array'
                     type: array
-                    item: object
+                    items:
+                      type: object
         '500':
           description: 'Server Error'
         '403':
@@ -64,6 +68,7 @@ paths:
         content:
           application/json:
             schema:
+              type: object
               properties:
                 provider_id:
                   type: string
@@ -71,13 +76,15 @@ paths:
                 features:
                   description: 'STAC granules array'
                   type: array
-                  item: object
+                  items:
+                    type: object
       responses:
         '200':
           description: 'Successful query'
           content:
             application/json:
               schema:
+                type: object
                 properties:
                   message:
                     description: 'result description'
@@ -102,28 +109,33 @@ paths:
           description: "Cumulus Collection Id from DAPA collection endpoint. add `*` if querying from all collections"
           in: "path"
           required: true
-          type: "string"
+          schema:
+            type: "string"
         - name: "limit"
           description: "How many items in 1 page. defaulted to 10"
           in: "query"
           required: false
-          type: "string"
+          schema:
+            type: "string"
         - name: "offset"
           description: "How many items to skip. if limit == 10, offset = 10 for 2nd page, so on and so forth"
           in: "query"
           required: false
-          type: "string"
+          schema:
+            type: "string"
       responses:
         '200':
           description: 'Successful query'
           content:
             application/json:
               schema:
+                type: object
                 properties:
                   features:
                     description: 'STAC granule (aka item) array'
                     type: array
-                    item: object
+                    items:
+                      type: object
         '500':
           description: 'Server Error'
         '403':
