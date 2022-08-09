@@ -1,0 +1,14 @@
+openapi: 3.0.3
+info:
+  title: in-situ-data-services
+  description: API for querying in-situ data sources
+  version: 0.0.1
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: https://k3a3qmarxh.execute-api.us-west-2.amazonaws.com/dev
+    description: 'JPL AWS Cloud API Gateway'
+
+
