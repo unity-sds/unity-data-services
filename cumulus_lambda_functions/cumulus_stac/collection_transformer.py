@@ -380,7 +380,9 @@ class CollectionTransformer(StacTransformerAbstract):
                     "bbox": [[0, 0, 0, 0]]
                 },
                 "temporal": {
-                    "interval": [[None, None]]
+                    "interval": [source['dateFrom'] if 'dateFrom' in source else None,
+                                 source['dateTo'] if 'dateTo' in source else None
+                                  ]
                 }
             },
             "assets": {},
@@ -388,6 +390,7 @@ class CollectionTransformer(StacTransformerAbstract):
                 "granuleId":  source['granuleId'] if 'granuleId' in source else '',
                 "granuleIdExtraction": source['granuleIdExtraction'] if 'granuleIdExtraction' in source else '',
                 "process": source['process'] if 'process' in source else '',
+                "totalGranules": source['total_size'] if 'total_size' in source else -1,
             },
             "links": [self.__convert_to_stac_links(k) for k in source['files']],
         }
