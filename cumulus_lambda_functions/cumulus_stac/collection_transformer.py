@@ -1,4 +1,5 @@
 import json
+from urllib.parse import quote_plus
 
 from cumulus_lambda_functions.cumulus_stac.stac_transformer_abstract import StacTransformerAbstract
 
@@ -318,7 +319,7 @@ class CollectionTransformer(StacTransformerAbstract):
             href_link[0] = collection_file_obj['bucket']
         if 'regex' in collection_file_obj:
             href_link[1] = collection_file_obj['regex']
-        stac_link['href'] = '___'.join(href_link)
+        stac_link['href'] = f"./collection.json?bucket={href_link[0]}&regex={quote_plus(href_link[1])}"
         return stac_link
 
     def to_stac(self, source: dict) -> dict:
@@ -380,19 +381,24 @@ class CollectionTransformer(StacTransformerAbstract):
                     "bbox": [[0, 0, 0, 0]]
                 },
                 "temporal": {
-                    "interval": [source['dateFrom'] if 'dateFrom' in source else None,
+                    "interval": [[source['dateFrom'] if 'dateFrom' in source else None,
                                  source['dateTo'] if 'dateTo' in source else None
-                                  ]
+                                  ]]
                 }
             },
             "assets": {},
             "summaries": {
-                "granuleId":  source['granuleId'] if 'granuleId' in source else '',
-                "granuleIdExtraction": source['granuleIdExtraction'] if 'granuleIdExtraction' in source else '',
-                "process": source['process'] if 'process' in source else '',
-                "totalGranules": source['total_size'] if 'total_size' in source else -1,
+                "granuleId": [source['granuleId'] if 'granuleId' in source else ''],
+                "granuleIdExtraction": [source['granuleIdExtraction'] if 'granuleIdExtraction' in source else ''],
+                "process": [source['process'] if 'process' in source else ''],
+                "totalGranules": [source['total_size'] if 'total_size' in source else -1],
             },
-            "links": [self.__convert_to_stac_links(k) for k in source['files']],
+            "links": [{
+                        "rel": "root",
+                        "type": "application/json",
+                        "title": f"{source['name']}___{source['version']}",
+                        "href": "./collection.json"
+                    }] + [self.__convert_to_stac_links(k) for k in source['files']],
         }
         return stac_collection
 

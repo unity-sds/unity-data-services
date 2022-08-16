@@ -8,7 +8,7 @@ zip_file="${project_root_dir}/$ZIP_NAME" ; # save the result file in current wor
 
 tmp_proj='/tmp/cumulus_lambda_functions'
 
-source_dir="/usr/local/lib/python3.7/site-packages/"
+source_dir="/usr/local/lib/python3.9/site-packages/"
 
 mkdir -p "$tmp_proj/cumulus_lambda_functions" && \
 cd $tmp_proj && \

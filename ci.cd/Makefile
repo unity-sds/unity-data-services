@@ -12,7 +12,7 @@ zip_docker:
 	docker save "$(IMAGE_PREFIX)/$(NAME):$(VERSION)" | gzip > "$(NAME)__$(VERSION).tar.gz"
 
 build_lambda:
-	docker run --rm -v `PWD`:"/usr/src/app/cumulus_lambda_functions":z -w "/usr/src/app/cumulus_lambda_functions" cae-artifactory.jpl.nasa.gov:17001/python:3.7 ci.cd/create_s3_zip.sh
+	docker run --rm -v `PWD`:"/usr/src/app/cumulus_lambda_functions":z -w "/usr/src/app/cumulus_lambda_functions" cae-artifactory.jpl.nasa.gov:17001/python:3.9 ci.cd/create_s3_zip.sh
 
 build_lambda_public:
 	docker run --rm -v `PWD`:"/usr/src/app/cumulus_lambda_functions":z -w "/usr/src/app/cumulus_lambda_functions" python:3.7 ci.cd/create_s3_zip.sh
