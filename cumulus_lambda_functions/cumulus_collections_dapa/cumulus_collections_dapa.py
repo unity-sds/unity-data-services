@@ -74,11 +74,16 @@ class CumulusCollectionsDapa:
             return {
                 'statusCode': 200,
                 'body': json.dumps({
-                    'size': cumulus_size['total_size'],
-                    'rel': {
-                        'next': next_page,
-                        'prev': prev_page,
-                    },
+                    'numberMatched': cumulus_size['total_size'],
+                    'numberReturned': len(cumulus_result['results']),
+                    'stac_version': '1.0.0',
+                    'type': 'FeatureCollection',
+                    'links': [
+                        {'rel': 'self', 'href': 'TODO'},
+                        {'rel': 'root', 'href': 'TODO'},
+                        {'rel': 'next', 'href': next_page},
+                        {'rel': 'prev', 'href': prev_page},
+                    ],
                     'features': cumulus_result['results'],
                 })
             }
