@@ -1,5 +1,10 @@
 import json
+from datetime import datetime
 from urllib.parse import quote_plus
+
+import pystac
+from pystac import Extent, SpatialExtent, TemporalExtent, Summaries, Link
+from pystac.collection import TemporalIntervals
 
 from cumulus_lambda_functions.cumulus_stac.stac_transformer_abstract import StacTransformerAbstract
 
@@ -322,6 +327,9 @@ class CollectionTransformer(StacTransformerAbstract):
         stac_link['href'] = f"./collection.json?bucket={href_link[0]}&regex={quote_plus(href_link[1])}"
         return stac_link
 
+    # def to_pystac_link_obj(self, input_dict: dict):
+    #     return
+
     def to_stac(self, source: dict) -> dict:
         source_sample = {
             "createdAt": 1647992847582,
@@ -367,6 +375,26 @@ class CollectionTransformer(StacTransformerAbstract):
             "url_path": "{cmrMetadata.Granule.Collection.ShortName}___{cmrMetadata.Granule.Collection.VersionId}",
             "timestamp": 1647992849273
         }
+        # TemporalIntervals([
+        #     datetime.strptime(source['dateFrom'])
+        # ])
+        # stac_collection = pystac.Collection(
+        #     id=f"{source['name']}___{source['version']}",
+        #     description='TODO',
+        #     extent=Extent(
+        #         SpatialExtent([[0, 0, 0, 0]]),
+        #         TemporalExtent([[source['dateFrom'] if 'dateFrom' in source else None,
+        #                          source['dateTo'] if 'dateTo' in source else None]])
+        #     ),
+        #     summaries=Summaries({
+        #         "granuleId": [source['granuleId'] if 'granuleId' in source else ''],
+        #         "granuleIdExtraction": [source['granuleIdExtraction'] if 'granuleIdExtraction' in source else ''],
+        #         "process": [source['process'] if 'process' in source else ''],
+        #         "totalGranules": [source['total_size'] if 'total_size' in source else -1],
+        #     }),
+        # )
+        # stac_collection.get_root_link().target = './collection.json'
+        # stac_collection.add_links([Link.from_dict(k) for k in [self.__convert_to_stac_links(k) for k in source['files']]])
         stac_collection = {
             "type": "Collection",
             "stac_version": "1.0.0",
