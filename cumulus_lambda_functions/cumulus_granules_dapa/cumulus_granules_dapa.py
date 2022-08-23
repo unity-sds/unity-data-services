@@ -96,15 +96,13 @@ class CumulusGranulesDapa:
             cumulus_size = {'total_size': -1}
         return cumulus_size
 
-    def __get_pagination_url(self):
+    def __get_pagination_urls(self):
         try:
-            next_page = LambdaApiGatewayUtils.generate_next_url(self.__event, self.__limit)
-            prev_page = LambdaApiGatewayUtils.generate_prev_url(self.__event, self.__limit)
+            pagination_links = LambdaApiGatewayUtils(self.__event, self.__limit).generate_pagination_links()
         except Exception as e:
-            LOGGER.exception(f'exception while generation pagination URLs')
-            next_page = f'error while generating it. check lambda logs for details: {str(e)}'
-            prev_page = f'error while generating it. check lambda logs for details: {str(e)}'
-        return next_page, prev_page
+            LOGGER.exception(f'error while generating pagination links')
+            return [{'message': f'error while generating pagination links: {str(e)}'}]
+        return pagination_links
 
     def start(self):
         try:
@@ -120,15 +118,14 @@ class CumulusGranulesDapa:
                     'body': {'message': cumulus_result['client_error']}
                 }
             cumulus_size = self.__get_size()
-            next_page, prev_page = self.__get_pagination_url()
             return {
                 'statusCode': 200,
                 'body': json.dumps({
-                    'size': cumulus_size['total_size'],
-                    'rel': {
-                        'next': next_page,
-                        'prev': prev_page,
-                    },
+                    'numberMatched': cumulus_size['total_size'],
+                    'numberReturned': len(cumulus_result['results']),
+                    'stac_version': '1.0.0',
+                    'type': 'FeatureCollection',  # TODO correct name?
+                    'links': self.__get_pagination_urls(),
                     'features': cumulus_result['results']
                 })
             }
