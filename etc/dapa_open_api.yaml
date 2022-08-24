@@ -10,6 +10,10 @@ info:
 servers:
   - url: https://k3a3qmarxh.execute-api.us-west-2.amazonaws.com/dev
     description: 'JPL AWS Cloud API Gateway'
+  - url: https://1gp9st60gd.execute-api.us-west-2.amazonaws.com/dev
+    description: 'MCP AWS Cloud API Gateway - DEV Venue'
+  - url: https://58nbcawrvb.execute-api.us-west-2.amazonaws.com/test
+    description: 'MCP AWS Cloud API Gateway - TEST Venue'
 
 paths:
   '/am-uds-dapa/collections':
