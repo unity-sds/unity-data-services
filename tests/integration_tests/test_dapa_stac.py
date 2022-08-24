@@ -22,7 +22,7 @@ class TestDapaStac(TestCase):
         response = requests.get(url=collection_url, headers={'Authorization': f'Bearer {cognito_login.token}'}, verify=False)
         self.assertEqual(response.status_code, 200, 'wrong status code')
         response_json = json.loads(response.content.decode())
-
+        self.assertTrue(len(response_json['features']) > 0, f'empty collections. Need collections to compare')
         for each_feature in response_json['features']:
             validation_result = pystac.Collection.from_dict(each_feature).validate()
             self.assertTrue(isinstance(validation_result, list), f'wrong validation for : {json.dumps(each_feature, indent=4)}. details: {validation_result}')
@@ -39,6 +39,7 @@ class TestDapaStac(TestCase):
         response = requests.get(url=collection_url, headers={'Authorization': f'Bearer {cognito_login.token}'}, verify=False)
         self.assertEqual(response.status_code, 200, 'wrong status code')
         response_json = json.loads(response.content.decode())
+        self.assertTrue(len(response_json['features']) > 0, f'empty granules. Need collections to compare')
         for each_feature in response_json['features']:
             validation_result = pystac.Item.from_dict(each_feature).validate()
             self.assertTrue(isinstance(validation_result, list), f'wrong validation for : {json.dumps(each_feature, indent=4)}. details: {validation_result}')

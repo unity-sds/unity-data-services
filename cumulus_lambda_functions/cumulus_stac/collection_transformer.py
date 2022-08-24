@@ -2,9 +2,6 @@ import json
 from datetime import datetime
 from urllib.parse import quote_plus
 
-import pystac
-from pystac import Extent, SpatialExtent, TemporalExtent, Summaries, Link
-from pystac.collection import TemporalIntervals
 
 from cumulus_lambda_functions.cumulus_stac.stac_transformer_abstract import StacTransformerAbstract
 

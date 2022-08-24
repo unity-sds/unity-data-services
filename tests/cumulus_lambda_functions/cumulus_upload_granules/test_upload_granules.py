@@ -22,9 +22,10 @@ class TestLUploadGranules(unittest.TestCase):
         os.environ['DELETE_FILES'] = 'false'
 
         with tempfile.TemporaryDirectory() as tmp_dir_name:
-            with open(os.path.join(tmp_dir_name, 'Downloads/SNDR.SNPP.ATMS.L1A.nominal2.02.nc')) as ff:
+            os.environ['UPLOAD_DIR'] = tmp_dir_name
+            with open(os.path.join(tmp_dir_name, 'SNDR.SNPP.ATMS.L1A.nominal2.02.nc'), 'w') as ff:
                 ff.write('sample_file')
-            with open(os.path.join(tmp_dir_name, 'Downloads/SNDR.SNPP.ATMS.L1A.nominal2.02.nc.cas')) as ff:
+            with open(os.path.join(tmp_dir_name, 'SNDR.SNPP.ATMS.L1A.nominal2.02.nc.cas'), 'w') as ff:
                 ff.write('''<?xml version="1.0" encoding="UTF-8" ?>
 <cas:metadata xmlns:cas="http://oodt.jpl.nasa.gov/1.0/cas">
     <keyval type="scalar">
@@ -120,5 +121,5 @@ class TestLUploadGranules(unittest.TestCase):
         <val>8c3ae101-8f7c-46c8-b5c6-63e7b6d3c8cd</val>
     </keyval>
 </cas:metadata>''')
-            self.assertEqual('Registered', UploadGranules().start(), 'wrong registration result')
+            self.assertEqual('REGISTERED', UploadGranules().start().upper().strip(), 'wrong registration result')
         return
