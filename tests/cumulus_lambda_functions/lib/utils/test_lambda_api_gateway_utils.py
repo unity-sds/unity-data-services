@@ -52,15 +52,36 @@ class TestCognitoLogin(unittest.TestCase):
             'body': None,
             'isBase64Encoded': False
         }
+        lambda_pagination = LambdaApiGatewayUtils(sample_event, 10)
+        links = lambda_pagination.generate_pagination_links()
+        links_dict = {k['rel']: k['href'] for k in links}
+        self.assertTrue('next' in links_dict, f'next missing in {links}')
+        self.assertTrue('prev' in links_dict, f'prev missing in {links}')
+        self.assertTrue('self' in links_dict, f'self missing in {links}')
+        self.assertTrue('root' in links_dict, f'root missing in {links}')
         next_url = 'https://k3a3qmarxh.execute-api.us-west-2.amazonaws.com/dev/am-uds-dapa/collections/L0_SNPP_ATMS_SCIENCE___1/items?datetime=1990-01-01T00:00:00Z/2021-01-03T00:00:00Z&limit=10&offset=10'
+        self.assertEqual(sorted(next_url), sorted(links_dict['next']), f'wrong next url. {next_url} vs {links_dict["next"]}')
         prev_url = 'https://k3a3qmarxh.execute-api.us-west-2.amazonaws.com/dev/am-uds-dapa/collections/L0_SNPP_ATMS_SCIENCE___1/items?datetime=1990-01-01T00:00:00Z/2021-01-03T00:00:00Z&limit=10&offset=0'
-        self.assertEqual(sorted(next_url), sorted(LambdaApiGatewayUtils.generate_next_url(sample_event, 10)), f'wrong next url')
-        self.assertEqual(sorted(prev_url), sorted(LambdaApiGatewayUtils.generate_prev_url(sample_event, 10)), f'wrong prev url')
-        self.assertEqual('', LambdaApiGatewayUtils.generate_next_url(sample_event, 0), f'wrong next empty url')
-        self.assertEqual('', LambdaApiGatewayUtils.generate_prev_url(sample_event, 0), f'wrong next empty url')
+        self.assertEqual(sorted(prev_url), sorted(links_dict['prev']), f'wrong next url. {prev_url} vs {links_dict["prev"]}')
+        current_url = 'https://k3a3qmarxh.execute-api.us-west-2.amazonaws.com/dev/am-uds-dapa/collections/L0_SNPP_ATMS_SCIENCE___1/items?datetime=1990-01-01T00:00:00Z/2021-01-03T00:00:00Z&limit=10&offset=0'
+        self.assertEqual(sorted(current_url), sorted(links_dict['self']), f'wrong self url. {current_url} vs {links_dict["self"]}')
+
+        lambda_pagination = LambdaApiGatewayUtils(sample_event, 0)
+        links = lambda_pagination.generate_pagination_links()
+        links_dict = {k['rel']: k['href'] for k in links}
+        self.assertEqual('', links_dict['next'], f'wrong next empty url. {links_dict["next"]}')
+        self.assertEqual('', links_dict['prev'], f'wrong next empty url. {links_dict["prev"]}')
+        current_url = 'https://k3a3qmarxh.execute-api.us-west-2.amazonaws.com/dev/am-uds-dapa/collections/L0_SNPP_ATMS_SCIENCE___1/items?datetime=1990-01-01T00:00:00Z/2021-01-03T00:00:00Z&limit=0&offset=0'
+        self.assertEqual(sorted(current_url), sorted(links_dict['self']), f'wrong self url. {current_url} vs {links_dict["self"]}')
+
         sample_event['queryStringParameters']['offset'] = 10
+        lambda_pagination = LambdaApiGatewayUtils(sample_event, 5)
+        links = lambda_pagination.generate_pagination_links()
+        links_dict = {k['rel']: k['href'] for k in links}
         next_url = 'https://k3a3qmarxh.execute-api.us-west-2.amazonaws.com/dev/am-uds-dapa/collections/L0_SNPP_ATMS_SCIENCE___1/items?datetime=1990-01-01T00:00:00Z/2021-01-03T00:00:00Z&limit=5&offset=15'
+        self.assertEqual(sorted(next_url), sorted(links_dict['next']), f'wrong next url. {next_url} vs {links_dict["next"]}')
         prev_url = 'https://k3a3qmarxh.execute-api.us-west-2.amazonaws.com/dev/am-uds-dapa/collections/L0_SNPP_ATMS_SCIENCE___1/items?datetime=1990-01-01T00:00:00Z/2021-01-03T00:00:00Z&limit=5&offset=5'
-        self.assertEqual(sorted(next_url), sorted(LambdaApiGatewayUtils.generate_next_url(sample_event, 5)), f'wrong next url 2')
-        self.assertEqual(sorted(prev_url), sorted(LambdaApiGatewayUtils.generate_prev_url(sample_event, 5)), f'wrong prev url 2')
+        self.assertEqual(sorted(prev_url), sorted(links_dict['prev']), f'wrong next url. {prev_url} vs {links_dict["prev"]}')
+        current_url = 'https://k3a3qmarxh.execute-api.us-west-2.amazonaws.com/dev/am-uds-dapa/collections/L0_SNPP_ATMS_SCIENCE___1/items?datetime=1990-01-01T00:00:00Z/2021-01-03T00:00:00Z&limit=5&offset=10'
+        self.assertEqual(sorted(current_url), sorted(links_dict['self']), f'wrong self url. {current_url} vs {links_dict["self"]}')
         return

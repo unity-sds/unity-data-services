@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 install_requires = [
     'fastjsonschema',
     'xmltodict',
-    'requests===2.27.1'
+    'requests'
 ]
 
 flask_requires = [
@@ -19,13 +19,13 @@ setup(
     version="1.6.17",
     packages=find_packages(),
     install_requires=install_requires,
-    tests_require=['mock', 'nose', 'sphinx', 'sphinx_rtd_theme', 'coverage'],
+    tests_require=['mock', 'nose', 'sphinx', 'sphinx_rtd_theme', 'coverage', 'pystac', 'python-dotenv', 'jsonschema'],
     test_suite='nose.collector',
     author=['Wai Phyo'],
     author_email=['wai.phyo@jpl.nasa.gov'],
     license='NONE',
     include_package_data=True,
-    python_requires="==3.7",
+    python_requires="==3.9",
     entry_points={
     }
 )
