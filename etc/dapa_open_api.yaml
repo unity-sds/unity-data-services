@@ -1,0 +1,148 @@
+openapi: 3.0.3
+info:
+  title: in-situ-data-services
+  description: API for querying in-situ data sources
+  version: 0.0.1
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: https://k3a3qmarxh.execute-api.us-west-2.amazonaws.com/dev
+    description: 'JPL AWS Cloud API Gateway'
+  - url: https://1gp9st60gd.execute-api.us-west-2.amazonaws.com/dev
+    description: 'MCP AWS Cloud API Gateway - DEV Venue'
+  - url: https://58nbcawrvb.execute-api.us-west-2.amazonaws.com/test
+    description: 'MCP AWS Cloud API Gateway - TEST Venue'
+
+paths:
+  '/am-uds-dapa/collections':
+    get:
+      summary: 'list all collections in Cumulus'
+      parameters:
+        - name: "Authorization"
+          description: "Authorization Bearer token. It should begin with the key `Bearer <token>`"
+          in: "header"
+          required: true
+          schema:
+            type: "string"
+        - name: "limit"
+          description: "How many items in 1 page. defaulted to 10"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+        - name: "offset"
+          description: "How many items to skip. if limit == 10, offset = 10 for 2nd page, so on and so forth"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        '200':
+          description: 'Successful query'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  features:
+                    example: 'STAC collection array'
+                    type: array
+                    items:
+                      type: object
+        '500':
+          description: 'Server Error'
+        '403':
+          description: 'Authorization Error'
+        '401':
+          description: 'Authorization Error'
+    put:
+      summary: 'ingest new granules to a collection'
+      parameters:
+        - name: "Authorization"
+          description: "Authorization Bearer token. It should begin with the key `Bearer <token>`"
+          in: "header"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        description: 'Ingestion Body in JSON'
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                provider_id:
+                  type: string
+                  description: 'Provider ID defined in Cumulus'
+                features:
+                  description: 'STAC granules array'
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '200':
+          description: 'Successful query'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    description: 'result description'
+                    type: string
+        '500':
+          description: 'Server Error'
+        '403':
+          description: 'Authorization Error'
+        '401':
+          description: 'Authorization Error'
+  '/am-uds-dapa/collections/{collectionId}/items':
+    get:
+      summary: 'list all granules in Cumulus'
+      parameters:
+        - name: "Authorization"
+          description: "Authorization Bearer token. It should begin with the key `Bearer <token>`"
+          in: "header"
+          required: true
+          schema:
+            type: "string"
+        - name: "collectionId"
+          description: "Cumulus Collection Id from DAPA collection endpoint. add `*` if querying from all collections"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+        - name: "limit"
+          description: "How many items in 1 page. defaulted to 10"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+        - name: "offset"
+          description: "How many items to skip. if limit == 10, offset = 10 for 2nd page, so on and so forth"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        '200':
+          description: 'Successful query'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  features:
+                    description: 'STAC granule (aka item) array'
+                    type: array
+                    items:
+                      type: object
+        '500':
+          description: 'Server Error'
+        '403':
+          description: 'Authorization Error'
+        '401':
+          description: 'Authorization Error'

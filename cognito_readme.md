@@ -9,9 +9,11 @@
            "ClientId" : "7a1fglm2d54eoggj13lccivp25"
         }
 - ask U-CS to create credentials and change password the first time
-- run this command:
+- run this command (JPL AWS):
 
         curl -X POST --data @cognito.jpl.aws.json -H 'X-Amz-Target: AWSCognitoIdentityProviderService.InitiateAuth' -H 'Content-Type: application/x-amz-json-1.1' https://cognito-idp.us-west-2.amazonaws.com/|jq
+        curl -X POST --data @cognito.mcp.test.aws.json -H 'X-Amz-Target: AWSCognitoIdentityProviderService.InitiateAuth' -H 'Content-Type: application/x-amz-json-1.1' https://cognito-idp.us-west-2.amazonaws.com/|jq
+        curl -X POST --data @cognito.mcp.dev.aws.json -H 'X-Amz-Target: AWSCognitoIdentityProviderService.InitiateAuth' -H 'Content-Type: application/x-amz-json-1.1' https://cognito-idp.us-west-2.amazonaws.com/|jq
 - successful response:
 
         {

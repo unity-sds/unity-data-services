@@ -1,7 +1,7 @@
 version: "3.7"
 services:
   cumulus_granules_upload:
-    image: ghcr.io/unity-sds/unity-data-services:1.5.15
+    image: ghcr.io/unity-sds/unity-data-services:1.7.0
     volumes:
       - /tmp/snpp_upload_test_1:/etc/snpp_upload_test_1
     command: ["upload"]

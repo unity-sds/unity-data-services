@@ -3,6 +3,7 @@ import os
 
 from cumulus_lambda_functions.cumulus_wrapper.query_granules import GranulesQuery
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
+from cumulus_lambda_functions.lib.utils.lambda_api_gateway_utils import LambdaApiGatewayUtils
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
 
@@ -87,25 +88,50 @@ class CumulusGranulesDapa:
             self.__offset = int(query_str_dict['offset'])
         return self
 
+    def __get_size(self):
+        try:
+            cumulus_size = self.__cumulus.get_size(self.__cumulus_lambda_prefix)
+        except:
+            LOGGER.exception(f'cannot get cumulus_size')
+            cumulus_size = {'total_size': -1}
+        return cumulus_size
+
+    def __get_pagination_urls(self):
+        try:
+            pagination_links = LambdaApiGatewayUtils(self.__event, self.__limit).generate_pagination_links()
+        except Exception as e:
+            LOGGER.exception(f'error while generating pagination links')
+            return [{'message': f'error while generating pagination links: {str(e)}'}]
+        return pagination_links
+
     def start(self):
         try:
             cumulus_result = self.__cumulus.query_direct_to_private_api(self.__cumulus_lambda_prefix)
+            if 'server_error' in cumulus_result:
+                return {
+                    'statusCode': 500,
+                    'body': {'message': cumulus_result['server_error']}
+                }
+            if 'client_error' in cumulus_result:
+                return {
+                    'statusCode': 400,
+                    'body': {'message': cumulus_result['client_error']}
+                }
+            cumulus_size = self.__get_size()
+            return {
+                'statusCode': 200,
+                'body': json.dumps({
+                    'numberMatched': cumulus_size['total_size'],
+                    'numberReturned': len(cumulus_result['results']),
+                    'stac_version': '1.0.0',
+                    'type': 'FeatureCollection',  # TODO correct name?
+                    'links': self.__get_pagination_urls(),
+                    'features': cumulus_result['results']
+                })
+            }
         except Exception as e:
+            LOGGER.exception(f'unexpected error')
             return {
                 'statusCode': 500,
                 'body': {'message': f'unpredicted error: {str(e)}'}
             }
-        if 'server_error' in cumulus_result:
-            return {
-                'statusCode': 500,
-                'body': {'message': cumulus_result['server_error']}
-            }
-        if 'client_error' in cumulus_result:
-            return {
-                'statusCode': 400,
-                'body': {'message': cumulus_result['client_error']}
-            }
-        return {
-            'statusCode': 200,
-            'body': json.dumps({'features': cumulus_result['results']})
-        }

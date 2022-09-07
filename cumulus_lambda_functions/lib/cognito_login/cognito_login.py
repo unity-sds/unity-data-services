@@ -130,6 +130,6 @@ curl -X POST --data @cognito.jpl.aws.json
         login_result = json.loads(response.content.decode('utf-8'))
         result = JsonValidator(COGNITO_RESULT_SCHEMA).validate(login_result)
         if result is not None:
-            raise ValueError(f'pds metadata has validation errors: {result}')
+            raise ValueError(f'cognito login response has validation errors: {result}')
         self.__token = login_result['AuthenticationResult']['AccessToken']
         return self
