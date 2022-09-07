@@ -127,6 +127,7 @@ class GenerateCmr:
 
     def __get_pds_metadata_file(self):
         self.__input_file_list = self.__event['cma']['event']['meta']['input_granules'][0]['files']
+        pds_metadata_file = None
         for each_file in self.__input_file_list:
             if 'fileName' not in each_file and 'name' in each_file:  # add fileName if there is only name
                 each_file['fileName'] = each_file['name']
@@ -136,8 +137,8 @@ class GenerateCmr:
                 each_file['key'] = s3_key
             LOGGER.debug(f'checking file: {each_file}')
             if each_file['key'].upper().endswith('.NC.CAS'):
-                return each_file
-        return None
+                pds_metadata_file = each_file
+        return pds_metadata_file
 
     def __read_pds_metadata_file(self):
         self._pds_file_dict = self.__get_pds_metadata_file()
