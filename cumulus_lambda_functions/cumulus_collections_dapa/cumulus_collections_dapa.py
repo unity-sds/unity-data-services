@@ -15,6 +15,7 @@ class CumulusCollectionsDapa:
         self.__jwt_token = 'NA'
         self.__limit = 10
         self.__offset = 0
+        self.__assign_values()
         self.__page_number = (self.__offset // self.__limit) + 1
         if 'CUMULUS_BASE' not in os.environ:
             raise EnvironmentError('missing key: CUMULUS_BASE')
