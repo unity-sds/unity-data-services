@@ -1,13 +1,11 @@
 import os
 import re
 from datetime import datetime
-print('hello world')
 # os.environ['GITHUB_WORKSPACE'] = '/Users/wphyo/Projects/unity/unity-data-services'
 # os.environ['PR_TITLE'] = 'breaking: test1'
 # os.environ['PR_NUMBER'] = '342'
 # PR_NUMBER: ${{ github.event.number }}
 # PR_TITLE: ${{ github.event.pull_request.title }}
-print(os.environ)
 pr_title = os.environ.get('PR_TITLE')
 pr_number = os.environ.get('PR_NUMBER')
 root_dir = os.environ.get('GITHUB_WORKSPACE')
