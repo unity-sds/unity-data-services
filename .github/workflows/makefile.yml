@@ -19,6 +19,11 @@ jobs:
       with:
         python-version: '3.9'
     - run: |
+        # make file runnable, might not be necessary
+        chmod +x "${GITHUB_WORKSPACE}/ci.cd/store_version.sh"
+        # run script
+          "${GITHUB_WORKSPACE}/ci.cd/store_version.sh"
+    - run: |
         python3 "${GITHUB_WORKSPACE}/setup.py" install
     - run: |
         python3 "${GITHUB_WORKSPACE}/setup.py" install_lib
