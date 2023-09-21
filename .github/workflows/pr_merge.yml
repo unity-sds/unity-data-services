@@ -27,3 +27,8 @@ jobs:
         echo "${PR_TITLE} -- ${PR_NUMBER}"
     - run: |
         python3 "${GITHUB_WORKSPACE}/ci.cd/update_setup_version.py" install
+    - run: |
+        chmod +x "${GITHUB_WORKSPACE}/ci.cd/update_version_commit.sh"
+        "${GITHUB_WORKSPACE}/ci.cd/update_version_commit.sh"
+
+        git diff
