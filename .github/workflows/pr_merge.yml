@@ -5,6 +5,8 @@ on:
 
 env:
   ARTIFACT_BASE_NAME: cumulus_lambda_functions
+  PR_NUMBER: ${{ github.event.number }}
+  PR_TITLE: ${{ github.event.pull_request.title }}
 jobs:
   if_merged:
     if: github.event.pull_request.merged == true
