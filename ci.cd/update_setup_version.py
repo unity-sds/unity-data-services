@@ -25,6 +25,15 @@ elif pr_title.startswith('fix') or pr_title.startswith('chore'):  # TODO chore i
 else:
     raise RuntimeError(f'invalid PR Title: {pr_title}')
 
+def get_new_version(current_version):
+    # Parse the current version and increment it
+    major, minor, patch = map(int, current_version.split('.'))
+    if patch1 == 1:
+        return f"{major}.{minor}.{patch + 1}"
+    if minor1 == 1:
+        return f"{major}.{minor + 1}.0"
+    return f"{major+1}.0.0"
+
 def update_version():
     # Specify the path to your setup.py file
     setup_py_path = os.path.join(root_dir, 'setup.py')
@@ -37,13 +46,10 @@ def update_version():
 
     # Find the current version using the regular expression pattern
     current_version = re.search(version_pattern, setup_contents).group(1)
-
-    # Parse the current version and increment it
-    major, minor, patch = map(int, current_version.split('.'))
-    new_version = f"{major + major1}.{minor + minor1}.{patch + patch1}"
+    new_version = get_new_version(current_version)
 
     # Replace the old version with the new version in setup.py
-    updated_setup_contents = re.sub(version_pattern, f"version = '{new_version}'", setup_contents)
+    updated_setup_contents = re.sub(version_pattern, f"version='{new_version}'", setup_contents)
 
     # Write the updated contents back to setup.py
     with open(setup_py_path, 'w') as setup_file:
