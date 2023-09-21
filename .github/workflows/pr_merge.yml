@@ -30,5 +30,3 @@ jobs:
     - run: |
         chmod +x "${GITHUB_WORKSPACE}/ci.cd/update_version_commit.sh"
         "${GITHUB_WORKSPACE}/ci.cd/update_version_commit.sh"
-
-        git diff
