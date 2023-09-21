@@ -17,10 +17,10 @@ if pr_title.startswith('breaking'):
     major1, minor1, patch1 = 1, 0, 0
     change_log_line = '### Added'
 elif pr_title.startswith('feat'):
-    major1, minor1, patch1 = 1, 1, 0
+    major1, minor1, patch1 = 0, 1, 0
     change_log_line = '### Changed'
 elif pr_title.startswith('fix') or pr_title.startswith('chore'):  # TODO chore is bumping up version?
-    major1, minor1, patch1 = 1, 0, 1
+    major1, minor1, patch1 = 0, 0, 1
     change_log_line = '### Fixed'
 else:
     raise RuntimeError(f'invalid PR Title: {pr_title}')
