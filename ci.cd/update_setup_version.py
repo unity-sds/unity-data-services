@@ -63,7 +63,8 @@ def update_change_log():
     change_log_blob = [
         f'## [{new_version_from_setup}] - {datetime.now().strftime("%Y-%m-%d")}',
         change_log_line,
-        f'- [#${pr_number}](https://github.com/unity-sds/unity-data-services/pull/{pr_number}) {pr_title}'
+        f'- [#${pr_number}](https://github.com/unity-sds/unity-data-services/pull/{pr_number}) {pr_title}',
+        ''
     ]
     with open(change_log_path, 'r') as change_log_file:
         change_logs = change_log_file.read().splitlines()
