@@ -63,7 +63,7 @@ def update_change_log():
     change_log_blob = [
         f'## [{new_version_from_setup}] - {datetime.now().strftime("%Y-%m-%d")}',
         change_log_line,
-        f'- [#${pr_number}](https://github.com/unity-sds/unity-data-services/pull/{pr_number}) {pr_title}',
+        f'- [#{pr_number}](https://github.com/unity-sds/unity-data-services/pull/{pr_number}) {pr_title}',
         ''
     ]
     with open(change_log_path, 'r') as change_log_file:
@@ -75,7 +75,7 @@ def update_change_log():
         if re.search(pattern, each_line):
             inserting_line = i
             break
-    inserting_line = inserting_line - 1 if inserting_line > 0 else inserting_line
+    # inserting_line = inserting_line - 1 if inserting_line > 0 else inserting_line
     for i, each_line in enumerate(change_log_blob):
         change_logs.insert(inserting_line, each_line)
         inserting_line += 1
