@@ -70,7 +70,7 @@ Please visit our [developer guide](https://unity-sds.gitbook.io/docs/developer-d
 
 ### Run Instructions
 
-Please visit our [developer guide](https://unity-sds.gitbook.io/docs/developer-docs/data/docs/developers-guide) for run instructions.
+Please visit our [developer guide](https://unity-sds.gitbook.io/docs/developer-docs/data/docs/developers-guide) for run instructions..
 
 <!-- ☝️ Replace with a numbered list of your run instructions, including expected results ☝️ -->
 
