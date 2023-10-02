@@ -64,7 +64,7 @@ Please visit our [quick-start](https://unity-sds.gitbook.io/docs/developer-docs/
 
 ### Setup Instructions
 
-Please visit our [developer guide](https://unity-sds.gitbook.io/docs/developer-docs/data/docs/developers-guide) for setup instructions..
+Please visit our [developer guide](https://unity-sds.gitbook.io/docs/developer-docs/data/docs/developers-guide) for setup instructions.
    
 <!-- ☝️ Replace with a numbered list of how to set up your software prior to running ☝️ -->
 
