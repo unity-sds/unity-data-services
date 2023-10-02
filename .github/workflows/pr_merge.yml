@@ -8,6 +8,7 @@ env:
   PR_NUMBER: ${{ github.event.number }}
   PR_TITLE: ${{ github.event.pull_request.title }}
   PAT_TOKEN: ${{ secrets.PAT_SECRET }}
+  GH_TOKEN: ${{ github.token }}
 jobs:
   if_merged:
     if: github.event.pull_request.merged == true
