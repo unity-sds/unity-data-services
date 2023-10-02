@@ -18,6 +18,6 @@ echo $result
 pr_number=`echo $result | grep -oE '[0-9]+$'`
 echo ${pr_number}
 #gh pr review $pr_number --approve
-gh pr merge $pr_number --squash --merge --bypass
+gh pr merge $pr_number --squash --admin
 git branch -D ${temp_branch}
 
