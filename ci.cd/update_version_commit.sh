@@ -15,9 +15,9 @@ git commit -m "${commit_message}"
 git push --force origin $temp_branch
 result=`gh pr create --base "${current_branch}" --body "NA" --head "${temp_branch}" --title "${commit_message}"`
 echo $result
-#pr_number=` | grep -oP '#\K\d+'`
-#echo ${pr_number}
-#gh pr review $pr_number --approve
-#gh pr merge $pr_number --squash --merge
-#git branch -D ${temp_branch}
+pr_number=` echo $result | grep -oP '#\K\d+'`
+echo ${pr_number}
+gh pr review $pr_number --approve
+gh pr merge $pr_number --squash --merge
+git branch -D ${temp_branch}
 
