@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 git status
 git diff
 current_branch=`git branch --show-current`
