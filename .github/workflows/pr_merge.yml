@@ -7,6 +7,7 @@ env:
   ARTIFACT_BASE_NAME: cumulus_lambda_functions
   PR_NUMBER: ${{ github.event.number }}
   PR_TITLE: ${{ github.event.pull_request.title }}
+  PAT_TOKEN: ${{ secrets.PAT_SECRET }}
 jobs:
   if_merged:
     if: github.event.pull_request.merged == true
@@ -27,14 +28,6 @@ jobs:
           echo "${PR_TITLE} -- ${PR_NUMBER}"
       - run: |
           python3 "${GITHUB_WORKSPACE}/ci.cd/update_setup_version.py" install
-      - name: Push files and tag
-        uses: Amraneze/push-to-protected-branch@v1.5.0
-        with:
-          repository: ${{ github.repository }}
-          branch_name: ${{ github.ref_name }}
-          github_token: ${{ secrets.PAT_SECRET }}
-          commit_message: 'chore: update version + change log'
-          files_to_commit: 'setup.py,CHANGELOG.md'
-#      - run: |
-#          chmod +x "${GITHUB_WORKSPACE}/ci.cd/update_version_commit.sh"
-#          "${GITHUB_WORKSPACE}/ci.cd/update_version_commit.sh"
+      - run: |
+          chmod +x "${GITHUB_WORKSPACE}/ci.cd/update_version_commit.sh"
+          "${GITHUB_WORKSPACE}/ci.cd/update_version_commit.sh"
