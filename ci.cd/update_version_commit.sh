@@ -15,11 +15,13 @@ git config --local user.name ${GITHUB_TRIGGERING_ACTOR}
 git add -u
 git commit -m "${commit_message}"
 git push --force origin $temp_branch
+echo "creating PR"
 result=`gh pr create --base "${current_branch}" --body "NA" --head "${temp_branch}" --title "${commit_message}"`
-echo $result
+echo "PR result $result"
 pr_number=`echo $result | grep -oE '[0-9]+$'`
-echo ${pr_number}
+echo "PR number ${pr_number}"
 #gh pr review $pr_number --approve
-# hi
+echo "merging PR"
 gh pr merge $pr_number --squash --admin
+echo "deleting branch"
 git push origin --delete ${temp_branch}
