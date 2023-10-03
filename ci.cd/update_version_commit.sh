@@ -20,8 +20,9 @@ result=`gh pr create --base "${current_branch}" --body "NA" --head "${temp_branc
 echo "PR result $result"
 pr_number=`echo $result | grep -oE '[0-9]+$'`
 echo "PR number ${pr_number}"
+# don't allow auto merge to avoid bad actors using it to merge other code
 #gh pr review $pr_number --approve
-echo "merging PR"
-gh pr merge $pr_number --squash --admin
-echo "deleting branch"
-git push origin --delete ${temp_branch}
+#echo "merging PR"
+#gh pr merge $pr_number --squash --admin
+#echo "deleting branch"
+#git push origin --delete ${temp_branch}
