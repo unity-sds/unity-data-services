@@ -4,6 +4,8 @@ current_branch='develop-2023-10-02'
 temp_branch="chore-version-update"
 commit_message="chore: update version + change log"
 
+env
+
 git stash
 git checkout -b ${temp_branch}
 git stash pop
