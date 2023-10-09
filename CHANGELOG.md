@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.5.5] - 2023-10-09
+### Fixed
+- [#252](https://github.com/unity-sds/unity-data-services/pull/252) fix: version update + changelog via pr
+
 ## [5.5.4] - 2023-10-03
 ### Fixed
 - [#249](https://github.com/unity-sds/unity-data-services/pull/249) chore: update version + change log
