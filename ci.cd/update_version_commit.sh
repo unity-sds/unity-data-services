@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-#current_branch=`git branch --show-current`
-current_branch='develop-2023-10-02'
-temp_branch="chore-version-update"
+current_branch=`git branch --show-current`
+echo "current_branch: ${current_branch}"
+#current_branch='develop-2023-10-02'
+current_date=$(date +%Y-%m-%dT%H-%M-%S)
+temp_branch="chore-version-update--${current_date}"
+echo "temp_branch: ${temp_branch}"
 commit_message="chore: update version + change log"
 
 env
