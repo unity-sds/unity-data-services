@@ -26,3 +26,4 @@ echo "PR number ${pr_number}"
 #gh pr merge $pr_number --squash --admin
 #echo "deleting branch"
 #git push origin --delete ${temp_branch}
+# mock update
