@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.7.1] - 2024-01-04
+### Fixed
+- [#263](https://github.com/unity-sds/unity-data-services/pull/263) fix: metadata stac generate cmr  file postfix
+
 ## [5.7.0] - 2024-01-04
 ### Changed
 - [#264](https://github.com/unity-sds/unity-data-services/pull/264) feat: collection validation in catalog
