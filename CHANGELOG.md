@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.3.1] - 2024-01-29
+### Fixed
+- [#307](https://github.com/unity-sds/unity-data-services/pull/307) chore: main branch catch up
+
 ## [6.3.0] - 2024-01-29
 ### Changed
 - [#303](https://github.com/unity-sds/unity-data-services/pull/303) feat: find stac metadata file
