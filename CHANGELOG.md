@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.1] - 2024-03-01
+### Fixed
+- [#335](https://github.com/unity-sds/unity-data-services/pull/335) fix: split into different catalog base url
+
 ## [7.0.0] - 2024-02-29
 ### Added
 - [#333](https://github.com/unity-sds/unity-data-services/pull/333) breaking: catalog & collection endpoint + items link
