@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [#342](https://github.com/unity-sds/unity-data-services/pull/342) fix: no filename in main data.stac.json file
 - [#347](https://github.com/unity-sds/unity-data-services/pull/347) fix: downgrade pystac to 1.9
 
+## [7.4.0] - 2024-04-15
+### Changed
+- [#361](https://github.com/unity-sds/unity-data-services/pull/361) feat: uploading successful feature collection to s3
+
 ## [7.3.0] - 2024-04-15
 ### Changed
 - [#362](https://github.com/unity-sds/unity-data-services/pull/362) feat: add health check ssm
