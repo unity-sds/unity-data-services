@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.5.0] - 2024-04-24
+### Changed
+- [#365](https://github.com/unity-sds/unity-data-services/pull/365) feat: add granuile cnm ingester tf
+
 ## [7.4.0] - 2024-04-15
 ### Changed
 - [#361](https://github.com/unity-sds/unity-data-services/pull/361) feat: uploading successful feature collection to s3
