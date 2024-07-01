@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.9.0] - 2024-07-01
+### Changed
+- [#385](https://github.com/unity-sds/unity-data-services/pull/385) feat: different web service for stac browser
+
 ## [7.8.1] - 2024-06-27
 ### Fixed
 - [#373](https://github.com/unity-sds/unity-data-services/pull/373) fix: updating path for httpd testing
