@@ -22,7 +22,7 @@ extra_requires = ['botocore', 'boto3',]
 
 setup(
     name="cumulus_lambda_functions",
-    version="7.10.1",
+    version="7.11.0",
     packages=find_packages(),
     install_requires=install_requires,
     package_data={
