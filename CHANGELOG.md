@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.13.0] - 2024-08-12
+### Changed
+- [#402](https://github.com/unity-sds/unity-data-services/pull/402) feat: daac sender + receiver logic
+
 ## [7.12.2] - 2024-08-06
 ### Fixed
 - [#407](https://github.com/unity-sds/unity-data-services/pull/407) fix: download from http with stream enabled
