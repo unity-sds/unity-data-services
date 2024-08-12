@@ -1,4 +1,7 @@
 class GranulesIndexMapping:
+    archiving_keys = [
+        'archive_status', 'archive_error_message', 'archive_error_code'
+    ]
     percolator_mappings = {
         "daac_collection_name": {
             "type": "keyword"

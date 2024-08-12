@@ -3,6 +3,7 @@ from copy import deepcopy
 from pystac import Link
 
 from cumulus_lambda_functions.daac_archiver.daac_archiver_logic import DaacArchiverLogic
+from cumulus_lambda_functions.granules_to_es.granules_index_mapping import GranulesIndexMapping
 from cumulus_lambda_functions.uds_api.dapa.pagination_links_generator import PaginationLinksGenerator
 from cumulus_lambda_functions.lib.aws.es_middleware import ESMiddleware
 from cumulus_lambda_functions.lib.cql_parser import CqlParser
@@ -151,7 +152,9 @@ class GranulesDapaQueryEs:
                     each_granules_query_result_stripped.pop('event_time')
                 if 'bbox' in each_granules_query_result_stripped:
                     each_granules_query_result_stripped['bbox'] = GranulesDbIndex.from_es_bbox(each_granules_query_result_stripped['bbox'])
-
+                for each_archiving_key in GranulesIndexMapping.archiving_keys:
+                    if each_archiving_key in each_granules_query_result_stripped:
+                        each_granules_query_result_stripped['properties'][each_archiving_key] = each_granules_query_result_stripped.pop(each_archiving_key)
             pagination_link = '' if len(granules_query_result['hits']['hits']) < self.__limit else ','.join(granules_query_result['hits']['hits'][-1]['sort'])
             return {
                 'statusCode': 200,
