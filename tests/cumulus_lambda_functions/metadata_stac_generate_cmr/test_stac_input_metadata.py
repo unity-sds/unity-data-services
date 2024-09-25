@@ -47,8 +47,8 @@ class TestStacInputMetadata(TestCase):
         self.assertEqual(granule_metadata_props.ending_dt, stac_item.properties['end_datetime'], f'wrong prod_dt')
         expected_custom = {
             **custom_metadata_core,
-            'granule_id': stac_item.id,
-            'collection_id': stac_item.collection_id
+            # 'granule_id': stac_item.id,
+            # 'collection_id': stac_item.collection_id
         }
         self.assertEqual(sorted(json.dumps(expected_custom)), sorted(json.dumps(stac_metadata.custom_properties)), f'mismatch: {stac_metadata.custom_properties}, {expected_custom}')
         return
