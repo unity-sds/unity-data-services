@@ -2,7 +2,7 @@ import json
 import re
 
 import requests
-from cumulus_lambda_functions.cumulus_stac.collection_transformer import CollectionTransformer
+from mdps_ds_lib.lib.cumulus_stac.collection_transformer import CollectionTransformer
 
 from cumulus_lambda_functions.cumulus_wrapper.cumulus_base import CumulusBase
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator

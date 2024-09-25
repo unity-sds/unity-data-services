@@ -1,4 +1,4 @@
-from cumulus_lambda_functions.lib.aws.factory_abstract import FactoryAbstract
+from mdps_ds_lib.lib.utils.factory_abstract import FactoryAbstract
 
 
 class UDSAuthorizerFactory(FactoryAbstract):

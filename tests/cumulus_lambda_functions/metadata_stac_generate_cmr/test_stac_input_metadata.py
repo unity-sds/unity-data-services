@@ -4,7 +4,7 @@ from unittest import TestCase
 from pystac import Item, Asset
 
 from cumulus_lambda_functions.metadata_stac_generate_cmr.stac_input_metadata import StacInputMetadata
-from cumulus_lambda_functions.lib.time_utils import TimeUtils
+from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 
 
 class TestStacInputMetadata(TestCase):

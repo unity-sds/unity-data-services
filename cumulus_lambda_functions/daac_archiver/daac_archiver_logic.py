@@ -3,16 +3,16 @@ import os
 from time import sleep
 
 import requests
-from cumulus_lambda_functions.lib.utils.file_utils import FileUtils
+from mdps_ds_lib.lib.utils.file_utils import FileUtils
 
-from cumulus_lambda_functions.lib.aws.aws_s3 import AwsS3
+from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 
-from cumulus_lambda_functions.lib.aws.aws_message_transformers import AwsMessageTransformers
-from cumulus_lambda_functions.lib.json_validator import JsonValidator
+from mdps_ds_lib.lib.aws.aws_message_transformers import AwsMessageTransformers
+from mdps_ds_lib.lib.utils.json_validator import JsonValidator
 
 from cumulus_lambda_functions.lib.uds_db.granules_db_index import GranulesDbIndex
-from cumulus_lambda_functions.lib.aws.aws_sns import AwsSns
-from cumulus_lambda_functions.lib.time_utils import TimeUtils
+from mdps_ds_lib.lib.aws.aws_sns import AwsSns
+from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.lib.uds_db.uds_collections import UdsCollections
 from cumulus_lambda_functions.lib.uds_db.archive_index import UdsArchiveConfigIndex

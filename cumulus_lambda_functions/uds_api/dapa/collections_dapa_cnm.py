@@ -2,14 +2,14 @@ import json
 import os
 from typing import Union
 
-from cumulus_lambda_functions.lib.aws.aws_lambda import AwsLambda
+from mdps_ds_lib.lib.aws.aws_lambda import AwsLambda
 from starlette.datastructures import URL
 
-from cumulus_lambda_functions.lib.aws.aws_sns import AwsSns
+from mdps_ds_lib.lib.aws.aws_sns import AwsSns
 
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from pydantic import BaseModel
-from cumulus_lambda_functions.lib.time_utils import TimeUtils
+from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
 

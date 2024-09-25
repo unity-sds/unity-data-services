@@ -2,7 +2,7 @@ import json
 import os
 from unittest import TestCase
 
-from cumulus_lambda_functions.lib.time_utils import TimeUtils
+from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 from pystac import ItemCollection
 
 from cumulus_lambda_functions.granules_cnm_ingester.granules_cnm_ingester_logic import GranulesCnmIngesterLogic

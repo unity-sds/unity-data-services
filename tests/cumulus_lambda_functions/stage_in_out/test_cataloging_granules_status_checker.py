@@ -1,9 +1,9 @@
 import os
 from unittest import TestCase
 
-from cumulus_lambda_functions.lib.constants import Constants
-from cumulus_lambda_functions.lib.time_utils import TimeUtils
-from cumulus_lambda_functions.stage_in_out.cataloging_granules_status_checker import CatalogingGranulesStatusChecker
+from mdps_ds_lib.lib.constants import Constants
+from mdps_ds_lib.lib.utils.time_utils import TimeUtils
+from mdps_ds_lib.stage_in_out.cataloging_granules_status_checker import CatalogingGranulesStatusChecker
 
 
 class TestCatalogingGranulesStatusChecker(TestCase):

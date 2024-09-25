@@ -2,8 +2,8 @@ import os
 import tempfile
 from unittest import TestCase
 
-from cumulus_lambda_functions.lib.utils.file_utils import FileUtils
-from cumulus_lambda_functions.stage_in_out.stage_in_out_utils import StageInOutUtils
+from mdps_ds_lib.lib.utils.file_utils import FileUtils
+from mdps_ds_lib.stage_in_out.stage_in_out_utils import StageInOutUtils
 
 
 class TestStageInOutUtils(TestCase):
