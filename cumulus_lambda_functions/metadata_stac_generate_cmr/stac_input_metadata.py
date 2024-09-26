@@ -1,9 +1,9 @@
 from copy import deepcopy
 from pystac import Item
 
-from cumulus_lambda_functions.cumulus_stac.item_transformer import ItemTransformer
+from mdps_ds_lib.lib.cumulus_stac.item_transformer import ItemTransformer
 from cumulus_lambda_functions.lib.metadata_extraction.granule_metadata_props import GranuleMetadataProps
-from cumulus_lambda_functions.lib.time_utils import TimeUtils
+from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 
 
 class StacInputMetadata:

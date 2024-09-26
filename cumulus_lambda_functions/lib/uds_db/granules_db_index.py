@@ -2,13 +2,13 @@ import os
 from copy import deepcopy
 
 from cumulus_lambda_functions.granules_to_es.granules_index_mapping import GranulesIndexMapping
-from cumulus_lambda_functions.lib.time_utils import TimeUtils
+from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 
-from cumulus_lambda_functions.lib.aws.es_abstract import ESAbstract
+from mdps_ds_lib.lib.aws.es_abstract import ESAbstract
 
-from cumulus_lambda_functions.lib.aws.es_factory import ESFactory
+from mdps_ds_lib.lib.aws.es_factory import ESFactory
 
 from cumulus_lambda_functions.lib.uds_db.db_constants import DBConstants
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())

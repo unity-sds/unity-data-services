@@ -3,21 +3,21 @@ import os
 from time import sleep
 
 from cumulus_lambda_functions.daac_archiver.daac_archiver_logic import DaacArchiverLogic
-from cumulus_lambda_functions.lib.utils.file_utils import FileUtils
+from mdps_ds_lib.lib.utils.file_utils import FileUtils
 
-from cumulus_lambda_functions.cumulus_stac.item_transformer import ItemTransformer
+from mdps_ds_lib.lib.cumulus_stac.item_transformer import ItemTransformer
 
 from cumulus_lambda_functions.lib.uds_db.uds_collections import UdsCollections
 
 from cumulus_lambda_functions.metadata_stac_generate_cmr.stac_input_metadata import StacInputMetadata
 
-from cumulus_lambda_functions.lib.aws.aws_s3 import AwsS3
+from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 
-from cumulus_lambda_functions.lib.json_validator import JsonValidator
+from mdps_ds_lib.lib.utils.json_validator import JsonValidator
 
-from cumulus_lambda_functions.lib.aws.aws_message_transformers import AwsMessageTransformers
+from mdps_ds_lib.lib.aws.aws_message_transformers import AwsMessageTransformers
 from cumulus_lambda_functions.lib.uds_db.granules_db_index import GranulesDbIndex
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
