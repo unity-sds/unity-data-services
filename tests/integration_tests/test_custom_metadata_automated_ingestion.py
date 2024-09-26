@@ -9,18 +9,18 @@ from unittest import TestCase
 
 import pystac
 import requests
-from cumulus_lambda_functions.lib.aws.aws_s3 import AwsS3
+from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 
-from cumulus_lambda_functions.lib.time_utils import TimeUtils
+from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 from pystac import Link, Catalog, Asset, Item, ItemCollection
 
 from cumulus_lambda_functions.docker_entrypoint.__main__ import choose_process
 
-from cumulus_lambda_functions.lib.utils.file_utils import FileUtils
+from mdps_ds_lib.lib.utils.file_utils import FileUtils
 
-from cumulus_lambda_functions.cumulus_stac.unity_collection_stac import UnityCollectionStac
+from mdps_ds_lib.lib.cumulus_stac.unity_collection_stac import UnityCollectionStac
 
-from cumulus_lambda_functions.lib.cognito_login.cognito_login import CognitoLogin
+from mdps_ds_lib.lib.cognito_login.cognito_login import CognitoLogin
 from dotenv import load_dotenv
 
 

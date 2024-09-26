@@ -2,9 +2,9 @@ import os
 
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 
-from cumulus_lambda_functions.lib.aws.es_abstract import ESAbstract
+from mdps_ds_lib.lib.aws.es_abstract import ESAbstract
 
-from cumulus_lambda_functions.lib.aws.es_factory import ESFactory
+from mdps_ds_lib.lib.aws.es_factory import ESFactory
 
 from cumulus_lambda_functions.lib.uds_db.db_constants import DBConstants
 from cumulus_lambda_functions.cumulus_es_setup import es_mappings

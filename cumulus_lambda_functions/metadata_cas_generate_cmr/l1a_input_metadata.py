@@ -1,4 +1,4 @@
-from cumulus_lambda_functions.lib.json_validator import JsonValidator
+from mdps_ds_lib.lib.utils.json_validator import JsonValidator
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.lib.metadata_extraction.granule_metadata_props import GranuleMetadataProps
 
