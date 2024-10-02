@@ -1,0 +1,35 @@
+version: "3.7"
+services:
+  cumulus_granules_upload:
+    image: uds:local
+    volumes:
+      - /Users/wphyo/Downloads/uds_auxiliary_data:/data
+    command: ["UPLOAD"]
+    environment:
+      AWS_ACCESS_KEY_ID: 'dd'
+      AWS_SECRET_ACCESS_KEY: 'ddd'
+      AWS_SESSION_TOKEN: 'ddd'
+
+
+      AWS_REGION: 'us-west-2'
+
+      PYTHONUNBUFFERED: 1
+
+      GRANULES_UPLOAD_TYPE: 'UPLOAD_AUXILIARY_FILE_AS_GRANULE'
+
+      VERIFY_SSL: 'FALSE'
+      COLLECTION_ID: 'example: URN:NASA:UNITY:UDS_DEV_DEMO:DEV:UDS_UNIT_COLLECTION___2408271100'
+      STAGING_BUCKET: 'Example: uds-dev-cumulus-unity-staging'
+
+      DELETE_FILES: 'TRUE / FALSE'
+      RESULT_PATH_PREFIX: 'stage_out/sample_dir  (Optional:defaulted to stage_out if missing. NOTE: No need to begin or end with "/". )'
+
+      PARALLEL_COUNT: 3
+      OUTPUT_DIRECTORY: '/data/output'
+      BASE_DIRECTORY: '/data/including_dir < acting as a root where every file within this directory is added >'
+      OUTPUT_FILE: '/data/output/output.json'
+      LOG_LEVEL: '20'
+    networks:
+      - internal
+networks:
+  internal:

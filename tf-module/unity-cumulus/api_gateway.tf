@@ -50,6 +50,7 @@ resource "aws_api_gateway_deployment" "shared_services_api_gateway_deployment" {
 
   depends_on = [
     aws_api_gateway_integration.openapi_lambda_integration,
+    aws_api_gateway_integration.docs_lambda_integration,
 
     aws_api_gateway_integration.misc_catalog_list_lambda_integration,
     aws_api_gateway_integration.misc_stac_entry_lambda_integration,

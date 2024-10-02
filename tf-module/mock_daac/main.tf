@@ -83,14 +83,14 @@ resource "aws_iam_policy" "mock_daac_lambda_policy" {
           "s3:GetObject*",
           "s3:PutObject"
         ],
-        Resource = "arn:aws:s3:::/*unity*/*"
+        Resource = ["arn:aws:s3:::uds-sbx-cumulus-staging", "arn:aws:s3:::uds-sbx-cumulus-staging/*", "arn:aws:s3:::*unity*/*", "arn:aws:s3:::*unity*/*"]
       },
       {
         Effect = "Allow",
         Action = [
           "sns:Publish"
         ],
-        Resource = "arn:aws:sns:${var.uds_region}:${var.uds_account}:${var.uds_prefix}-daac_archiver"
+        Resource = "arn:aws:sns:${var.uds_region}:${var.uds_account}:${var.uds_prefix}-daac_archiver_response"
       }
     ]
   })
@@ -117,7 +117,7 @@ resource "aws_lambda_function" "mock_daac_lambda" {
       NO_RESPONSE_PERC = var.no_response_perc
       FAIL_PERC = var.no_response_perc
       FAIL_PERC = var.fail_perc
-      UDS_ARCHIVE_SNS_TOPIC_ARN = "arn:aws:sns:${var.uds_region}:${var.uds_account}:${var.uds_prefix}-daac_archiver"
+      UDS_ARCHIVE_SNS_TOPIC_ARN = "arn:aws:sns:${var.uds_region}:${var.uds_account}:${var.uds_prefix}-daac_archiver_response"
     }
   }
 
@@ -138,7 +138,7 @@ resource "aws_sns_topic_policy" "granules_cnm_ingester_policy" {
   policy = templatefile("${path.module}/mock_daac_sns_policy.json", {
     region: var.aws_region,
     accountId: local.account_id,
-    snsName: "${var.prefix}-granules_cnm_ingester",
+    snsName: "${var.prefix}-mock_daac_cnm_sns",
     prefix: var.prefix,
 
     uds_region: var.uds_region,

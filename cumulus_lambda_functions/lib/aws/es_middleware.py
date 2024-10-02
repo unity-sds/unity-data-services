@@ -253,8 +253,8 @@ class ESMiddleware(ESAbstract):
             }
         }
 
-    def query_by_id(self, doc_id):
-        index = self.__validate_index(None)
+    def query_by_id(self, doc_id, querying_index=None):
+        index = self.__validate_index(querying_index)
         dsl = {
             'query': {
                 'term': {'_id': doc_id}
@@ -263,4 +263,4 @@ class ESMiddleware(ESAbstract):
         result = self._engine.search(index=index, body=dsl)
         if self.get_result_size(result) < 1:
             return None
-        return result['hits']['hits'][0]
+        return result['hits']['hits'][0]['_source']

@@ -344,12 +344,18 @@ class ItemTransformer(StacTransformerAbstract):
         :param input_dict:
         :return:
         """
+        # https://github.com/stac-extensions/file
+        # https://github.com/stac-extensions/file/blob/main/examples/item.json
         description_keys = ['size', 'checksumType', 'checksum']
         descriptions = [f'{k}={input_dict[k]};' for k in description_keys if k in input_dict]
         asset = Asset(
             href=f"s3://{input_dict['bucket']}/{input_dict['key']}",
             title=input_dict['fileName'],
             description=''.join(descriptions),
+            extra_fields={
+                'file:size': input_dict['size'] if 'size' in input_dict else -1,
+                'file:checksum': input_dict['checksum'] if 'checksum' in input_dict else -1,
+            },
             roles=[input_dict['type']]
         )
         return asset
@@ -472,6 +478,7 @@ class ItemTransformer(StacTransformerAbstract):
         }
         stac_item = Item(
             id=source['granuleId'],
+            stac_extensions=["https://stac-extensions.github.io/file/v2.1.0/schema.json"],
             bbox=[-180.0, -90.0, 180.0, 90.0],
             properties={
                 **custom_metadata,

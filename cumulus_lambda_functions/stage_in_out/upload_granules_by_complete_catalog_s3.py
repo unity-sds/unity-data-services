@@ -89,48 +89,21 @@ class UploadItemExecutor(JobExecutorAbstract):
 
 
 class UploadGranulesByCompleteCatalogS3(UploadGranulesAbstract):
-    RESULT_PATH_PREFIX = 'RESULT_PATH_PREFIX'
-    DEFAULT_RESULT_PATH_PREFIX = 'stage_out'
     CATALOG_FILE = 'CATALOG_FILE'
-    OUTPUT_DIRECTORY = 'OUTPUT_DIRECTORY'
-    COLLECTION_ID_KEY = 'COLLECTION_ID'
-    STAGING_BUCKET_KEY = 'STAGING_BUCKET'
-
-    VERIFY_SSL_KEY = 'VERIFY_SSL'
-    DELETE_FILES_KEY = 'DELETE_FILES'
 
     def __init__(self) -> None:
         super().__init__()
         self.__gc = GranulesCatalog()
-        self.__collection_id = ''
-        self.__staging_bucket = ''
-        self.__result_path_prefix = ''
-        self.__verify_ssl = True
-        self.__delete_files = False
         self.__s3 = AwsS3()
-        self._parallel_count = int(os.environ.get(Constants.PARALLEL_COUNT, '-1'))
-        self.__retry_wait_time_sec = int(os.environ.get('UPLOAD_RETRY_WAIT_TIME', '30'))
-        self.__retry_times = int(os.environ.get('UPLOAD_RETRY_TIMES', '5'))
-
-    def __set_props_from_env(self):
-        missing_keys = [k for k in [self.CATALOG_FILE, self.COLLECTION_ID_KEY, self.STAGING_BUCKET_KEY] if k not in os.environ]
-        if len(missing_keys) > 0:
-            raise ValueError(f'missing environment keys: {missing_keys}')
-
-        self.__collection_id = os.environ.get(self.COLLECTION_ID_KEY)
-        self.__staging_bucket = os.environ.get(self.STAGING_BUCKET_KEY)
-        self.__result_path_prefix = os.environ.get(self.RESULT_PATH_PREFIX, self.DEFAULT_RESULT_PATH_PREFIX)
-        self.__result_path_prefix = self.__result_path_prefix[:-1] if self.__result_path_prefix.endswith('/') else self.__result_path_prefix
-        self.__result_path_prefix = self.__result_path_prefix[1:] if self.__result_path_prefix.startswith('/') else self.__result_path_prefix
-        self.__verify_ssl = os.environ.get(self.VERIFY_SSL_KEY, 'TRUE').strip().upper() == 'TRUE'
-        self.__delete_files = os.environ.get(self.DELETE_FILES_KEY, 'FALSE').strip().upper() == 'TRUE'
-        return self
 
     def upload(self, **kwargs) -> str:
-        self.__set_props_from_env()
+        self._set_props_from_env()
         output_dir = os.environ.get(self.OUTPUT_DIRECTORY)
         if not FileUtils.dir_exist(output_dir):
             raise ValueError(f'OUTPUT_DIRECTORY: {output_dir} does not exist')
+        missing_keys = [k for k in [self.CATALOG_FILE] if k not in os.environ]
+        if len(missing_keys) > 0:
+            raise ValueError(f'missing environment keys: {missing_keys}')
         catalog_file_path = os.environ.get(self.CATALOG_FILE)
         child_links = self.__gc.get_child_link_hrefs(catalog_file_path)
         local_items = Manager().Queue()
@@ -142,7 +115,7 @@ class UploadGranulesByCompleteCatalogS3(UploadGranulesAbstract):
         # https://www.infoworld.com/article/3542595/6-python-libraries-for-parallel-processing.html
         multithread_processor_props = MultiThreadProcessorProps(self._parallel_count)
         multithread_processor_props.job_manager = JobManagerMemory(job_manager_props)
-        multithread_processor_props.job_executor = UploadItemExecutor(local_items, error_list, self.__collection_id, self.__staging_bucket, self.__retry_wait_time_sec, self.__retry_times, self.__delete_files)
+        multithread_processor_props.job_executor = UploadItemExecutor(local_items, error_list, self._collection_id, self._staging_bucket, self._retry_wait_time_sec, self._retry_times, self._delete_files)
         multithread_processor = MultiThreadProcessor(multithread_processor_props)
         multithread_processor.start()
 
@@ -165,10 +138,10 @@ class UploadGranulesByCompleteCatalogS3(UploadGranulesAbstract):
         LOGGER.debug(f'writing results: {successful_features_file} && {failed_features_file}')
         FileUtils.write_json(successful_features_file, successful_item_collections.to_dict(False))
         FileUtils.write_json(failed_features_file, failed_item_collections.to_dict(False))
-        s3_url = self.__s3.upload(successful_features_file, self.__staging_bucket,
-                                  self.__result_path_prefix,
+        s3_url = self.__s3.upload(successful_features_file, self._staging_bucket,
+                                  self._result_path_prefix,
                                   s3_name=f'successful_features_{TimeUtils.get_current_time()}.json',
-                                  delete_files=self.__delete_files)
+                                  delete_files=self._delete_files)
         LOGGER.debug(f'uploaded successful features to S3: {s3_url}')
         LOGGER.debug(f'creating response catalog')
         catalog_json = GranulesCatalog().update_catalog(catalog_file_path, [successful_features_file, failed_features_file])

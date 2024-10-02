@@ -150,7 +150,10 @@ class GranulesDbIndex:
         self.__es.create_index(new_perc_index_name, perc_index_mapping)
         self.__es.create_alias(new_perc_index_name, read_perc_alias_name)
         self.__es.swap_index_for_alias(write_perc_alias_name, current_perc_index_name, new_perc_index_name)
-        self.__es.migrate_index_data(current_perc_index_name, new_perc_index_name)
+        try:
+            self.__es.migrate_index_data(current_perc_index_name, new_perc_index_name)
+        except Exception as e:
+            LOGGER.exception(f'failed to migrate index data: {(current_perc_index_name, new_perc_index_name)}')
         return
 
     def get_latest_index(self, tenant, tenant_venue):
@@ -189,6 +192,20 @@ class GranulesDbIndex:
         for each_index in actual_read_alias.keys():
             LOGGER.debug(f'deleting index: {each_index}')
             self.__es.delete_index(each_index)
+        return
+
+    def get_entry(self, tenant: str, tenant_venue: str, doc_id: str, ):
+        read_alias_name = f'{DBConstants.granules_read_alias_prefix}_{tenant}_{tenant_venue}'.lower().strip()
+        result = self.__es.query_by_id(doc_id, read_alias_name)
+        if result is None:
+            raise ValueError(f"no such granule: {doc_id}")
+        return result
+
+    def update_entry(self, tenant: str, tenant_venue: str, json_body: dict, doc_id: str, ):
+        write_alias_name = f'{DBConstants.granules_write_alias_prefix}_{tenant}_{tenant_venue}'.lower().strip()
+        json_body['event_time'] = TimeUtils.get_current_unix_milli()
+        self.__es.update_one(json_body, doc_id, index=write_alias_name)  # TODO assuming granule_id is prefixed with collection id
+        LOGGER.debug(f'custom_metadata indexed')
         return
 
     def add_entry(self, tenant: str, tenant_venue: str, json_body: dict, doc_id: str, ):

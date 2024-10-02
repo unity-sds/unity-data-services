@@ -67,10 +67,10 @@ class FileUtils:
         return output_file_path
 
     @staticmethod
-    def get_checksum(file_path):
+    def get_checksum(file_path, is_md5=False, chunk_size=25 * 2**20):
         with open(file_path, mode='rb') as f:
-            d = hashlib.sha512()
-            for buf in iter(partial(f.read, 512 * 2**10), b''):
+            d = hashlib.md5() if is_md5 else hashlib.sha512()
+            for buf in iter(partial(f.read, chunk_size), b''):
                 d.update(buf)
         return d.hexdigest()
 

@@ -40,10 +40,10 @@ class TestCustomMetadataEndToEnd(TestCase):
             .start(base64.standard_b64decode(os.environ.get('USERNAME')).decode(),
                    base64.standard_b64decode(os.environ.get('PASSWORD')).decode())
         self._url_prefix = f'{os.environ.get("UNITY_URL")}/{os.environ.get("UNITY_STAGE", "sbx-uds-dapa")}'
-        self.tenant = 'UDS_LOCAL_TEST'  # 'uds_local_test'  # 'uds_sandbox'
+        self.tenant = 'UDS_MY_LOCAL_ARCHIVE_TEST'  # 'uds_local_test'  # 'uds_sandbox'
         self.tenant_venue = 'DEV'  # 'DEV1'  # 'dev'
-        self.collection_name = 'UDS_COLLECTION'  # 'uds_collection'  # 'sbx_collection'
-        self.collection_version = '24.05.01.14.00'.replace('.', '')  # '2402011200'
+        self.collection_name = 'UDS_UNIT_COLLECTION'  # 'uds_collection'  # 'sbx_collection'
+        self.collection_version = '24.08.29.06.44'.replace('.', '')  # '2402011200'
 
         self.custom_metadata_body = {
             'tag': {'type': 'keyword'},
@@ -58,7 +58,8 @@ class TestCustomMetadataEndToEnd(TestCase):
                 }
             }
         }
-        self.granule_id = 'abcd.1234.efgh.test_file05'
+        self.granule_id = 'abcd.1234.efgh.test_file-24.08.13.13.53'
+        self.s3_bucket = 'unity-dev-unity-william-test-11'  # 'unity-dev-unity-william-test-11'  # uds-sbx-cumulus-staging
         return
 
     def test_01_setup_permissions(self):
@@ -109,6 +110,59 @@ class TestCustomMetadataEndToEnd(TestCase):
         print(query_result.text)
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         self.assertEqual(json.loads(query_result.text), self.custom_metadata_body, f'wrong body')
+        return
+
+    def test_03_pre_insert_500_response(self):
+        temp_collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}'
+        post_url = f'{self._url_prefix}/collections/{temp_collection_id}/archive'  # MCP Dev
+        print(post_url)
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {self.cognito_login.token}',
+        }
+        daac_config = {
+            'daac_collection_id': f'DAAC:MOCK:{self.collection_name}',
+            'daac_sns_topic_arn': 'arn:aws:sns:us-west-2:429178552491:uds-sbx-cumulus-mock_daac_cnm_sns',
+            'daac_data_version': '9098',
+            'archiving_types': [
+                {'data_type': 'data', 'file_extension': ['.json', '.nc']},
+                {'data_type': 'metadata', 'file_extension': ['.xml']},
+                {'data_type': 'browse'},
+            ],
+        }
+        query_result = requests.put(url=post_url,
+                                    headers=headers,
+                                    json = daac_config,
+                                    )
+        print(query_result.text)
+        self.assertEqual(query_result.status_code, 500, f'wrong status code. {query_result.text}')
+        self.assertTrue('missing version in collection ID' in query_result.text, f'wrong error message: {query_result.text}')
+        return
+    def test_03_pre_insert(self):
+        temp_collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}___{self.collection_version}'
+        post_url = f'{self._url_prefix}/collections/{temp_collection_id}/archive'  # MCP Dev
+        print(post_url)
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {self.cognito_login.token}',
+        }
+        daac_config = {
+            'daac_collection_id': f'DAAC:MOCK:{self.collection_name}',
+            'daac_sns_topic_arn': 'arn:aws:sns:us-west-2:429178552491:uds-sbx-cumulus-mock_daac_cnm_sns',
+            'daac_data_version': '9098',
+            'archiving_types': [
+                {'data_type': 'data', 'file_extension': ['.json', '.nc']},
+                {'data_type': 'metadata', 'file_extension': ['.xml']},
+                {'data_type': 'browse'},
+            ],
+        }
+        query_result = requests.put(url=post_url,
+                                    headers=headers,
+                                    json = daac_config,
+                                    )
+        print(query_result.text)
+        self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
+        self.assertEqual(json.loads(query_result.text), {'message': 'inserted'}, f'wrong body')
         return
 
     def test_03_create_collection(self):
@@ -165,7 +219,7 @@ class TestCustomMetadataEndToEnd(TestCase):
         os.environ['VERIFY_SSL'] = 'FALSE'
 
         os.environ['COLLECTION_ID'] = temp_collection_id
-        os.environ['STAGING_BUCKET'] = 'uds-sbx-cumulus-staging'
+        os.environ['STAGING_BUCKET'] = self.s3_bucket
 
         os.environ['GRANULES_SEARCH_DOMAIN'] = 'UNITY'
         # os.environ['GRANULES_UPLOAD_TYPE'] = 'UPLOAD_S3_BY_STAC_CATALOG'
@@ -367,17 +421,17 @@ class TestCustomMetadataEndToEnd(TestCase):
             'geometry': {'type': 'Point', 'coordinates': [0.0, 0.0]}, 'links': [],
             'assets': {
                 f'{self.granule_id}.data.stac.json': {
-                'href': f's3://uds-sbx-cumulus-staging/{temp_collection_id}/{temp_collection_id}:{self.granule_id}/{self.granule_id}.data.stac.json',
+                'href': f's3://{self.s3_bucket}/{temp_collection_id}/{temp_collection_id}:{self.granule_id}/{self.granule_id}.data.stac.json',
                 'title': f'{self.granule_id}.data.stac.json',
                 'roles': ['data'],
                 },
                 f'{self.granule_id}.nc.cas': {
-                'href': f's3://uds-sbx-cumulus-staging/{temp_collection_id}/{temp_collection_id}:{self.granule_id}/{self.granule_id}.nc.cas',
+                'href': f's3://{self.s3_bucket}/{temp_collection_id}/{temp_collection_id}:{self.granule_id}/{self.granule_id}.nc.cas',
                 'title': f'{self.granule_id}.nc.cas',
                 'roles': ['metadata'],
                 },
                 f'{self.granule_id}.nc.stac.json': {
-                'href': f's3://uds-sbx-cumulus-staging/{temp_collection_id}/{temp_collection_id}:{self.granule_id}/{self.granule_id}.nc.stac.json',
+                'href': f's3://{self.s3_bucket}/{temp_collection_id}/{temp_collection_id}:{self.granule_id}/{self.granule_id}.nc.stac.json',
                 'title': f'{self.granule_id}.nc.stac.json',
                 'roles': ['metadata'],
                 }
@@ -422,8 +476,9 @@ class TestCustomMetadataEndToEnd(TestCase):
         return
 
     def test_06_retrieve_granule(self):
+        self.collection_version = '24.08.29.09.00'.replace('.', '')  # '2402011200'
         temp_collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}___{self.collection_version}'
-        post_url = f'{self._url_prefix}/collections/{temp_collection_id}/items?limit=2'
+        post_url = f'{self._url_prefix}/collections/{temp_collection_id}/items?limit=20'
         # post_url = f'{self._url_prefix}/collections/URN:NASA:UNITY:UDS_LOCAL_TEST:DEV:UDS_COLLECTION___2312041030/items?limit=2&offset=URN:NASA:UNITY:UDS_LOCAL_TEST:DEV:UDS_COLLECTION___2312041030:test_file02'
         print(post_url)
         headers = {
@@ -434,15 +489,22 @@ class TestCustomMetadataEndToEnd(TestCase):
                                     headers=headers)
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         response_json = json.loads(query_result.content.decode())
-        print(response_json)
+        print(json.dumps(response_json, indent=4))
         self.assertTrue(len(response_json['features']) > 0, f'empty granules. Need collections to compare')
+        has_item = False
         for each_feature in response_json['features']:
             stac_item = pystac.Item.from_dict(each_feature)
+            if self.granule_id not in stac_item.id:
+                continue
+            has_item = True
+            print(json.dumps(each_feature, indent=4))
             validation_result = stac_item.validate()
             self.assertTrue(isinstance(validation_result, list),
                             f'wrong validation for : {json.dumps(each_feature, indent=4)}. details: {validation_result}')
             self.assertTrue('c_data3' in stac_item.properties, f'missing custom_metadata: {each_feature}')
+        self.assertTrue(has_item, f'missing item: {json.dumps(response_json, indent=4)}')
         return
+
 
     def test_06_01_retrieve_granule_filter(self):
         temp_collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}___{self.collection_version}'
@@ -455,7 +517,7 @@ class TestCustomMetadataEndToEnd(TestCase):
                                     headers=headers)
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         response_json = json.loads(query_result.content.decode())
-        print(response_json)
+        print(json.dumps(response_json, indent=4))
         self.assertTrue(len(response_json['features']) > 0, f'empty granules. Need collections to compare')
         for each_feature in response_json['features']:
             stac_item = pystac.Item.from_dict(each_feature)
@@ -464,7 +526,6 @@ class TestCustomMetadataEndToEnd(TestCase):
                             f'wrong validation for : {json.dumps(each_feature, indent=4)}. details: {validation_result}')
             self.assertTrue('c_data3' in stac_item.properties, f'missing custom_metadata: {each_feature}')
         return
-
 
     def test_06_02_retrieve_granule_filter_no_result(self):
         temp_collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}___{self.collection_version}'
@@ -497,7 +558,7 @@ class TestCustomMetadataEndToEnd(TestCase):
         return
 
     def test_07_check_cnm_response(self):
-        os.environ['STAGING_BUCKET'] = 'uds-sbx-cumulus-staging'
+        os.environ['STAGING_BUCKET'] = self.s3_bucket
         temp_collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}___{self.collection_version}'
         s3 = AwsS3()
         child_files = [k for k in s3.get_child_s3_files(os.environ['STAGING_BUCKET'], f'{temp_collection_id}/{temp_collection_id}:{self.granule_id}')]
@@ -508,6 +569,23 @@ class TestCustomMetadataEndToEnd(TestCase):
             cnm_response = FileUtils.read_json(local_file_path)
             # NOTE: CNM response do not have collection version
             self.assertEqual(cnm_response['collection'], f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}', f'wrong collection ID')
+        return
+
+    def test_08_manual_archive(self):
+        temp_collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}___{self.collection_version}'
+        temp_granule_id = f'{temp_collection_id}:{self.granule_id}'
+        post_url = f'{self._url_prefix}/collections/{temp_collection_id}/archive/{temp_granule_id}'
+        # post_url = f'{self._url_prefix}/collections/URN:NASA:UNITY:UDS_LOCAL_TEST:DEV:UDS_COLLECTION___2312041030/items?limit=2&offset=URN:NASA:UNITY:UDS_LOCAL_TEST:DEV:UDS_COLLECTION___2312041030:test_file02'
+        print(post_url)
+        headers = {
+            'Authorization': f'Bearer {self.cognito_login.token}',
+            'Content-Type': 'application/json',
+        }
+        query_result = requests.put(url=post_url,
+                                    headers=headers)
+        self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
+        response_json = json.loads(query_result.content.decode())
+        print(json.dumps(response_json, indent=4))
         return
 
     def test_01_pagination(self):

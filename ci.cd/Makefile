@@ -20,6 +20,9 @@ build_lambda_public:
 upload_lambda:
 	aws --profile saml-pub s3 cp cumulus_lambda_functions_deployment.zip s3://am-uds-dev-cumulus-tf-state/unity_cumulus_lambda/
 
+move:
+	 mv /Users/wphyo/Downloads/cumulus_lambda_functions-*.zip tf-module/unity-cumulus/build/cumulus_lambda_functions_deployment.zip
+
 upload_lambda_mcp_dev:
 	aws s3 cp tf-module/unity-cumulus/build/cumulus_lambda_functions_deployment.zip s3://uds-dev-cumulus-public/unity_cumulus_lambda/
 update_lambda_function_mcp_dev_6:

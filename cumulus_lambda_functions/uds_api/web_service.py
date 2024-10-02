@@ -21,7 +21,7 @@ app = FastAPI(title='Unity UDS API',
               description='API to interact with UDS services',
               docs_url=f'/{api_base_prefix}/docs',
               redoc_url=f'/{api_base_prefix}/redoc',
-              openapi_url=f'/{api_base_prefix}/docs/openapi',
+              openapi_url=f'/{api_base_prefix}/openapi',
               )
 app.add_middleware(
     CORSMiddleware,

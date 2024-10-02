@@ -15,6 +15,13 @@ class ArchivingTypesModel(BaseModel):
     file_extension: Optional[list[str]] = []
 
 
+class DaacUpdateModel(BaseModel):
+    daac_collection_id: str
+    daac_data_version: Optional[str] = None
+    daac_sns_topic_arn: Optional[str] = None
+    archiving_types: Optional[list[ArchivingTypesModel]] = None
+
+
 class DaacAddModel(BaseModel):
     daac_collection_id: str
     daac_data_version: str
@@ -57,7 +64,18 @@ class DaacArchiveCrud:
 
     def update_config(self):
         try:
-            result = self.__daac_config.update_config(self.__collection_id, self.__request_body['daac_collection_id'], self.__request_body['daac_sns_topic_arn'], self.__authorization_info['username'])
+            current_result = self.__daac_config.get_config(self.__collection_id, None, self.__request_body['daac_collection_id'])
+            if len(current_result) != 1:
+                return {
+                    'statusCode': 500,
+                    'body': {'message': f'Invalid current result for the update: missing or duplicate results: {current_result}'}
+                }
+            updating_dict = {
+                **{k: v for k, v in self.__request_body.items() if v is not None},
+                'ss_username': self.__authorization_info['username'],
+                'collection': self.__collection_id,
+            }
+            result = self.__daac_config.update_config(updating_dict)
         except Exception as e:
             LOGGER.exception(f'error during update config: {self.__request_body}')
             return {
@@ -72,6 +90,15 @@ class DaacArchiveCrud:
 
     def add_new_config(self):
         try:
+            current_result = self.__daac_config.get_config(self.__collection_id, None,
+                                                           self.__request_body['daac_collection_id'])
+            if len(current_result) > 0:
+                return {
+                    'statusCode': 500,
+                    'body': {
+                        'message': f'Already have config for specified daac: {current_result}'}
+                }
+
             ingesting_dict = {
                 **self.__request_body,
                 'ss_username': self.__authorization_info['username'],
@@ -93,7 +120,7 @@ class DaacArchiveCrud:
         try:
             result = self.__daac_config.get_config(self.__collection_id)
         except Exception as e:
-            LOGGER.exception(f'error during add config: {self.__request_body}')
+            LOGGER.exception(f'error during get config: {self.__request_body}')
             return {
                 'statusCode': 500,
                 'body': {'uds_daac_sns_arn': self.__daac_sns_topic_arn, 'message': f'error during operation: {e}'}

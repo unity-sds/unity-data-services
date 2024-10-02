@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime
 from unittest import TestCase
@@ -172,9 +173,10 @@ class TestQueryCollection(TestCase):
         return
 
     def test_rules_04(self):
-        lambda_prefix = 'am-uds-dev-cumulus'
+        lambda_prefix = 'uds-sbx-cumulus'
         collection_query = CollectionsQuery('NA', 'NA')
         collection_query.with_limit(200)
         rules = collection_query.query_rules(lambda_prefix)
-        self.assertTrue(True)
+        print(json.dumps(rules, indent=4))
+        self.assertTrue(False, rules)
         return

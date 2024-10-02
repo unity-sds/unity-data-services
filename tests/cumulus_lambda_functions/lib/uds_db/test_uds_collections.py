@@ -16,3 +16,15 @@ class TestUdsCollections(TestCase):
         collections = uds_collection.get_collections([f'{collection_prefix}.*'])
         self.assertEqual(0, len(collections))
         return
+
+    def test_02(self):
+        temp_collection_id = f'URN:NASA:UNITY:UDS_LOCAL:DEV:COLLECTION1___V1.1'
+        aa = UdsCollections.decode_identifier(temp_collection_id)
+        print(aa)
+        granule_id = f"{temp_collection_id}:abcd.1234.efgh.test_file05"
+        aa = UdsCollections.decode_identifier(granule_id)
+        self.assertEqual(aa.venue, 'DEV', f'wrong venue')
+        self.assertEqual(aa.tenant, 'UDS_LOCAL', f'wrong tenant')
+        print(aa)
+        return
+

@@ -148,7 +148,7 @@ resource "aws_lambda_function" "uds_api_1" {
       UNITY_DEFAULT_PROVIDER = var.unity_default_provider
       COLLECTION_CREATION_LAMBDA_NAME = "arn:aws:lambda:${var.aws_region}:${local.account_id}:function:${var.prefix}-uds_api_1"
       SNS_TOPIC_ARN = var.cnm_sns_topic_arn
-      DAAC_SNS_TOPIC_ARN = aws_sns_topic.daac_archiver.arn
+      DAAC_SNS_TOPIC_ARN = aws_sns_topic.daac_archiver_response.arn
       DAPA_API_PREIFX_KEY = var.dapa_api_prefix
       CORS_ORIGINS = var.cors_origins
       UDS_BASE_URL = var.uds_base_url

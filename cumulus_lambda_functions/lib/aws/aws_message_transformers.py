@@ -48,7 +48,7 @@ class AwsMessageTransformers:
             "Type": {"type": "string"},
             "MessageId": {"type": "string"},
             "TopicArn": {"type": "string"},
-            "Subject": {"type": "string"},
+            # "Subject": {"type": "string"},
             "Timestamp": {"type": "string"},
             "SignatureVersion": {"type": "string"},
             "Signature": {"type": "string"},

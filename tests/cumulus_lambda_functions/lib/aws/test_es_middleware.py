@@ -69,5 +69,11 @@ class TestESMiddleware(TestCase):
         with self.assertRaises(ValueError) as context:
             result = es.migrate_index_data(f'{test_index_name}_03', f'{test_index_name}_02')
         self.assertTrue(str(context.exception).startswith('at least one of the indices do not exist'))
+        query_by_id = es.query_by_id('collection_10000', f'{test_index_name}_02')
+        self.assertTrue(query_by_id is not None, f'query_by_id is None')
+        print(f'query_by_id: {query_by_id}')
+        query_by_id = es.query_by_id('collection_40000', f'{test_index_name}_02')
+        self.assertTrue(query_by_id is None, f'query_by_id is not None: {query_by_id}')
+
         return
 

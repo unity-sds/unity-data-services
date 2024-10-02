@@ -95,10 +95,21 @@ class CollectionsDapaCnm:
             }
         }
 
+    def __generate_cumulus_asset(self, v):
+        cumulus_asset = {
+                            'name': os.path.basename(v['href']),
+                            'type': v['roles'][0] if 'roles' in v and len(v['roles']) > 0 else 'unknown',
+                            'uri': v['href'],
+                            'checksumType': 'md5',  # TODO Is this the only type?
+                            'checksum': v['file:checksum'] if 'file:checksum' in v else 'unknown',
+                            'size': v['file:size'] if 'file:size' in v else -1,
+                        }
+        return cumulus_asset
+
     def start(self):
         """
         Publish granule messages to CNM SNS Topic.
-        This is the workflow: cnm (Rest endpoint) -> sns -> sqs -> event bridge rule -> uds-dev-cumulus-sqsMessageConsumer lambda -> sqs -> uds-dev-cumulus-sqs2sf lambda -> step function
+        This is the workflow: cnm (Rest endpoint) -> sns -> sqs -> event bridge rule (every 1 minute) -> uds-dev-cumulus-sqsMessageConsumer lambda -> sqs -> uds-dev-cumulus-sqs2sf lambda -> step function
 Sample Output:
 {
     "collection": "SNDR_SNPP_ATMS_L1A",
@@ -202,14 +213,7 @@ Test Input message
                     'product': {
                         'name': each_granule['id'],
                         'dataVersion': collection_id_version[1],
-                        'files': [{
-                            'name': os.path.basename(v['href']),
-                            'type': v['roles'][0] if 'roles' in v and len(v['roles']) > 0 else 'unknown',
-                            'uri': v['href'],
-                            'checksumType': 'md5',
-                            'checksum': 'unknown',  # TODO
-                            'size': -1,  # TODO
-                        } for k, v in each_granule['assets'].items()],
+                        'files': [self.__generate_cumulus_asset(v) for k, v in each_granule['assets'].items()],
                     }
                 }
                 LOGGER.debug(f'sending sns message: {sns_msg}')

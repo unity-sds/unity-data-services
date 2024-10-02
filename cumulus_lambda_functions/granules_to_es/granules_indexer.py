@@ -1,5 +1,9 @@
 import json
 import os
+from time import sleep
+
+from cumulus_lambda_functions.daac_archiver.daac_archiver_logic import DaacArchiverLogic
+from cumulus_lambda_functions.lib.utils.file_utils import FileUtils
 
 from cumulus_lambda_functions.cumulus_stac.item_transformer import ItemTransformer
 
@@ -99,4 +103,10 @@ class GranulesIndexer:
                                     self.__cumulus_record['granuleId']
                                     )
         LOGGER.debug(f'added to GranulesDbIndex')
+        daac_archiver = DaacArchiverLogic()
+        cnm_response = daac_archiver.get_cnm_response_json_file(list(stac_item['assets'].values())[0], stac_item['id'])
+        if cnm_response is None:
+            LOGGER.error(f'no CNM Response file. Not continuing to DAAC Archiving')
+            return self
+        daac_archiver.send_to_daac_internal(cnm_response)
         return self

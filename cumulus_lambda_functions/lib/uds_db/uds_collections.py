@@ -29,7 +29,10 @@ class UdsCollections:
 
     @staticmethod
     def decode_identifier(incoming_identifier: str) -> CollectionIdentifier:
-        return CollectionIdentifier._make(incoming_identifier.split(':'))
+        collection_identifier_parts = incoming_identifier.split(':')
+        if len(collection_identifier_parts) < 6:
+            raise ValueError(f'invalid collection: {collection_identifier_parts}')
+        return CollectionIdentifier._make(collection_identifier_parts[0:6])
 
     def __bbox_to_polygon(self, bbox: list):
         if len(bbox) != 4:

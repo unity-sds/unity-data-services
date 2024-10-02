@@ -2,6 +2,8 @@ from copy import deepcopy
 
 from pystac import Link
 
+from cumulus_lambda_functions.daac_archiver.daac_archiver_logic import DaacArchiverLogic
+from cumulus_lambda_functions.granules_to_es.granules_index_mapping import GranulesIndexMapping
 from cumulus_lambda_functions.uds_api.dapa.pagination_links_generator import PaginationLinksGenerator
 from cumulus_lambda_functions.lib.aws.es_middleware import ESMiddleware
 from cumulus_lambda_functions.lib.cql_parser import CqlParser
@@ -85,6 +87,29 @@ class GranulesDapaQueryEs:
             pagination_links.append({'rel': 'next', 'href': f"{self.__pagination_link_obj.requesting_base_url}?{'&'.join([f'{k}={v}' for k, v in new_queries.items()])}"})
         return pagination_links
 
+    def archive_single_granule(self, granule_id):
+        granules_query_dsl = {
+            'query': {'bool': {'must': [{
+                'term': {'id': granule_id}
+            }]}}
+        }
+        LOGGER.debug(f'granules_query_dsl: {granules_query_dsl}')
+        collection_identifier = UdsCollections.decode_identifier(self.__collection_id)
+        granules_query_result = GranulesDbIndex().dsl_search(collection_identifier.tenant,
+                                                             collection_identifier.venue,
+                                                             granules_query_dsl)
+        LOGGER.debug(f'granules_query_result: {granules_query_result}')
+        if len(granules_query_result['hits']['hits']) < 1:
+            raise ValueError(f'cannot find granule for : {granule_id}')
+        each_granules_query_result_stripped = granules_query_result['hits']['hits'][0]['_source']
+        daac_archiver = DaacArchiverLogic()
+        cnm_response = daac_archiver.get_cnm_response_json_file(list(each_granules_query_result_stripped['assets'].values())[0], granule_id)
+        if cnm_response is None:
+            LOGGER.error(f'no CNM Response file. Not continuing to DAAC Archiving')
+            return
+        daac_archiver.send_to_daac_internal(cnm_response)
+        return
+
     def get_single_granule(self, granule_id):
         granules_query_dsl = {
             'query': {'bool': {'must': [{
@@ -127,7 +152,9 @@ class GranulesDapaQueryEs:
                     each_granules_query_result_stripped.pop('event_time')
                 if 'bbox' in each_granules_query_result_stripped:
                     each_granules_query_result_stripped['bbox'] = GranulesDbIndex.from_es_bbox(each_granules_query_result_stripped['bbox'])
-
+                for each_archiving_key in GranulesIndexMapping.archiving_keys:
+                    if each_archiving_key in each_granules_query_result_stripped:
+                        each_granules_query_result_stripped['properties'][each_archiving_key] = each_granules_query_result_stripped.pop(each_archiving_key)
             pagination_link = '' if len(granules_query_result['hits']['hits']) < self.__limit else ','.join(granules_query_result['hits']['hits'][-1]['sort'])
             return {
                 'statusCode': 200,

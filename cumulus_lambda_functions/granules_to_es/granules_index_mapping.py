@@ -1,4 +1,7 @@
 class GranulesIndexMapping:
+    archiving_keys = [
+        'archive_status', 'archive_error_message', 'archive_error_code'
+    ]
     percolator_mappings = {
         "daac_collection_name": {
             "type": "keyword"
@@ -24,6 +27,10 @@ class GranulesIndexMapping:
         },
     }
     stac_mappings = {
+        "archive_status": {"type": "keyword"},
+        "archive_error_message": {"type": "text"},
+        "archive_error_code": {"type": "keyword"},
+
         "event_time": {"type": "long"},
         "type": {"type": "keyword"},
         "stac_version": {"type": "keyword"},
@@ -40,7 +47,7 @@ class GranulesIndexMapping:
                 "title": {"type": "text"}
             }
         },
-        "stac_extensions": {"type": "object"},
+        "stac_extensions": {"type": "keyword"},
         "properties": {
             "dynamic": "false",
             "properties": {

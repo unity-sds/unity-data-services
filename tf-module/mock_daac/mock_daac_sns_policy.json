@@ -3,6 +3,7 @@
   "Id": "__default_policy_ID",
   "Statement": [
     {
+      "Sid": "1",
       "Effect": "Allow",
       "Principal": {
         "Service": ["lambda.amazonaws.com"]
@@ -23,6 +24,17 @@
           "aws:SourceArn": ["arn:aws:lambda:${uds_region}:${uds_accountId}:${uds_prefix}-daac_archiver", "arn:aws:lambda:${region}:${accountId}:${prefix}-mock_daac_lambda"]
         }
       }
+    },
+    {
+      "Sid": "2",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::${uds_accountId}:role/${uds_prefix}-lambda-processing"
+      },
+      "Action": [
+        "SNS:Publish"
+      ],
+      "Resource": "arn:aws:sns:${region}:${accountId}:${snsName}"
     }
   ]
 }

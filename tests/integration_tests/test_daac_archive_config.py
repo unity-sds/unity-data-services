@@ -19,7 +19,7 @@ class TestDapaStac(TestCase):
             .start(base64.standard_b64decode(os.environ.get('USERNAME')).decode(),
                    base64.standard_b64decode(os.environ.get('PASSWORD')).decode())
         self._url_prefix = f'{os.environ.get("UNITY_URL")}/{os.environ.get("UNITY_STAGE", "sbx-uds-dapa")}'
-        self.tenant = 'UDS_LOCAL_TEST'  # 'uds_local_test'  # 'uds_sandbox'
+        self.tenant = 'UDS_LOCAL_DEMO'  # 'uds_local_test'  # 'uds_sandbox'
         self.tenant_venue = 'DEV'  # 'DEV1'  # 'dev'
         self.collection_name = 'UDS_COLLECTION'  # 'uds_collection'  # 'sbx_collection'
         self.collection_version = '24.07.19.16.00'.replace('.', '')  # '2402011200'
@@ -88,20 +88,15 @@ class TestDapaStac(TestCase):
             'Authorization': f'Bearer {self.cognito_login.token}',
         }
         daac_config = {
-            'daac_collection_id': 'sample_collection',
+            'daac_collection_id': f'MOCK:DAAC:modified_{self.collection_name}',
             'daac_sns_topic_arn': 'sample_sns',
             'daac_data_version': '123',
-            'archiving_types': [
-                {'data_type': 'data', 'file_extension': ['.json', '.nc']},
-                {'data_type': 'metadata', 'file_extension': ['.xml']},
-                {'data_type': 'browse'},
-            ],
         }
         query_result = requests.put(url=post_url,
                                     headers=headers,
                                     json = daac_config,
                                     )
-        print(query_result.text)
+        print(json.dumps(json.loads(query_result.text), indent=4))
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         self.assertEqual(json.loads(query_result.text), {'message': 'inserted'}, f'wrong body')
         return
@@ -116,7 +111,7 @@ class TestDapaStac(TestCase):
         query_result = requests.get(url=post_url,
                                     headers=headers,
                                     )
-        print(query_result.text)
+        print(json.dumps(json.loads(query_result.text), indent=4))
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         query_result = json.loads(query_result.text)
         self.assertTrue('uds_daac_sns_arn' in query_result, f'missing uds_daac_sns_arn')
@@ -131,38 +126,22 @@ class TestDapaStac(TestCase):
             'Authorization': f'Bearer {self.cognito_login.token}',
         }
         daac_config = {
-            'daac_collection_id': 'sample_collection',
-            'daac_sns_topic_arn': 'sample_sns_3'
+            'daac_collection_id': f'MOCK:DAAC:modified_{self.collection_name}',
+            'archiving_types': [
+                {'data_type': 'data', 'file_extension': ['.json', '.nc']},
+                {'data_type': 'metadata', 'file_extension': ['.xml']},
+                {'data_type': 'browse'},
+            ],
         }
         query_result = requests.post(url=post_url,
                                     headers=headers,
                                     json = daac_config,
                                     )
-        print(query_result.text)
+        print(json.dumps(json.loads(query_result.text), indent=4))
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         self.assertEqual(json.loads(query_result.text), {'message': 'updated'}, f'wrong body')
         return
 
-    def test_03_update_invalid(self):
-        temp_collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}___{self.collection_version}'
-        post_url = f'{self._url_prefix}/collections/{temp_collection_id}/archive'  # MCP Dev
-        print(post_url)
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {self.cognito_login.token}',
-        }
-        daac_config = {
-            'daac_collection_id': 'sample_collection_invalid',
-            'daac_sns_topic_arn': 'sample_sns_3'
-        }
-        query_result = requests.post(url=post_url,
-                                    headers=headers,
-                                    json = daac_config,
-                                    )
-        print(query_result.text)
-        self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
-        self.assertEqual(json.loads(query_result.text), {'message': 'updated'}, f'wrong body')
-        return
     def test_04_get(self):
         temp_collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}___{self.collection_version}'
         post_url = f'{self._url_prefix}/collections/{temp_collection_id}/archive'  # MCP Dev
@@ -173,7 +152,7 @@ class TestDapaStac(TestCase):
         query_result = requests.get(url=post_url,
                                     headers=headers,
                                     )
-        print(query_result.text)
+        print(json.dumps(json.loads(query_result.text), indent=4))
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         query_result = json.loads(query_result.text)
         self.assertTrue('uds_daac_sns_arn' in query_result, f'missing uds_daac_sns_arn')
@@ -188,13 +167,13 @@ class TestDapaStac(TestCase):
             'Authorization': f'Bearer {self.cognito_login.token}',
         }
         daac_config = {
-            'daac_collection_id': 'sample_collection',
+            'daac_collection_id': f'MOCK:DAAC:modified_{self.collection_name}',
         }
         query_result = requests.delete(url=post_url,
                                     headers=headers,
                                     json = daac_config,
                                     )
-        print(query_result.text)
+        print(json.dumps(json.loads(query_result.text), indent=4))
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         self.assertEqual(json.loads(query_result.text), {'message': 'deleted'}, f'wrong body')
         return
@@ -209,7 +188,7 @@ class TestDapaStac(TestCase):
         query_result = requests.get(url=post_url,
                                     headers=headers,
                                     )
-        print(query_result.text)
+        print(json.dumps(json.loads(query_result.text), indent=4))
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         query_result = json.loads(query_result.text)
         self.assertTrue('uds_daac_sns_arn' in query_result, f'missing uds_daac_sns_arn')
