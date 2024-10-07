@@ -185,7 +185,7 @@ class TestCumulusCreateCollectionDapa(TestCase):
         return
 
     def test_granules_get(self):
-        post_url = f'{self.uds_url}collections/URN:NASA:UNITY:UDS_LOCAL_TEST:DEV:UDS_COLLECTION___2312041030/items/'  # MCP Dev
+        post_url = f'{self.uds_url}collections/URN:NASA:UNITY:UDS_MY_LOCAL_ARCHIVE_TEST:DEV:UDS_UNIT_COLLECTION___2408290522/items/'  # MCP Dev
         headers = {
             'Authorization': f'Bearer {self.bearer_token}',
         }
@@ -195,7 +195,7 @@ class TestCumulusCreateCollectionDapa(TestCase):
                                     )
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         response_json = json.loads(query_result.text)
-        print(json.dumps(response_json))
+        print(json.dumps(response_json, indent=4))
         links = {k['rel']: k['href'] for k in response_json['links'] if k['rel'] != 'root'}
         for k, v in links.items():
             self.assertTrue(v.startswith(self.uds_url), f'missing stage: {self.stage} in {v} for {k}')

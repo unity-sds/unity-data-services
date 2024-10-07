@@ -218,6 +218,26 @@ class GranulesDbIndex:
 
     def dsl_search(self, tenant: str, tenant_venue: str, search_dsl: dict):
         read_alias_name = f'{DBConstants.granules_read_alias_prefix}_{tenant}_{tenant_venue}'.lower().strip()
-        search_result = self.__es.query(search_dsl, querying_index=read_alias_name) if 'sort' in search_dsl else self.__es.query(search_dsl, querying_index=read_alias_name)
-        LOGGER.debug(f'search_finished: {len(search_result["hits"]["hits"])}')
-        return search_result
+        original_size = search_dsl['size']
+        result = []
+        duplicates = set([])
+        while len(result) < original_size:
+            search_dsl['size'] = (original_size - len(result)) * 2
+            search_result = self.__es.query_pages(search_dsl, querying_index=read_alias_name) if 'sort' in search_dsl else self.__es.query(search_dsl, querying_index=read_alias_name)
+            if len(search_result['hits']['hits']) < 1:
+                break
+            for each in search_result['hits']['hits']:
+                if each['_id'] not in duplicates:
+                    duplicates.add(each['_id'])
+                    result.append(each)
+            search_dsl['search_after'] = search_result['hits']['hits'][-1]['sort']
+
+        LOGGER.debug(f'search_finished: {len(result)}')
+        return {
+            'hits': {
+                "total": {
+                    "value": len(result)
+                },
+                'hits': result
+            }
+        }

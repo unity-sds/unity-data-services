@@ -36,7 +36,7 @@ class GranulesDapaQueryEs:
         query_dsl = {
             'track_total_hits': True,
             'size': self.__limit,
-            "collapse": {"field": "id"},
+            # "collapse": {"field": "id"},
             'sort': [
                 {'properties.datetime': {'order': 'desc'}},
                 {'id': {'order': 'asc'}}
