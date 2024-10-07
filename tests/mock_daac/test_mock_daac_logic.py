@@ -1,7 +1,7 @@
 import json
 from unittest import TestCase
 
-from cumulus_lambda_functions.lib.time_utils import TimeUtils
+from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 
 from cumulus_lambda_functions.mock_daac.mock_daac_logic import MockDaacLogic
 

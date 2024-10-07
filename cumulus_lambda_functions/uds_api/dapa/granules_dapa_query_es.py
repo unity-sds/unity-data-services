@@ -5,7 +5,7 @@ from pystac import Link
 from cumulus_lambda_functions.daac_archiver.daac_archiver_logic import DaacArchiverLogic
 from cumulus_lambda_functions.granules_to_es.granules_index_mapping import GranulesIndexMapping
 from cumulus_lambda_functions.uds_api.dapa.pagination_links_generator import PaginationLinksGenerator
-from cumulus_lambda_functions.lib.aws.es_middleware import ESMiddleware
+from mdps_ds_lib.lib.aws.es_middleware import ESMiddleware
 from cumulus_lambda_functions.lib.cql_parser import CqlParser
 from cumulus_lambda_functions.lib.uds_db.uds_collections import UdsCollections
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
@@ -36,12 +36,16 @@ class GranulesDapaQueryEs:
         query_dsl = {
             'track_total_hits': True,
             'size': self.__limit,
-            'sort': [{'id': {'order': 'asc'}}],
+            "collapse": {"field": "id"},
+            'sort': [
+                {'properties.datetime': {'order': 'desc'}},
+                {'id': {'order': 'asc'}}
+            ],
             'query': {
                 'bool': {
                     'must': query_terms
                 }
-            }
+            },
         }
         if self.__offset is not None:
             query_dsl['search_after'] = [k.strip() for k in self.__offset.split(',')]

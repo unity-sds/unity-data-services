@@ -2,9 +2,9 @@ import base64
 import json
 import os
 
-from cumulus_lambda_functions.lib.utils.file_utils import FileUtils
+from mdps_ds_lib.lib.utils.file_utils import FileUtils
 
-from cumulus_lambda_functions.lib.constants import Constants
+from mdps_ds_lib.lib.constants import Constants
 
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from fastapi import APIRouter, HTTPException, Request, Response

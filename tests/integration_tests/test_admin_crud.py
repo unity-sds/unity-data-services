@@ -7,7 +7,7 @@ from unittest import TestCase
 import requests
 from dotenv import load_dotenv
 
-from cumulus_lambda_functions.lib.cognito_login.cognito_login import CognitoLogin
+from mdps_ds_lib.lib.cognito_login.cognito_login import CognitoLogin
 
 
 class TestDapaStac(TestCase):

@@ -6,11 +6,11 @@ from time import sleep
 from unittest import TestCase
 
 import requests
-from cumulus_lambda_functions.lib.cognito_login.cognito_login import CognitoLogin
+from mdps_ds_lib.lib.cognito_login.cognito_login import CognitoLogin
 from dotenv import load_dotenv
 
-from cumulus_lambda_functions.lib.time_utils import TimeUtils
-from cumulus_lambda_functions.cumulus_stac.unity_collection_stac import UnityCollectionStac
+from mdps_ds_lib.lib.utils.time_utils import TimeUtils
+from mdps_ds_lib.lib.cumulus_stac.unity_collection_stac import UnityCollectionStac
 
 
 class TestCumulusCreateCollectionDapa(TestCase):
