@@ -101,8 +101,8 @@ class CollectionsDapaCnm:
                             'type': v['roles'][0] if 'roles' in v and len(v['roles']) > 0 else 'unknown',
                             'uri': v['href'],
                             'checksumType': 'md5',  # TODO Is this the only type?
-                            'checksum': v['file:checksum'] if 'file:checksum' in v else 'unknown',
-                            'size': v['file:size'] if 'file:size' in v else -1,
+                            'checksum': v['file:checksum'] if 'file:checksum' in v else '00000000000000000000000000000000',
+                            'size': v['file:size'] if 'file:size' in v else 0,
                         }
         return cumulus_asset
 

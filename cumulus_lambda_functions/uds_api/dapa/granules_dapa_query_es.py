@@ -36,12 +36,16 @@ class GranulesDapaQueryEs:
         query_dsl = {
             'track_total_hits': True,
             'size': self.__limit,
-            'sort': [{'id': {'order': 'asc'}}],
+            "collapse": {"field": "id"},
+            'sort': [
+                {'properties.datetime': {'order': 'desc'}},
+                {'id': {'order': 'asc'}}
+            ],
             'query': {
                 'bool': {
                     'must': query_terms
                 }
-            }
+            },
         }
         if self.__offset is not None:
             query_dsl['search_after'] = [k.strip() for k in self.__offset.split(',')]

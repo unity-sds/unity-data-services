@@ -40,10 +40,10 @@ class TestCustomMetadataEndToEnd(TestCase):
             .start(base64.standard_b64decode(os.environ.get('USERNAME')).decode(),
                    base64.standard_b64decode(os.environ.get('PASSWORD')).decode())
         self._url_prefix = f'{os.environ.get("UNITY_URL")}/{os.environ.get("UNITY_STAGE", "sbx-uds-dapa")}'
-        self.tenant = 'UDS_MY_LOCAL_ARCHIVE_TEST'  # 'uds_local_test'  # 'uds_sandbox'
+        self.tenant = 'UDS_BLACK'  # 'uds_local_test'  # 'uds_sandbox'
         self.tenant_venue = 'DEV'  # 'DEV1'  # 'dev'
         self.collection_name = 'UDS_UNIT_COLLECTION'  # 'uds_collection'  # 'sbx_collection'
-        self.collection_version = '24.08.29.06.44'.replace('.', '')  # '2402011200'
+        self.collection_version = '24.10.01.06.08'.replace('.', '')  # '2402011200'
 
         self.custom_metadata_body = {
             'tag': {'type': 'keyword'},
@@ -59,7 +59,7 @@ class TestCustomMetadataEndToEnd(TestCase):
             }
         }
         self.granule_id = 'abcd.1234.efgh.test_file-24.08.13.13.53'
-        self.s3_bucket = 'unity-dev-unity-william-test-11'  # 'unity-dev-unity-william-test-11'  # uds-sbx-cumulus-staging
+        self.s3_bucket = 'uds-sbx-cumulus-staging'  # 'unity-dev-unity-william-test-11'  # uds-sbx-cumulus-staging
         return
 
     def test_01_setup_permissions(self):
@@ -340,6 +340,7 @@ class TestCustomMetadataEndToEnd(TestCase):
                                  "type": "Point",
                                  "coordinates": [0.0, 0.0]
                              },
+                             stac_extensions=["https://stac-extensions.github.io/file/v2.1.0/schema.json"],
                              bbox=[0.0, 0.0, 0.0, 0.0],
                              datetime=TimeUtils().parse_from_unix(0, True).get_datetime_obj(),
                              properties={
@@ -476,7 +477,6 @@ class TestCustomMetadataEndToEnd(TestCase):
         return
 
     def test_06_retrieve_granule(self):
-        self.collection_version = '24.08.29.09.00'.replace('.', '')  # '2402011200'
         temp_collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}___{self.collection_version}'
         post_url = f'{self._url_prefix}/collections/{temp_collection_id}/items?limit=20'
         # post_url = f'{self._url_prefix}/collections/URN:NASA:UNITY:UDS_LOCAL_TEST:DEV:UDS_COLLECTION___2312041030/items?limit=2&offset=URN:NASA:UNITY:UDS_LOCAL_TEST:DEV:UDS_COLLECTION___2312041030:test_file02'
@@ -508,7 +508,7 @@ class TestCustomMetadataEndToEnd(TestCase):
 
     def test_06_01_retrieve_granule_filter(self):
         temp_collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}___{self.collection_version}'
-        post_url = f'{self._url_prefix}/collections/{temp_collection_id}/items?filter=soil10::0_0 >= 0 AND end_datetime >= \'2016-01-31T11:11:11.000001Z\''
+        post_url = f'{self._url_prefix}/collections/{temp_collection_id}/items?filter=end_datetime >= \'2016-01-31T11:11:11.000001Z\''
         headers = {
             'Authorization': f'Bearer {self.cognito_login.token}',
             'Content-Type': 'application/json',
