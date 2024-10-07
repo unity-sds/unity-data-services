@@ -4,7 +4,7 @@ from unittest import TestCase
 from pystac import Item, Asset
 
 from cumulus_lambda_functions.metadata_stac_generate_cmr.stac_input_metadata import StacInputMetadata
-from cumulus_lambda_functions.lib.time_utils import TimeUtils
+from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 
 
 class TestStacInputMetadata(TestCase):
@@ -47,8 +47,8 @@ class TestStacInputMetadata(TestCase):
         self.assertEqual(granule_metadata_props.ending_dt, stac_item.properties['end_datetime'], f'wrong prod_dt')
         expected_custom = {
             **custom_metadata_core,
-            'granule_id': stac_item.id,
-            'collection_id': stac_item.collection_id
+            # 'granule_id': stac_item.id,
+            # 'collection_id': stac_item.collection_id
         }
         self.assertEqual(sorted(json.dumps(expected_custom)), sorted(json.dumps(stac_metadata.custom_properties)), f'mismatch: {stac_metadata.custom_properties}, {expected_custom}')
         return

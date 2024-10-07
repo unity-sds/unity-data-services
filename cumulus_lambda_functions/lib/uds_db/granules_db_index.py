@@ -2,13 +2,13 @@ import os
 from copy import deepcopy
 
 from cumulus_lambda_functions.granules_to_es.granules_index_mapping import GranulesIndexMapping
-from cumulus_lambda_functions.lib.time_utils import TimeUtils
+from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 
-from cumulus_lambda_functions.lib.aws.es_abstract import ESAbstract
+from mdps_ds_lib.lib.aws.es_abstract import ESAbstract
 
-from cumulus_lambda_functions.lib.aws.es_factory import ESFactory
+from mdps_ds_lib.lib.aws.es_factory import ESFactory
 
 from cumulus_lambda_functions.lib.uds_db.db_constants import DBConstants
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
@@ -218,6 +218,26 @@ class GranulesDbIndex:
 
     def dsl_search(self, tenant: str, tenant_venue: str, search_dsl: dict):
         read_alias_name = f'{DBConstants.granules_read_alias_prefix}_{tenant}_{tenant_venue}'.lower().strip()
-        search_result = self.__es.query(search_dsl, querying_index=read_alias_name) if 'sort' in search_dsl else self.__es.query(search_dsl, querying_index=read_alias_name)
-        LOGGER.debug(f'search_finished: {len(search_result["hits"]["hits"])}')
-        return search_result
+        original_size = search_dsl['size']
+        result = []
+        duplicates = set([])
+        while len(result) < original_size:
+            search_dsl['size'] = (original_size - len(result)) * 2
+            search_result = self.__es.query_pages(search_dsl, querying_index=read_alias_name) if 'sort' in search_dsl else self.__es.query(search_dsl, querying_index=read_alias_name)
+            if len(search_result['hits']['hits']) < 1:
+                break
+            for each in search_result['hits']['hits']:
+                if each['_id'] not in duplicates:
+                    duplicates.add(each['_id'])
+                    result.append(each)
+            search_dsl['search_after'] = search_result['hits']['hits'][-1]['sort']
+
+        LOGGER.debug(f'search_finished: {len(result)}')
+        return {
+            'hits': {
+                "total": {
+                    "value": len(result)
+                },
+                'hits': result
+            }
+        }

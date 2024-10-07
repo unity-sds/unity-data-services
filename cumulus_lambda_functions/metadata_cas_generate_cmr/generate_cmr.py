@@ -4,11 +4,11 @@ from copy import deepcopy
 
 import xmltodict
 
-from cumulus_lambda_functions.lib.aws.aws_s3 import AwsS3
-from cumulus_lambda_functions.lib.json_validator import JsonValidator
+from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
+from mdps_ds_lib.lib.utils.json_validator import JsonValidator
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.lib.metadata_extraction.echo_metadata import EchoMetadata
-from cumulus_lambda_functions.lib.time_utils import TimeUtils
+from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 from cumulus_lambda_functions.metadata_cas_generate_cmr.l1a_input_metadata import L1AInputMetadata
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())

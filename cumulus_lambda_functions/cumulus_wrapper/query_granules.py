@@ -2,7 +2,7 @@ import json
 
 import boto3
 import requests
-from cumulus_lambda_functions.cumulus_stac.item_transformer import ItemTransformer
+from mdps_ds_lib.lib.cumulus_stac.item_transformer import ItemTransformer
 
 from cumulus_lambda_functions.cumulus_wrapper.cumulus_base import CumulusBase
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
