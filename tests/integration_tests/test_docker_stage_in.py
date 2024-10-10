@@ -17,11 +17,11 @@ from unittest import TestCase
 
 from pystac import Item, Asset, Catalog, Link, ItemCollection
 
-from cumulus_lambda_functions.lib.constants import Constants
+from mdps_ds_lib.lib.constants import Constants
 
 from cumulus_lambda_functions.docker_entrypoint.__main__ import choose_process
-from cumulus_lambda_functions.lib.time_utils import TimeUtils
-from cumulus_lambda_functions.lib.utils.file_utils import FileUtils
+from mdps_ds_lib.lib.utils.time_utils import TimeUtils
+from mdps_ds_lib.lib.utils.file_utils import FileUtils
 
 
 class TestDockerStageIn(TestCase):

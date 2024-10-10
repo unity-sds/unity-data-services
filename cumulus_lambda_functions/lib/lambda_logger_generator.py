@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 
-from cumulus_lambda_functions.lib.constants import Constants
+from mdps_ds_lib.lib.constants import Constants
 
 
 class LambdaLoggerGenerator:

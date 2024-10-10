@@ -1,20 +1,20 @@
 import os
 import time
 
-from cumulus_lambda_functions.lib.aws.aws_message_transformers import AwsMessageTransformers
+from mdps_ds_lib.lib.aws.aws_message_transformers import AwsMessageTransformers
 from cumulus_lambda_functions.lib.uds_db.uds_collections import UdsCollections
 
-from cumulus_lambda_functions.stage_in_out.stage_in_out_utils import StageInOutUtils
+from mdps_ds_lib.stage_in_out.stage_in_out_utils import StageInOutUtils
 
 from cumulus_lambda_functions.uds_api.dapa.collections_dapa_cnm import CollectionsDapaCnm
 
-from cumulus_lambda_functions.cumulus_stac.unity_collection_stac import UnityCollectionStac
+from mdps_ds_lib.lib.cumulus_stac.unity_collection_stac import UnityCollectionStac
 from cumulus_lambda_functions.uds_api.dapa.collections_dapa_creation import CollectionDapaCreation
-from cumulus_lambda_functions.cumulus_stac.item_transformer import ItemTransformer
+from mdps_ds_lib.lib.cumulus_stac.item_transformer import ItemTransformer
 from pystac import ItemCollection, Item
-from cumulus_lambda_functions.lib.utils.file_utils import FileUtils
+from mdps_ds_lib.lib.utils.file_utils import FileUtils
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
-from cumulus_lambda_functions.lib.aws.aws_s3 import AwsS3
+from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
 

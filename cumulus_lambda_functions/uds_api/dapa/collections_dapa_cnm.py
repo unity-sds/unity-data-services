@@ -2,14 +2,14 @@ import json
 import os
 from typing import Union
 
-from cumulus_lambda_functions.lib.aws.aws_lambda import AwsLambda
+from mdps_ds_lib.lib.aws.aws_lambda import AwsLambda
 from starlette.datastructures import URL
 
-from cumulus_lambda_functions.lib.aws.aws_sns import AwsSns
+from mdps_ds_lib.lib.aws.aws_sns import AwsSns
 
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from pydantic import BaseModel
-from cumulus_lambda_functions.lib.time_utils import TimeUtils
+from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
 
@@ -101,8 +101,8 @@ class CollectionsDapaCnm:
                             'type': v['roles'][0] if 'roles' in v and len(v['roles']) > 0 else 'unknown',
                             'uri': v['href'],
                             'checksumType': 'md5',  # TODO Is this the only type?
-                            'checksum': v['file:checksum'] if 'file:checksum' in v else 'unknown',
-                            'size': v['file:size'] if 'file:size' in v else -1,
+                            'checksum': v['file:checksum'] if 'file:checksum' in v else '00000000000000000000000000000000',
+                            'size': v['file:size'] if 'file:size' in v else 0,
                         }
         return cumulus_asset
 
