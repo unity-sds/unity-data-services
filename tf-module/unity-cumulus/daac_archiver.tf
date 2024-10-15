@@ -79,4 +79,3 @@ module "daac_archiver_response" {
   prefix                     = var.prefix
   sns_arn                    = aws_sns_topic.daac_archiver_response.arn
 }
-q
