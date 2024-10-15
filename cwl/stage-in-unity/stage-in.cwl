@@ -15,7 +15,7 @@ requirements:
       PARALLEL_COUNT: '-1'
       DOWNLOAD_RETRY_WAIT_TIME: '30'
       DOWNLOAD_RETRY_TIMES: '5'
-      DOWNLOADING_ROLES: 'metadata'
+      DOWNLOADING_ROLES: 'data'
 
       CLIENT_ID: $(inputs.unity_client_id)
       COGNITO_URL: $(inputs.unity_cognito_url)

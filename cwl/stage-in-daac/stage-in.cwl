@@ -15,7 +15,7 @@ requirements:
       PARALLEL_COUNT: '-1'
       DOWNLOAD_RETRY_WAIT_TIME: '30'
       DOWNLOAD_RETRY_TIMES: '5'
-      DOWNLOADING_ROLES: 'browse'
+      DOWNLOADING_ROLES: 'data'
 
       EDL_BASE_URL: 'https://urs.earthdata.nasa.gov/'
       EDL_USERNAME: '/sps/processing/workflows/edl_username'
