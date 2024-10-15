@@ -1,0 +1,5 @@
+collection_id: "urn:nasa:unity:unity:dev:unity-dev-auxiliary___1"
+staging_bucket: "unity-dev-unity-unity-data"
+sample_output_data:
+  class: Directory
+  path: outputs

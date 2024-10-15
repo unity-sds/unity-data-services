@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Granule>
+	<GranuleUR>SISTER_EMIT_L2A_RSRFL_20240103T131936_001_UNC</GranuleUR>
+	<InsertTime>2018-04-25T21:45:45.524043</InsertTime>
+	<LastUpdate>2018-04-25T21:45:45.524053</LastUpdate>
+	<Collection>
+		<ShortName>urn:nasa:unity:unity:dev:SBG-L2A_RSRFL</ShortName>
+		<VersionId>1</VersionId>
+	</Collection>
+	<DataGranule>
+		<ProductionDateTime>2024-01-03T13:19:36.000000Z</ProductionDateTime>
+	</DataGranule>
+	<Temporal>
+		<RangeDateTime>
+			<BeginningDateTime>2024-01-03T13:19:36Z</BeginningDateTime>
+			<EndingDateTime>2024-01-03T13:19:48Z</EndingDateTime>
+		</RangeDateTime>
+	</Temporal>
+	<Spatial>
+		<HorizontalSpatialDomain>
+			<Geometry>
+				<GPolygon>
+					<Boundary>
+						<Point>
+							<PointLongitude>10.598766856250499</PointLongitude>
+							<PointLatitude>-20.004533998735798</PointLatitude>
+						</Point>
+						<Point>
+							<PointLongitude>10.116488181247300</PointLongitude>
+							<PointLatitude>-9.963464459448231</PointLatitude>
+						</Point>
+						<Point>
+							<PointLongitude>20.318223437416400</PointLongitude>
+							<PointLatitude>-9.958850980581371</PointLatitude>
+						</Point>
+						<Point>
+							<PointLongitude>21.290997939442398</PointLongitude>
+							<PointLatitude>-19.999772984245801</PointLatitude>
+						</Point>
+					</Boundary>
+				</GPolygon>
+			</Geometry>
+		</HorizontalSpatialDomain>
+	</Spatial>
+	<OnlineAccessURLs>
+		<OnlineAccessURL>
+			<URL>https://enjo7p7os7.execute-api.us-east-1.amazonaws.com/dev/MYD13Q1.A2017297.h19v10.006.2017313221202.hdf</URL>
+			<URLDescription>Download MYD13Q1.A2017297.h19v10.006.2017313221202.hdf</URLDescription>
+		</OnlineAccessURL>
+	</OnlineAccessURLs>
+	<Orderable>true</Orderable>
+	<Visible>true</Visible>
+	<CloudCover>13</CloudCover>
+</Granule>

@@ -1,0 +1,77 @@
+{
+  "type": "Feature",
+  "stac_version": "1.0.0",
+  "id": "SISTER_EMIT_L2A_RSRFL_20240103T131936_001_UNC",
+  "properties": {
+    "datetime": "2024-01-03T13:19:36Z",
+    "start_datetime": "2024-01-03T13:19:36Z",
+    "end_datetime": "2024-01-03T13:19:48Z",
+    "created": "2024-03-15T17:06:10.516148+00:00",
+    "updated": "2024-03-15T17:06:10.528822Z"
+  },
+  "geometry": null,
+  "links": [
+    {
+      "rel": "root",
+      "href": "./catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "parent",
+      "href": "./catalog.json",
+      "type": "application/json"
+    }
+  ],
+  "assets": {
+    "SISTER_EMIT_L2A_RSRFL_20240103T131936_001.png": {
+      "href": "./SISTER_EMIT_L2A_RSRFL_20240103T131936_001.png",
+      "title": "image/png file",
+      "description": "",
+      "roles": [
+        "browse"
+      ]
+    },
+    "SISTER_EMIT_L2A_RSRFL_20240103T131936_001_UNC.hdr": {
+      "href": "./SISTER_EMIT_L2A_RSRFL_20240103T131936_001_UNC.hdr",
+      "title": "header file",
+      "description": "",
+      "roles": [
+        "data"
+      ]
+    },
+    "SISTER_EMIT_L2A_RSRFL_20240103T131936_001_UNC.bin": {
+      "href": "./SISTER_EMIT_L2A_RSRFL_20240103T131936_001_UNC.bin",
+      "title": "binary file",
+      "description": "",
+      "roles": [
+        "data"
+      ]
+    },
+    "SISTER_EMIT_L2A_RSRFL_20240103T131936_001.hdr": {
+      "href": "./SISTER_EMIT_L2A_RSRFL_20240103T131936_001.hdr",
+      "title": "header file",
+      "description": "",
+      "roles": [
+        "data"
+      ]
+    },
+    "SISTER_EMIT_L2A_RSRFL_20240103T131936_001.bin": {
+      "href": "./SISTER_EMIT_L2A_RSRFL_20240103T131936_001.bin",
+      "title": "binary file",
+      "description": "",
+      "roles": [
+        "data"
+      ]
+    },
+    "SISTER_EMIT_L2A_RSRFL_20240103T131936_001_UNC.json": {
+      "href": "./SISTER_EMIT_L2A_RSRFL_20240103T131936_001_UNC.json",
+      "title": "text/json file",
+      "description": "",
+      "roles": [
+        "metadata"
+      ]
+    }
+  },
+  "stac_extensions": [],
+  "collection": "example-L2A-Resample-Collect"
+}

@@ -1,0 +1,190 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "stac_version": "1.0.0",
+            "id": "EMIT_L1B_RAD_001_20220810T034103_2222203_001",
+            "properties": {
+                "datetime": "2022-08-10T03:41:03Z",
+                "eo:cloud_cover": 100,
+                "start_datetime": "2022-08-10T03:41:03.000Z",
+                "end_datetime": "2022-08-10T03:41:15.000Z"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            73.6947784,
+                            22.3909645
+                        ],
+                        [
+                            73.1546631,
+                            21.7689323
+                        ],
+                        [
+                            73.7312927,
+                            21.2682304
+                        ],
+                        [
+                            74.2714081,
+                            21.8902626
+                        ],
+                        [
+                            73.6947784,
+                            22.3909645
+                        ]
+                    ]
+                ]
+            },
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://cmr.earthdata.nasa.gov/stac/LPCLOUD/collections/EMITL1BRAD_001/items/EMIT_L1B_RAD_001_20220810T034103_2222203_001",
+                    "type": "application/geo+json",
+                    "title": "EMIT_L1B_RAD_001_20220810T034103_2222203_001"
+                }
+            ],
+            "assets": {
+                "browse": {
+                    "href": "./EMIT_L1B_RAD_001_20220810T034103_2222203_001.png",
+                    "type": "image/jpeg",
+                    "title": "Download EMIT_L1B_RAD_001_20220810T034103_2222203_001.png",
+                    "roles": [
+                        "browse"
+                    ]
+                }
+            },
+            "bbox": [
+                73.1546631,
+                21.2682304,
+                74.2714081,
+                22.3909645
+            ],
+            "stac_extensions": [
+                "https://stac-extensions.github.io/eo/v1.0.0/schema.json"
+            ],
+            "collection": "EMITL1BRAD_001"
+        },
+        {
+            "type": "Feature",
+            "stac_version": "1.0.0",
+            "id": "EMIT_L1B_RAD_001_20220810T034115_2222203_002",
+            "properties": {
+                "datetime": "2022-08-10T03:41:15Z",
+                "eo:cloud_cover": 100,
+                "start_datetime": "2022-08-10T03:41:15.000Z",
+                "end_datetime": "2022-08-10T03:41:27.000Z"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            74.20298,
+                            22.9652157
+                        ],
+                        [
+                            73.6551895,
+                            22.3428402
+                        ],
+                        [
+                            74.2291489,
+                            21.8376598
+                        ],
+                        [
+                            74.7769394,
+                            22.4600353
+                        ],
+                        [
+                            74.20298,
+                            22.9652157
+                        ]
+                    ]
+                ]
+            },
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://cmr.earthdata.nasa.gov/stac/LPCLOUD/collections/EMITL1BRAD_001/items/EMIT_L1B_RAD_001_20220810T034115_2222203_002",
+                    "type": "application/geo+json",
+                    "title": "EMIT_L1B_RAD_001_20220810T034115_2222203_002"
+                }
+            ],
+            "assets": {
+                "browse": {
+                    "href": "./EMIT_L1B_RAD_001_20220810T034115_2222203_002.png",
+                    "type": "image/jpeg",
+                    "title": "Download EMIT_L1B_RAD_001_20220810T034115_2222203_002.png",
+                    "roles": [
+                        "browse"
+                    ]
+                }
+            },
+            "bbox": [
+                73.6551895,
+                21.8376598,
+                74.7769394,
+                22.9652157
+            ],
+            "stac_extensions": [
+                "https://stac-extensions.github.io/eo/v1.0.0/schema.json"
+            ],
+            "collection": "EMITL1BRAD_001"
+        }
+    ],
+    "description": "Items in the collection EMITL1BRAD_001",
+    "id": "EMITL1BRAD_001-items",
+    "license": "proprietary",
+    "extent": {
+        "spatial": {
+            "bbox": [
+                [
+                    -180,
+                    -54,
+                    180,
+                    54
+                ]
+            ]
+        },
+        "temporal": {
+            "interval": [
+                [
+                    "2022-08-09T00:00:00.000Z",
+                    null
+                ]
+            ]
+        }
+    },
+    "stac_version": "1.0.0",
+    "numberMatched": 109064,
+    "numberReturned": 2,
+    "links": [
+        {
+            "rel": "self",
+            "href": "https://cmr.earthdata.nasa.gov/stac/LPCLOUD/collections/EMITL1BRAD_001/items?limit=2",
+            "type": "application/geo+json"
+        },
+        {
+            "rel": "root",
+            "href": "https://cmr.earthdata.nasa.gov/stac",
+            "type": "application/json"
+        },
+        {
+            "rel": "parent",
+            "href": "https://cmr.earthdata.nasa.gov/stac/LPCLOUD/collections/EMITL1BRAD_001",
+            "type": "application/json"
+        },
+        {
+            "rel": "next",
+            "href": "https://cmr.earthdata.nasa.gov/stac/LPCLOUD/collections/EMITL1BRAD_001/items?limit=2&cursor=eyJqc29uIjoiW1wibHBjbG91ZFwiLDE2NjAxMDI4NzUwMDAsMjU5MzQ2MjU0NV0iLCJ1bW0iOiJbXCJscGNsb3VkXCIsMTY2MDEwMjg3NTAwMCwyNTkzNDYyNTQ1XSJ9",
+            "type": "application/geo+json"
+        }
+    ],
+    "context": {
+        "returned": 2,
+        "limit": 2,
+        "matched": 109064
+    }
+}
