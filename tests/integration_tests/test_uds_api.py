@@ -185,7 +185,7 @@ class TestCumulusCreateCollectionDapa(TestCase):
         return
 
     def test_granules_get(self):
-        post_url = f'{self.uds_url}collections/URN:NASA:UNITY:UDS_MY_LOCAL_ARCHIVE_TEST:DEV:UDS_UNIT_COLLECTION___2408290522/items/'  # MCP Dev
+        post_url = f'{self.uds_url}collections/urn:nasa:unity:unity:dev:SBG-L2A_RFL___1/items/'  # MCP Dev
         headers = {
             'Authorization': f'Bearer {self.bearer_token}',
         }

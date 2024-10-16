@@ -75,6 +75,8 @@ class GranulesDapaQueryEs:
             ]
 
     def __create_pagination_links(self, page_marker_str):
+        if self.__pagination_link_obj is None:
+            return []
         new_queries = deepcopy(self.__pagination_link_obj.org_query_params)
         new_queries['limit'] = int(new_queries['limit'] if 'limit' in new_queries else self.__limit)
         current_page = f"{self.__pagination_link_obj.requesting_base_url}?{'&'.join([f'{k}={v}' for k, v in new_queries.items()])}"
@@ -114,8 +116,20 @@ class GranulesDapaQueryEs:
         daac_archiver.send_to_daac_internal(cnm_response)
         return
 
+    def __restructure_each_granule_result(self, each_granules_query_result_stripped):
+        if 'event_time' in each_granules_query_result_stripped:
+            each_granules_query_result_stripped.pop('event_time')
+        if 'bbox' in each_granules_query_result_stripped:
+            each_granules_query_result_stripped['bbox'] = GranulesDbIndex.from_es_bbox(each_granules_query_result_stripped['bbox'])
+        for each_archiving_key in GranulesIndexMapping.archiving_keys:
+            if each_archiving_key in each_granules_query_result_stripped:
+                each_granules_query_result_stripped['properties'][each_archiving_key] = each_granules_query_result_stripped.pop(each_archiving_key)
+        return
+
     def get_single_granule(self, granule_id):
         granules_query_dsl = {
+            'size': 1,
+            'sort': [{'id': {'order': 'asc'}}],
             'query': {'bool': {'must': [{
                 'term': {'id': granule_id}
             }]}}
@@ -132,10 +146,7 @@ class GranulesDapaQueryEs:
         each_granules_query_result_stripped = granules_query_result['hits']['hits'][0]['_source']
         self_link = Link(rel='self', target=f'{self.__base_url}/{WebServiceConstants.COLLECTIONS}/{self.__collection_id}/items/{each_granules_query_result_stripped["id"]}', media_type='application/json', title=each_granules_query_result_stripped["id"]).to_dict(False)
         each_granules_query_result_stripped['links'].append(self_link)
-        if 'event_time' in each_granules_query_result_stripped:
-            each_granules_query_result_stripped.pop('event_time')
-        if 'bbox' in each_granules_query_result_stripped:
-            each_granules_query_result_stripped['bbox'] = GranulesDbIndex.from_es_bbox(each_granules_query_result_stripped['bbox'])
+        self.__restructure_each_granule_result(each_granules_query_result_stripped)
         return each_granules_query_result_stripped
 
     def start(self):
@@ -152,13 +163,7 @@ class GranulesDapaQueryEs:
             for each_granules_query_result_stripped in granules_query_result_stripped:
                 self_link = Link(rel='self', target=f'{self.__base_url}/{WebServiceConstants.COLLECTIONS}/{self.__collection_id}/items/{each_granules_query_result_stripped["id"]}', media_type='application/json', title=each_granules_query_result_stripped["id"]).to_dict(False)
                 each_granules_query_result_stripped['links'].append(self_link)
-                if 'event_time' in each_granules_query_result_stripped:
-                    each_granules_query_result_stripped.pop('event_time')
-                if 'bbox' in each_granules_query_result_stripped:
-                    each_granules_query_result_stripped['bbox'] = GranulesDbIndex.from_es_bbox(each_granules_query_result_stripped['bbox'])
-                for each_archiving_key in GranulesIndexMapping.archiving_keys:
-                    if each_archiving_key in each_granules_query_result_stripped:
-                        each_granules_query_result_stripped['properties'][each_archiving_key] = each_granules_query_result_stripped.pop(each_archiving_key)
+                self.__restructure_each_granule_result(each_granules_query_result_stripped)
             pagination_link = '' if len(granules_query_result['hits']['hits']) < self.__limit else ','.join(granules_query_result['hits']['hits'][-1]['sort'])
             return {
                 'statusCode': 200,
