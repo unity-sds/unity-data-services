@@ -3,16 +3,16 @@ import os
 from time import sleep
 
 import requests
-from cumulus_lambda_functions.lib.utils.file_utils import FileUtils
+from mdps_ds_lib.lib.utils.file_utils import FileUtils
 
-from cumulus_lambda_functions.lib.aws.aws_s3 import AwsS3
+from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 
-from cumulus_lambda_functions.lib.aws.aws_message_transformers import AwsMessageTransformers
-from cumulus_lambda_functions.lib.json_validator import JsonValidator
+from mdps_ds_lib.lib.aws.aws_message_transformers import AwsMessageTransformers
+from mdps_ds_lib.lib.utils.json_validator import JsonValidator
 
 from cumulus_lambda_functions.lib.uds_db.granules_db_index import GranulesDbIndex
-from cumulus_lambda_functions.lib.aws.aws_sns import AwsSns
-from cumulus_lambda_functions.lib.time_utils import TimeUtils
+from mdps_ds_lib.lib.aws.aws_sns import AwsSns
+from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.lib.uds_db.uds_collections import UdsCollections
 from cumulus_lambda_functions.lib.uds_db.archive_index import UdsArchiveConfigIndex
@@ -82,7 +82,7 @@ class DaacArchiverLogic:
         granule_identifier = UdsCollections.decode_identifier(uds_cnm_json['identifier'])  # This is normally meant to be for collection. Since our granule ID also has collection id prefix. we can use this.
         self.__archive_index_logic.set_tenant_venue(granule_identifier.tenant, granule_identifier.venue)
         daac_config = self.__archive_index_logic.percolate_document(uds_cnm_json['identifier'])
-        if daac_config is None:
+        if daac_config is None or len(daac_config) < 1:
             LOGGER.debug(f'uds_cnm_json is not configured for archival. uds_cnm_json: {uds_cnm_json}')
             return
         daac_config = daac_config[0]  # TODO This is currently not supporting more than 1 daac.

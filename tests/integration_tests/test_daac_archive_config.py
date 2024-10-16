@@ -4,7 +4,7 @@ import os
 from unittest import TestCase
 import requests
 
-from cumulus_lambda_functions.lib.cognito_login.cognito_login import CognitoLogin
+from mdps_ds_lib.lib.cognito_login.cognito_login import CognitoLogin
 from dotenv import load_dotenv
 
 

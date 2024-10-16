@@ -5,16 +5,16 @@ from typing import Optional
 import pystac
 from pydantic import BaseModel
 
-from cumulus_lambda_functions.lib.time_utils import TimeUtils
+from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 
 from cumulus_lambda_functions.lib.uds_db.uds_collections import UdsCollections
 from starlette.datastructures import URL
 
 from cumulus_lambda_functions.cumulus_wrapper.query_collections import CollectionsQuery
 
-from cumulus_lambda_functions.cumulus_stac.collection_transformer import CollectionTransformer
+from mdps_ds_lib.lib.cumulus_stac.collection_transformer import CollectionTransformer
 
-from cumulus_lambda_functions.lib.aws.aws_lambda import AwsLambda
+from mdps_ds_lib.lib.aws.aws_lambda import AwsLambda
 
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())

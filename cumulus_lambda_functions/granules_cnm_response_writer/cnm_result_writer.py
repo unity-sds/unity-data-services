@@ -1,9 +1,9 @@
 import json
 
-from cumulus_lambda_functions.lib.json_validator import JsonValidator
+from mdps_ds_lib.lib.utils.json_validator import JsonValidator
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
-from cumulus_lambda_functions.lib.aws.aws_message_transformers import AwsMessageTransformers
-from cumulus_lambda_functions.lib.aws.aws_s3 import AwsS3
+from mdps_ds_lib.lib.aws.aws_message_transformers import AwsMessageTransformers
+from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
 

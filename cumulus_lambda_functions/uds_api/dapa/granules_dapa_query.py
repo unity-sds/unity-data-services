@@ -1,12 +1,12 @@
 import json
 import os
 
-from cumulus_lambda_functions.cumulus_stac.item_transformer import ItemTransformer
+from mdps_ds_lib.lib.cumulus_stac.item_transformer import ItemTransformer
 from cumulus_lambda_functions.lib.cql_parser import CqlParser
 
 from cumulus_lambda_functions.lib.uds_db.uds_collections import UdsCollections
 
-from cumulus_lambda_functions.lib.json_validator import JsonValidator
+from mdps_ds_lib.lib.utils.json_validator import JsonValidator
 
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 

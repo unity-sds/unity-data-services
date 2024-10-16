@@ -9,18 +9,18 @@ from unittest import TestCase
 
 import pystac
 import requests
-from cumulus_lambda_functions.lib.aws.aws_s3 import AwsS3
+from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 
-from cumulus_lambda_functions.lib.time_utils import TimeUtils
+from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 from pystac import Link, Catalog, Asset, Item, ItemCollection
 
 from cumulus_lambda_functions.docker_entrypoint.__main__ import choose_process
 
-from cumulus_lambda_functions.lib.utils.file_utils import FileUtils
+from mdps_ds_lib.lib.utils.file_utils import FileUtils
 
-from cumulus_lambda_functions.cumulus_stac.unity_collection_stac import UnityCollectionStac
+from mdps_ds_lib.lib.cumulus_stac.unity_collection_stac import UnityCollectionStac
 
-from cumulus_lambda_functions.lib.cognito_login.cognito_login import CognitoLogin
+from mdps_ds_lib.lib.cognito_login.cognito_login import CognitoLogin
 from dotenv import load_dotenv
 
 
@@ -44,7 +44,8 @@ class TestCustomMetadataEndToEnd(TestCase):
         self.tenant = 'UDS_LOCAL_TEST'  # 'uds_local_test'  # 'uds_sandbox'
         self.tenant_venue = 'DEV'  # 'DEV1'  # 'dev'
         self.collection_name = 'UDS_COLLECTION'  # 'uds_collection'  # 'sbx_collection'
-        self.collection_version = '24.04.25.11.00'.replace('.', '')  # '2402011200'
+        self.collection_version = '24.09.30.12.05'.replace('.', '')  # '2402011200'
+        self.collection_version = '24.09.30.12.08'.replace('.', '')  # '2402011200'
 
         self.custom_metadata_body = {
             'tag': {'type': 'keyword'},
