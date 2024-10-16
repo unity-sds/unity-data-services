@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [8.1.1] - 2024-10-16
+### Fixed
+- [#449](https://github.com/unity-sds/unity-data-services/pull/449) fix: use dlq to avoid sqs bottleneck + ignore both none & empty array in validation
+
 ## [8.1.0] - 2024-10-10
 ### Changed
 - [#438](https://github.com/unity-sds/unity-data-services/pull/438) feat: import uds lib for core logic
