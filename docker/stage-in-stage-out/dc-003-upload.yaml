@@ -22,6 +22,7 @@ services:
       COGNITO_URL: 'ask U-CS. ex: https://cognito-idp.us-west-2.amazonaws.com'
 
       VERIFY_SSL: 'FALSE'
+      DRY_RUN: 'TRUE | FALSE . set to TRUE to confirm if all settings are correct bar aws credentials'
       DAPA_API: 'https://k3a3qmarxh.execute-api.us-west-2.amazonaws.com/dev'
 
       PROJECT: 'NAME of the project if collection name in Granule STAC purely includes the name. It will be part of URN:NASA:UNITY:<PROJECT>:<VENUE>:<NAME>'
