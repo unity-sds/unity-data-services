@@ -20,6 +20,21 @@
                 "arn:aws:s3:::${s3BucketName}/*",
                 "arn:aws:s3:::${s3BucketName}"
             ]
+        },
+        {
+            "Sid": "AllowSSLRequestsOnly",
+            "Action": "s3:*",
+            "Effect": "Deny",
+            "Resource": [
+                "arn:aws:s3:::${s3BucketName}/*",
+                "arn:aws:s3:::${s3BucketName}"
+            ],
+            "Condition": {
+                "Bool": {
+                     "aws:SecureTransport": "false"
+                }
+            },
+           "Principal": "*"
         }
     ]
 }
