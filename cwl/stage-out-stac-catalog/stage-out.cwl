@@ -5,7 +5,7 @@ baseCommand: ["UPLOAD"]
 
 requirements:
   DockerRequirement:
-    dockerPull: ghcr.io/unity-sds/unity-data-services:8.0.0
+    dockerPull: ghcr.io/unity-sds/unity-data-services:9.0.0
   InitialWorkDirRequirement:
     listing:
     - entry: $(inputs.sample_output_data)
@@ -13,18 +13,21 @@ requirements:
 
   EnvVarRequirement:
     envDef:
-      COLLECTION_ID: $(inputs.collection_id)
       STAGING_BUCKET: $(inputs.staging_bucket)
       CATALOG_FILE: '/tmp/outputs/catalog.json'
       LOG_LEVEL: '10'
       PARALLEL_COUNT: '-1'
       OUTPUT_DIRECTORY: $(runtime.outdir)
-      RESULT_PATH_PREFIX: 'stage_out/$(inputs.collection_id)'
+      PROJECT: $(inputs.project)
+      VENUE: $(inputs.venue)
+
       GRANULES_UPLOAD_TYPE: 'UPLOAD_S3_BY_STAC_CATALOG'
       BASE_DIRECTORY: '/tmp/outputs'
 
 inputs:
-  collection_id:
+  project:
+    type: string
+  venue:
     type: string
   staging_bucket:
     type: string

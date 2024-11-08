@@ -12,7 +12,8 @@ requirements:
   InlineJavascriptRequirement: {}
 
 inputs:
-  collection_id: string
+  project: string
+  venue: string
   staging_bucket: string
   sample_output_data: Directory
 
@@ -28,7 +29,8 @@ steps:
     stage-out:
       run: "stage-out.cwl"
       in:
-        collection_id: collection_id
+        project: project
+        venue: venue
         staging_bucket: staging_bucket
         sample_output_data: sample_output_data
       out: [successful_features, failed_features]

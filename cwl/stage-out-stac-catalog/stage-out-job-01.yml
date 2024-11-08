@@ -1,4 +1,5 @@
-collection_id: "urn:nasa:unity:unity:dev:unity-dev-output___1"
+project: "unity"
+venue: "dev"
 staging_bucket: "unity-dev-unity-unity-data"
 sample_output_data:
   class: Directory
