@@ -69,7 +69,7 @@ INPUT_EVENT_SCHEMA = {
                                                     "required": [
                                                         "type"
                                                     ],
-                                                    "oneOf": [
+                                                    "anyOf": [
                                                         {"required": ["bucket", "key"]},
                                                         {"required": ["url_path"]}
                                                     ],
