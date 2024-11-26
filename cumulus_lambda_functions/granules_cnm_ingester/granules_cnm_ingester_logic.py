@@ -11,7 +11,6 @@ from cumulus_lambda_functions.uds_api.dapa.collections_dapa_cnm import Collectio
 
 from mdps_ds_lib.lib.cumulus_stac.unity_collection_stac import UnityCollectionStac
 from cumulus_lambda_functions.uds_api.dapa.collections_dapa_creation import CollectionDapaCreation
-from mdps_ds_lib.lib.cumulus_stac.item_transformer import ItemTransformer
 from pystac import ItemCollection, Item
 from mdps_ds_lib.lib.utils.file_utils import FileUtils
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
