@@ -81,9 +81,9 @@ resource "aws_lambda_function" "granules_cnm_response_writer" {
   tags = var.tags
 }
 
-data "aws_sns_topic" "granules_cnm_response_topic" {  // https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/sns_topic.html
-  name              = var.granules_cnm_response_topic
-}
+#data "aws_sns_topic" "granules_cnm_response_topic" {  // https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/sns_topic.html
+#  name              = var.granules_cnm_response_topic
+#}
 
 module "granules_cnm_response_writer" {
   source = "./sqs--sns-lambda-connector"
@@ -93,5 +93,6 @@ module "granules_cnm_response_writer" {
   lambda_processing_role_arn = var.lambda_processing_role_arn
   name                       = "granules_cnm_response_writer"
   prefix                     = var.prefix
-  sns_arn                    = data.aws_sns_topic.granules_cnm_response_topic.arn
+#  sns_arn                    = data.aws_sns_topic.granules_cnm_response_topic.arn
+  sns_arn                    = var.granules_cnm_response_topic
 }
