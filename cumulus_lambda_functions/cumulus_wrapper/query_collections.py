@@ -12,6 +12,7 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 
 class CollectionsQuery(CumulusBase):
     __collections_key = 'collections'
+    __providers_key = 'providers'
     __rules_key = 'rules'
     __stats_key = 'stats'
     __collection_id_key = 'collectionId'
@@ -337,3 +338,48 @@ curl --request POST "$CUMULUS_BASEURL/rules" --header "Authorization: Bearer $cu
             LOGGER.exception('error during cumulus query')
             return {'server_error': str(e)}
         return {'results': [CollectionTransformer().to_stac(k) for k in query_result]}
+
+    def create_provider(self, provider_name: str, private_api_prefix: str):
+        #       INSERT INTO providers (name, protocol, host)       VALUES ('unity', 's3', 'https://dev.mdps.mcp.nasa.gov');
+        # TODO : this fails
+        payload = {
+            'httpMethod': 'POST',
+            'resource': '/{proxy+}',
+            'path': f'/{self.__providers_key}',
+            'headers': {
+                'Content-Type': 'application/json',
+            },
+            'body': json.dumps({
+                "id": provider_name,
+                "host": "https://dev.mdps.mcp.nasa.gov",
+                "protocol": "s3",
+                # "port": 443,
+                # "globalConnectionLimit": 10,
+                # "maxDownloadTime": 300,
+                # "username": "na",
+                # "password": "na",
+                # "privateKey": "na",
+                # "cmKeyId": "na",
+                # "allowedRedirects": "na",
+            })
+        }
+        LOGGER.debug(f'payload: {payload}')
+        try:
+            query_result = self._invoke_api(payload, private_api_prefix)
+            """
+            {'statusCode': 500, 'body': '', 'headers': {}}
+            """
+            if query_result['statusCode'] >= 500:
+                LOGGER.error(f'server error status code: {query_result["statusCode"]}. details: {query_result}')
+                return {'server_error': query_result}
+            if query_result['statusCode'] >= 400:
+                LOGGER.error(f'client error status code: {query_result["statusCode"]}. details: {query_result}')
+                return {'client_error': query_result}
+            query_result = json.loads(query_result['body'])
+            LOGGER.debug(f'json query_result: {query_result}')
+            if 'message' not in query_result:
+                return {'server_error': f'invalid response: {query_result}'}
+        except Exception as e:
+            LOGGER.exception('error while invoking')
+            return {'server_error': f'error while invoking:{str(e)}'}
+        return {'status': query_result['message']}
