@@ -1,5 +1,6 @@
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from mdps_ds_lib.lib.aws.aws_message_transformers import AwsMessageTransformers
 from cumulus_lambda_functions.lib.uds_db.uds_collections import UdsCollections
@@ -118,41 +119,57 @@ class GranulesCnmIngesterLogic:
         if len(self.successful_features.items) < 1:
             LOGGER.error(f'not required to process. No Granules: {self.successful_features.to_dict(False)}')
             return
-        self.collection_id = self.successful_features.items[0].collection_id
+        self.collection_id = list(set([k.collection_id for k in self.successful_features.items]))
         return
 
     def has_collection(self):
         uds_collection_result = self.__uds_collection.get_collection(self.collection_id)
         return len(uds_collection_result) > 0
 
-    def create_collection(self):
+    def create_one_collection(self, collection_id):
+        try:
+            if collection_id is None:
+                raise RuntimeError(f'NULL collection_id')
+            if self.has_collection():
+                LOGGER.debug(f'{collection_id} already exists. continuing..')
+                return {'status': 'success'}
+                # ref: https://github.com/unity-sds/unity-py/blob/0.4.0/unity_sds_client/services/data_service.py
+            dapa_collection = UnityCollectionStac() \
+                .with_id(collection_id) \
+                .with_graule_id_regex("^test_file.*$") \
+                .with_granule_id_extraction_regex("(^test_file.*)(\\.nc|\\.nc\\.cas|\\.cmr\\.xml)") \
+                .with_title(f'Collection: {collection_id}') \
+                .with_process('stac') \
+                .with_provider(self.__default_provider) \
+                .add_file_type("test_file01.nc", "^test_file.*\\.nc$", 'unknown_bucket', 'application/json', 'root') \
+                .add_file_type("test_file01.nc", "^test_file.*\\.nc$", 'protected', 'data', 'item') \
+                .add_file_type("test_file01.nc.cas", "^test_file.*\\.nc.cas$", 'protected', 'metadata', 'item') \
+                .add_file_type("test_file01.nc.cmr.xml", "^test_file.*\\.nc.cmr.xml$", 'protected', 'metadata', 'item') \
+                .add_file_type("test_file01.nc.stac.json", "^test_file.*\\.nc.stac.json$", 'protected', 'metadata',
+                               'item')
+
+            stac_collection = dapa_collection.start()
+            creation_result = CollectionDapaCreation(stac_collection).create()
+            if creation_result['statusCode'] >= 400:
+                raise RuntimeError(
+                    f'failed to create collection: {collection_id}. details: {creation_result["body"]}')
+            time.sleep(3)  # cool off period before checking DB
+            if not self.has_collection():
+                LOGGER.error(f'missing collection. (failed to create): {collection_id}')
+                raise ValueError(f'missing collection. (failed to create): {collection_id}')
+        except Exception as e:
+            return {'status': 'error', 'details': str(e)}
+        return {'status': 'success'}
+
+    def create_collection_async(self):
         if self.collection_id is None:
             raise RuntimeError(f'NULL collection_id')
-        if self.has_collection():
-            LOGGER.debug(f'{self.collection_id} already exists. continuing..')
-            return
-        # ref: https://github.com/unity-sds/unity-py/blob/0.4.0/unity_sds_client/services/data_service.py
-        dapa_collection = UnityCollectionStac() \
-            .with_id(self.collection_id) \
-            .with_graule_id_regex("^test_file.*$") \
-            .with_granule_id_extraction_regex("(^test_file.*)(\\.nc|\\.nc\\.cas|\\.cmr\\.xml)") \
-            .with_title(f'Collection: {self.collection_id}') \
-            .with_process('stac') \
-            .with_provider(self.__default_provider) \
-            .add_file_type("test_file01.nc", "^test_file.*\\.nc$", 'unknown_bucket', 'application/json', 'root') \
-            .add_file_type("test_file01.nc", "^test_file.*\\.nc$", 'protected', 'data', 'item') \
-            .add_file_type("test_file01.nc.cas", "^test_file.*\\.nc.cas$", 'protected', 'metadata', 'item') \
-            .add_file_type("test_file01.nc.cmr.xml", "^test_file.*\\.nc.cmr.xml$", 'protected', 'metadata', 'item') \
-            .add_file_type("test_file01.nc.stac.json", "^test_file.*\\.nc.stac.json$", 'protected', 'metadata', 'item')
-
-        stac_collection = dapa_collection.start()
-        creation_result = CollectionDapaCreation(stac_collection).create()
-        if creation_result['statusCode'] >= 400:
-            raise RuntimeError(f'failed to create collection: {self.collection_id}. details: {creation_result["body"]}')
-        time.sleep(3)  # cool off period before checking DB
-        if not self.has_collection():
-            LOGGER.error(f'missing collection. (failed to create): {self.collection_id}')
-            raise ValueError(f'missing collection. (failed to create): {self.collection_id}')
+        with ThreadPoolExecutor() as executor:
+            futures = [executor.submit(self.create_one_collection, collection_id) for collection_id in self.collection_id]
+            results = [future.result() for future in as_completed(futures)]
+        errors = [k['details'] for k in results if k['status'] == 'error']
+        if len(errors) > 0:
+            raise ValueError(f'error while creating collections: {errors}')
         return
 
     def send_cnm_msg(self):
@@ -188,6 +205,6 @@ class GranulesCnmIngesterLogic:
         self.load_successful_features_s3(s3_url)
         self.validate_granules()
         self.extract_collection_id()
-        self.create_collection()
+        self.create_collection_async()
         self.send_cnm_msg()
         return
