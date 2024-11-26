@@ -132,31 +132,31 @@ class GranulesCnmIngesterLogic:
                 raise RuntimeError(f'NULL collection_id')
             if self.has_collection():
                 LOGGER.debug(f'{collection_id} already exists. continuing..')
-                return
+                return {'status': 'success'}
                 # ref: https://github.com/unity-sds/unity-py/blob/0.4.0/unity_sds_client/services/data_service.py
-                dapa_collection = UnityCollectionStac() \
-                    .with_id(collection_id) \
-                    .with_graule_id_regex("^test_file.*$") \
-                    .with_granule_id_extraction_regex("(^test_file.*)(\\.nc|\\.nc\\.cas|\\.cmr\\.xml)") \
-                    .with_title(f'Collection: {collection_id}') \
-                    .with_process('stac') \
-                    .with_provider(self.__default_provider) \
-                    .add_file_type("test_file01.nc", "^test_file.*\\.nc$", 'unknown_bucket', 'application/json', 'root') \
-                    .add_file_type("test_file01.nc", "^test_file.*\\.nc$", 'protected', 'data', 'item') \
-                    .add_file_type("test_file01.nc.cas", "^test_file.*\\.nc.cas$", 'protected', 'metadata', 'item') \
-                    .add_file_type("test_file01.nc.cmr.xml", "^test_file.*\\.nc.cmr.xml$", 'protected', 'metadata', 'item') \
-                    .add_file_type("test_file01.nc.stac.json", "^test_file.*\\.nc.stac.json$", 'protected', 'metadata',
-                                   'item')
+            dapa_collection = UnityCollectionStac() \
+                .with_id(collection_id) \
+                .with_graule_id_regex("^test_file.*$") \
+                .with_granule_id_extraction_regex("(^test_file.*)(\\.nc|\\.nc\\.cas|\\.cmr\\.xml)") \
+                .with_title(f'Collection: {collection_id}') \
+                .with_process('stac') \
+                .with_provider(self.__default_provider) \
+                .add_file_type("test_file01.nc", "^test_file.*\\.nc$", 'unknown_bucket', 'application/json', 'root') \
+                .add_file_type("test_file01.nc", "^test_file.*\\.nc$", 'protected', 'data', 'item') \
+                .add_file_type("test_file01.nc.cas", "^test_file.*\\.nc.cas$", 'protected', 'metadata', 'item') \
+                .add_file_type("test_file01.nc.cmr.xml", "^test_file.*\\.nc.cmr.xml$", 'protected', 'metadata', 'item') \
+                .add_file_type("test_file01.nc.stac.json", "^test_file.*\\.nc.stac.json$", 'protected', 'metadata',
+                               'item')
 
-                stac_collection = dapa_collection.start()
-                creation_result = CollectionDapaCreation(stac_collection).create()
-                if creation_result['statusCode'] >= 400:
-                    raise RuntimeError(
-                        f'failed to create collection: {collection_id}. details: {creation_result["body"]}')
-                time.sleep(3)  # cool off period before checking DB
-                if not self.has_collection():
-                    LOGGER.error(f'missing collection. (failed to create): {collection_id}')
-                    raise ValueError(f'missing collection. (failed to create): {collection_id}')
+            stac_collection = dapa_collection.start()
+            creation_result = CollectionDapaCreation(stac_collection).create()
+            if creation_result['statusCode'] >= 400:
+                raise RuntimeError(
+                    f'failed to create collection: {collection_id}. details: {creation_result["body"]}')
+            time.sleep(3)  # cool off period before checking DB
+            if not self.has_collection():
+                LOGGER.error(f'missing collection. (failed to create): {collection_id}')
+                raise ValueError(f'missing collection. (failed to create): {collection_id}')
         except Exception as e:
             return {'status': 'error', 'details': str(e)}
         return {'status': 'success'}
