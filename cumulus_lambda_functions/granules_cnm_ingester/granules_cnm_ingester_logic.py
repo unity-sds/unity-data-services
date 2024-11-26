@@ -122,15 +122,16 @@ class GranulesCnmIngesterLogic:
         self.collection_id = list(set([k.collection_id for k in self.successful_features.items]))
         return
 
-    def has_collection(self):
-        uds_collection_result = self.__uds_collection.get_collection(self.collection_id)
+    def has_collection(self, collection_id_custom=None):
+        collection_id_custom = collection_id_custom if collection_id_custom is not None else self.collection_id
+        uds_collection_result = self.__uds_collection.get_collection(collection_id_custom)
         return len(uds_collection_result) > 0
 
     def create_one_collection(self, collection_id):
         try:
             if collection_id is None:
                 raise RuntimeError(f'NULL collection_id')
-            if self.has_collection():
+            if self.has_collection(collection_id):
                 LOGGER.debug(f'{collection_id} already exists. continuing..')
                 return {'status': 'success'}
                 # ref: https://github.com/unity-sds/unity-py/blob/0.4.0/unity_sds_client/services/data_service.py
@@ -154,7 +155,7 @@ class GranulesCnmIngesterLogic:
                 raise RuntimeError(
                     f'failed to create collection: {collection_id}. details: {creation_result["body"]}')
             time.sleep(3)  # cool off period before checking DB
-            if not self.has_collection():
+            if not self.has_collection(collection_id):
                 LOGGER.error(f'missing collection. (failed to create): {collection_id}')
                 raise ValueError(f'missing collection. (failed to create): {collection_id}')
         except Exception as e:
