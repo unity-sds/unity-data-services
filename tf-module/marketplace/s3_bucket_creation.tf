@@ -1,3 +1,21 @@
+locals {
+  bucket_tags = merge(
+    var.tags,
+    {
+      "Proj" = var.project
+      "Venue" = var.venue
+      "Env" = var.venue
+      "ServiceArea" = "ds"
+      "CapVersion" = "1.0.0"
+      "Component" = "MarketplaceBucket"
+      "CreatedBy" = "ds"
+      "Stack" = "MarketplaceBucket"
+      "Capability" = "data-storage"
+      "Name" = "${var.project}-${var.venue}-ds-data-storage-marketplace-bucket"
+    }
+  )
+}
+
 data "aws_ssm_parameter" "uds_aws_account" {
   name = var.uds_aws_account_ssm_path
 }
@@ -11,13 +29,7 @@ data "aws_ssm_parameter" "uds_prefix" {
 }
 resource "aws_s3_bucket" "market_bucket" {
   bucket = lower(replace("${var.project}-${var.venue}-unity-${var.market_bucket_name}", "_", "-"))
-  tags = merge(
-    var.tags,
-    {
-      "project" = var.project
-      "venue"   = var.venue
-    }
-  )
+  tags = local.bucket_tags
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "market_bucket" {  // https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_server_side_encryption_configuration
@@ -48,4 +60,11 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
     filter_suffix = ".json"
     filter_prefix = var.market_bucket__notification_prefix
   }
+}
+
+resource "aws_ssm_parameter" "primary_data_bucket" {
+  name  = "/unity/ds/data/bucket/primary-data-bucket"
+  type  = "String"
+  value = aws_s3_bucket.market_bucket.bucket
+  tags = local.bucket_tags
 }

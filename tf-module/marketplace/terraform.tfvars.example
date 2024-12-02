@@ -2,17 +2,6 @@ project = "Unity"
 venue = "dev"
 market_bucket_name = "william_test_1"
 market_bucket__notification_prefix = "stage_out"
-tags = {
-  Venue = "test",
-  ServiceArea = "ds",
-  CapVersion = "18.3.3"
-  Component = "Cumulus",
-  Proj = "Unity",
-  CreatedBy = "ds",
-  Env = "test",
-  Stack = "Cumulus"
-}
 uds_aws_account_ssm_path="/unity/shared-services/aws/account"
 uds_aws_account_region_ssm_path="/unity/shared-services/aws/account/region"
 uds_prefix_ssm_path="/unity/shared-services/data-catalog/deployment/prefix"
-cumulus_lambda_processing_role_name_postfix="lambda-processing"
