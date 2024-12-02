@@ -180,3 +180,10 @@ class TestQueryCollection(TestCase):
         print(json.dumps(rules, indent=4))
         # self.assertTrue(False, rules)
         return
+
+    def test_create_provider(self):
+        lambda_prefix = 'uds-sbx-cumulus'
+        collection_query = CollectionsQuery('NA', 'NA')
+        result = collection_query.create_provider('unity', lambda_prefix)
+        print(result)
+        return
