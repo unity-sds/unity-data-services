@@ -38,21 +38,19 @@ class TestCumulusCreateCollectionDapa(TestCase):
 
         self.tenant = 'UDS_LOCAL_TEST'  # 'uds_local_test'  # 'uds_sandbox'
         self.tenant_venue = 'DEV'  # 'DEV1'  # 'dev'
-        self.collection_name = 'SNDR-SNPP_ATMS@L1B$OUTPUT'  # 'uds_collection'  # 'sbx_collection'
+        self.collection_name = 'TEST2'  # 'uds_collection'  # 'sbx_collection'
         self.collection_version = '24.03.20.14.40'.replace('.', '')  # '2402011200'
         return
 
 
     def test_add_admin_01(self):
         collection_url = f'{self.uds_url}admin/auth'
-        tenant, tenant_venue = 'uds_local_test', 'DEV1'
-        tenant, tenant_venue = 'MAIN_PROJECT', 'DEV'
         admin_add_body = {
             "actions": ["READ", "CREATE"],
-            "resources": [f"URN:NASA:UNITY:{tenant}:{tenant_venue}:.*"],
-            "tenant": tenant,
+            "resources": [f"URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:.*"],
+            "tenant": self.tenant,
             # "venue": f"DEV1-{int(datetime.utcnow().timestamp())}",
-            "venue": tenant_venue,
+            "venue": self.tenant_venue,
             "group_name": "Unity_Viewer"
         }
         s = requests.session()
@@ -68,7 +66,8 @@ class TestCumulusCreateCollectionDapa(TestCase):
         return
 
     def test_01_setup_custom_metadata_index(self):
-        post_url = f'{self.uds_url}admin/custom_metadata/MAIN_PROJECT?venue=DEV'  # MCP Dev
+        post_url = f'{self.uds_url}admin/custom_metadata/{self.tenant}?venue={self.tenant_venue}'  # MCP Dev
+        print(f'post_url: {post_url}')
         headers = {
             'Authorization': f'Bearer {self.bearer_token}',
             'Content-Type': 'application/json',
@@ -89,7 +88,7 @@ class TestCumulusCreateCollectionDapa(TestCase):
             'Content-Type': 'application/json',
         }
         print(post_url)
-        temp_collection_id = 'URN:NASA:UNITY:MAIN_PROJECT:DEV:NEW_COLLECTION_EXAMPLE_L1B___9'
+        temp_collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}___{self.collection_version}'
         dapa_collection = UnityCollectionStac() \
             .with_id(temp_collection_id) \
             .with_graule_id_regex("^test_file.*$") \
