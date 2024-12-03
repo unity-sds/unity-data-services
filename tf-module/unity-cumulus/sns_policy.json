@@ -20,7 +20,7 @@
       "Resource": "arn:aws:sns:${region}:${accountId}:${snsName}",
       "Condition": {
         "ArnLike": {
-          "aws:SourceArn": ["arn:aws:s3:*:*:${s3Glob}", "arn:aws:s3:*:*:uds-*-cumulus-staging"]
+          "aws:SourceArn": ["arn:aws:s3:*:*:${s3Glob}"]
         }
       }
     }
