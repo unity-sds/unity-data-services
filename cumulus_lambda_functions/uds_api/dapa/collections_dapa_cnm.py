@@ -212,7 +212,7 @@ Test Input message
                     "version": '1.6.0',  # TODO
                     'product': {
                         'name': each_granule['id'],
-                        'dataVersion': collection_id_version[1],
+                        'dataVersion': collection_id_version[1] if len(collection_id_version) > 1 else '',
                         'files': [self.__generate_cumulus_asset(v) for k, v in each_granule['assets'].items()],
                     }
                 }
