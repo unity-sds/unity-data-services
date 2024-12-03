@@ -339,7 +339,7 @@ curl --request POST "$CUMULUS_BASEURL/rules" --header "Authorization: Bearer $cu
             return {'server_error': str(e)}
         return {'results': [CollectionTransformer().to_stac(k) for k in query_result]}
 
-    def create_provider(self, provider_name: str, private_api_prefix: str):
+    def create_provider(self, provider_name: str, s3_bucket: str, private_api_prefix: str):
         #       INSERT INTO providers (name, protocol, host)       VALUES ('unity', 's3', 'https://dev.mdps.mcp.nasa.gov');
         # TODO : this fails
         payload = {
@@ -351,10 +351,10 @@ curl --request POST "$CUMULUS_BASEURL/rules" --header "Authorization: Bearer $cu
             },
             'body': json.dumps({
                 "id": provider_name,
-                "host": "https://dev.mdps.mcp.nasa.gov",
+                "host": s3_bucket,
                 "protocol": "s3",
                 # "port": 443,
-                # "globalConnectionLimit": 10,
+                "globalConnectionLimit": 1000,
                 # "maxDownloadTime": 300,
                 # "username": "na",
                 # "password": "na",

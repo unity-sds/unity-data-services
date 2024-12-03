@@ -184,6 +184,6 @@ class TestQueryCollection(TestCase):
     def test_create_provider(self):
         lambda_prefix = 'uds-sbx-cumulus'
         collection_query = CollectionsQuery('NA', 'NA')
-        result = collection_query.create_provider('unity', lambda_prefix)
+        result = collection_query.create_provider('william-test2', 'uds-sbx-staging', lambda_prefix)
         print(result)
         return
