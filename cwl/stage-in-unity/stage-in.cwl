@@ -5,12 +5,11 @@ baseCommand: ["DOWNLOAD"]
 
 requirements:
   DockerRequirement:
-    dockerPull: ghcr.io/unity-sds/unity-data-services:9.0.0
+    dockerPull: ghcr.io/unity-sds/unity-data-services:9.1.0
   EnvVarRequirement:
     envDef:
       DOWNLOAD_DIR: $(runtime.outdir)/$(inputs.download_dir)
       STAC_JSON: $(inputs.stac_json)
-      GRANULES_DOWNLOAD_TYPE: 'S3'
       LOG_LEVEL: '10'
       PARALLEL_COUNT: '-1'
       DOWNLOAD_RETRY_WAIT_TIME: '30'
