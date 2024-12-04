@@ -82,7 +82,7 @@ class DaacArchiverLogic:
         granule_identifier = UdsCollections.decode_identifier(uds_cnm_json['identifier'])  # This is normally meant to be for collection. Since our granule ID also has collection id prefix. we can use this.
         self.__archive_index_logic.set_tenant_venue(granule_identifier.tenant, granule_identifier.venue)
         daac_config = self.__archive_index_logic.percolate_document(uds_cnm_json['identifier'])
-        if daac_config is None:
+        if daac_config is None or len(daac_config) < 1:
             LOGGER.debug(f'uds_cnm_json is not configured for archival. uds_cnm_json: {uds_cnm_json}')
             return
         daac_config = daac_config[0]  # TODO This is currently not supporting more than 1 daac.

@@ -69,34 +69,13 @@ resource "aws_sns_topic_policy" "daac_archiver_response_policy" {
   })
 }
 
-resource "aws_sqs_queue" "daac_archiver_response" {  // https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/sqs_queue
-  name                      = "${var.prefix}-daac_archiver_response"
-  delay_seconds             = 0
-  max_message_size          = 262144
-  message_retention_seconds = 345600
-  visibility_timeout_seconds = var.granules_cnm_ingester__sqs_visibility_timeout_seconds  // Used as cool off time in seconds. It will wait for 5 min if it fails
-  receive_wait_time_seconds = 0
-  policy = templatefile("${path.module}/sqs_policy.json", {
-    region: var.aws_region,
-    roleArn: var.lambda_processing_role_arn,
-    accountId: local.account_id,
-    sqsName: "${var.prefix}-daac_archiver_response",
-  })
-  tags = var.tags
-}
+module "daac_archiver_response" {
+  source = "./sqs--sns-lambda-connector"
 
-resource "aws_sns_topic_subscription" "daac_archiver_response_subscription" { // https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/sns_topic_subscription
-  topic_arn = aws_sns_topic.daac_archiver_response.arn
-  protocol  = "sqs"
-  endpoint  = aws_sqs_queue.daac_archiver_response.arn
-#  filter_policy_scope = "MessageBody"  // MessageAttributes. not using attributes
-#  filter_policy = templatefile("${path.module}/ideas_api_job_results_filter_policy.json", {})
-}
-
-
-resource "aws_lambda_event_source_mapping" "daac_archiver_response_queue_lambda_trigger" {  // https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_event_source_mapping#sqs
-  event_source_arn = aws_sqs_queue.daac_archiver_response.arn
-  function_name    = aws_lambda_function.daac_archiver_response.arn
-  batch_size = 1
-  enabled = true
+  account_id                 = local.account_id
+  lambda_arn                 = aws_lambda_function.daac_archiver_response.arn
+  lambda_processing_role_arn = var.lambda_processing_role_arn
+  name                       = "daac_archiver_response"
+  prefix                     = var.prefix
+  sns_arn                    = aws_sns_topic.daac_archiver_response.arn
 }
