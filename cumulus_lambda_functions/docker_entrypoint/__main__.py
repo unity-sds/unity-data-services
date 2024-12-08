@@ -17,7 +17,7 @@ def choose_process():
         return result_str
     if argv[1].strip().upper() == 'DOWNLOAD':
         logging.info('starting DOWNLOAD script')
-        result_str = DownloadGranulesFactory().get_class(os.getenv('GRANULES_DOWNLOAD_TYPE', 'MISSING_GRANULES_DOWNLOAD_TYPE')).download()
+        result_str = DownloadGranulesFactory().get_class(os.getenv('GRANULES_DOWNLOAD_TYPE', DownloadGranulesFactory.AMALGAMATION)).download()
         StageInOutUtils.write_output_to_file(result_str)
         return result_str
     if argv[1].strip().upper() == 'UPLOAD':
