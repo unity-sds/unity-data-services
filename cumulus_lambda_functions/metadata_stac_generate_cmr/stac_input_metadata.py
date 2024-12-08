@@ -17,6 +17,20 @@ class StacInputMetadata:
         self.__prod_dt = None
         self.__insert_dt = None
         self.__custom_properties = {}
+        self.__bbox = None
+
+    @property
+    def bbox(self):
+        return self.__bbox
+
+    @bbox.setter
+    def bbox(self, val):
+        """
+        :param val:
+        :return: None
+        """
+        self.__bbox = val
+        return
 
     @property
     def custom_properties(self):
@@ -132,6 +146,7 @@ class StacInputMetadata:
         stac_item: Item = ItemTransformer().from_stac(self.__input_stac_dict)
         self.__custom_properties = deepcopy(stac_item.properties)
         self.__remove_default_keys_in_custom_props()
+        self.__bbox = stac_item.bbox
         # self.__custom_properties['collection_id'] = stac_item.collection_id  # TODO version is included
         # collection_led_granule_id = stac_item.id if stac_item.id.startswith(stac_item.collection_id) else f'{stac_item.collection_id}:{stac_item.id}'
         # self.__custom_properties['granule_id'] = collection_led_granule_id  # This needs to be start with collection_id to be consistent with cumulus granule_id which starts with collection
