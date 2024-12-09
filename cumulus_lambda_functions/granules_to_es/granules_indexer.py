@@ -47,7 +47,7 @@ class GranulesIndexer:
         potential_files = []
         self.__input_file_list = self.__cumulus_record['files']
         for each_file in self.__input_file_list:
-            if 'type' in each_file and each_file['type'].strip().lower() != self.__valid_filetype_name:
+            if 'type' in each_file and self.__valid_filetype_name not in each_file['type'].strip().lower():
                 LOGGER.debug(f'Not metadata. skipping {each_file}')
                 continue
             if 'fileName' not in each_file and 'name' in each_file:  # add fileName if there is only name
@@ -93,6 +93,8 @@ class GranulesIndexer:
         else:
             LOGGER.warning(f'unable to find STAC JSON file in {potential_files}')
         stac_item = ItemTransformer().to_stac(self.__cumulus_record)
+        if stac_input_meta is not None and stac_input_meta.bbox is not None:
+            stac_item['bbox'] = stac_input_meta.bbox
         if 'bbox' in stac_item:
             stac_item['bbox'] = GranulesDbIndex.to_es_bbox(stac_item['bbox'])
         collection_identifier = UdsCollections.decode_identifier(self.__cumulus_record['collectionId'])
