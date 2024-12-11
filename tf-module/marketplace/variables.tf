@@ -1,12 +1,12 @@
 variable "installprefix" {
   type = string
   default = ""
-  description = "This is not needed, but required by UCS marketplace. Empty string is good enough for manual deployment"
+  description = "This is not needed, but required by UCS Marketplace. Empty string is good enough for manual deployment"
 }
 variable "deployment_name" {
   type = string
   default = ""
-  description = "This is not needed, but required by UCS marketplace. Empty string is good enough for manual deployment"
+  description = "This is not needed, but required by UCS Marketplace. Empty string is good enough for manual deployment"
 }
 variable "project" {
   type = string
@@ -23,11 +23,11 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
-variable "market_bucket_name" {
+variable "datastore_bucket_name" {
   type = string
   description = "name of S3 bucket. Note-1: it will be prefixed with '<project prefix>-<project venue>-unity-'. Note-2: It should only have '-'. '_' will be replaced with '-'"
 }
-variable "market_bucket__notification_prefix" {
+variable "datastore_bucket_notification_prefix" {
   type = string
   default = "stage_out"
   description = "path to the directory where catalogs.json will be written"
