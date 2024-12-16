@@ -209,11 +209,13 @@ class GranulesDbIndex:
         }, read_alias_name)
         if result is None:
             raise ValueError(f"no such granule: {doc_id}")
-        delete_result = self.__es.delete_by_query({
-            'query': {'term': {'_id': doc_id}}
-        }, read_alias_name)
-        if delete_result is None:
-            raise ValueError(f"no such granule: {doc_id}")
+        for each_granule in result['hits']['hits']:
+            delete_result = self.__es.delete_by_query({
+                'query': {'term': {'_id': each_granule['_id']}}
+            }, each_granule['_index'])
+            LOGGER.debug(f'delete_result: {delete_result}')
+            if delete_result is None:
+                raise ValueError(f"error deleting {each_granule}")
         return result
 
     def update_entry(self, tenant: str, tenant_venue: str, json_body: dict, doc_id: str, ):
