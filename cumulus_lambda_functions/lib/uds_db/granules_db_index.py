@@ -24,6 +24,7 @@ class GranulesDbIndex:
                                                          base_url=os.getenv('ES_URL'),
                                                          port=int(os.getenv('ES_PORT', '443'))
                                                          )
+        self.__include_percolator = os.getenv('INCLUDE_PERCOLATOR', 'TRUE') == 'TRUE'
         # self.__default_fields = {
         #     "granule_id": {"type": "keyword"},
         #     "collection_id": {"type": "keyword"},
@@ -130,6 +131,8 @@ class GranulesDbIndex:
         self.__es.create_alias(new_index_name, read_alias_name)
         self.__es.swap_index_for_alias(write_alias_name, current_index_name, new_index_name)
 
+        if not self.__include_percolator:
+            return
         write_perc_alias_name = f'{DBConstants.granules_write_alias_prefix}_{tenant}_{tenant_venue}_perc'.lower().strip()
         read_perc_alias_name = f'{DBConstants.granules_read_alias_prefix}_{tenant}_{tenant_venue}_perc'.lower().strip()
         current_perc_alias = self.__es.get_alias(write_perc_alias_name)
