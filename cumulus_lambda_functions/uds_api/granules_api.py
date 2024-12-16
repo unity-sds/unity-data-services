@@ -254,7 +254,7 @@ async def delete_single_granule_dapa(request: Request, collection_id: str, granu
                       )
     auth_info = FastApiUtils.get_authorization_info(request)
     collection_identifier = UdsCollections.decode_identifier(collection_id)
-    if not authorizer.is_authorized_for_collection(DBConstants.read, collection_id,
+    if not authorizer.is_authorized_for_collection(DBConstants.delete, collection_id,
                                                    auth_info['ldap_groups'],
                                                    collection_identifier.tenant,
                                                    collection_identifier.venue):

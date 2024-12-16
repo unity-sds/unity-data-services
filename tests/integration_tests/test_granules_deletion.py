@@ -31,13 +31,12 @@ class TestGranulesDeletion(TestCase):
 
         self.tenant = 'UDS_LOCAL_TEST_3'  # 'uds_local_test'  # 'uds_sandbox'
         self.tenant_venue = 'DEV'  # 'DEV1'  # 'dev'
-        self.collection_name = 'AAA'  # 'uds_collection'  # 'sbx_collection'
-        self.collection_version = '24.03.20.14.40'.replace('.', '')  # '2402011200'
+        self.collection_name = 'AAA-04'  # 'uds_collection'  # 'sbx_collection'
+        self.collection_version = '08'.replace('.', '')  # '2402011200'
         return
 
-    def test_query_all(self):
-        collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}-01___001'
-        granule_id = f'{collection_id}:test_file01'
+    def test_delete_all(self):
+        collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}___001'
         post_url = f'{self.uds_url}collections/{collection_id}/items/'  # MCP Dev
         headers = {
             'Authorization': f'Bearer {self.bearer_token}',
@@ -49,19 +48,20 @@ class TestGranulesDeletion(TestCase):
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         response_json = json.loads(query_result.text)
         print(json.dumps(response_json, indent=4))
-        return
+        self.assertTrue(len(response_json['features']) > 0, f'empty collection :(')
+        deleting_granule_id = response_json['features'][0]['id']
 
-    def test_delete_01(self):
-        collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}-01___001'
-        granule_id = f'{collection_id}:test_file01'
-        post_url = f'{self.uds_url}collections/{collection_id}/items/{granule_id}'  # MCP Dev
-        headers = {
-            'Authorization': f'Bearer {self.bearer_token}',
-        }
+        post_url = f'{self.uds_url}collections/{collection_id}/items/{deleting_granule_id}'  # MCP Dev
         print(post_url)
         query_result = requests.delete(url=post_url,
-                                    headers=headers,
-                                    )
+                                       headers=headers,
+                                       )
+        self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
+        response_json = json.loads(query_result.text)
+        print(json.dumps(response_json, indent=4))
+
+        post_url = f'{self.uds_url}collections/{collection_id}/items/'  # MCP Dev
+        query_result = requests.get(url=post_url, headers=headers,)
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         response_json = json.loads(query_result.text)
         print(json.dumps(response_json, indent=4))
