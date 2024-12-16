@@ -2,6 +2,11 @@ import json
 import os
 from typing import Union
 
+from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
+from pystac import Item
+
+from cumulus_lambda_functions.cumulus_wrapper.query_granules import GranulesQuery
+
 from cumulus_lambda_functions.daac_archiver.daac_archiver_logic import DaacArchiverLogic
 from cumulus_lambda_functions.uds_api.dapa.daac_archive_crud import DaacArchiveCrud, DaacDeleteModel, DaacAddModel, \
     DaacUpdateModel
@@ -238,6 +243,48 @@ async def get_single_granule_dapa(request: Request, collection_id: str, granule_
         LOGGER.exception('failed during get_granules_dapa')
         raise HTTPException(status_code=500, detail=str(e))
     return granules_result
+
+@router.delete("/{collection_id}/items/{granule_id}")
+@router.delete("/{collection_id}/items/{granule_id}/")
+async def get_single_granule_dapa(request: Request, collection_id: str, granule_id: str):
+    authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
+        .get_instance(UDSAuthorizerFactory.cognito,
+                      es_url=os.getenv('ES_URL'),
+                      es_port=int(os.getenv('ES_PORT', '443'))
+                      )
+    auth_info = FastApiUtils.get_authorization_info(request)
+    collection_identifier = UdsCollections.decode_identifier(collection_id)
+    if not authorizer.is_authorized_for_collection(DBConstants.read, collection_id,
+                                                   auth_info['ldap_groups'],
+                                                   collection_identifier.tenant,
+                                                   collection_identifier.venue):
+        LOGGER.debug(f'user: {auth_info["username"]} is not authorized for {collection_id}')
+        raise HTTPException(status_code=403, detail=json.dumps({
+            'message': 'not authorized to execute this action'
+        }))
+    try:
+        LOGGER.debug(f'deleting granule: {granule_id}')
+        cumulus_lambda_prefix = os.getenv('CUMULUS_LAMBDA_PREFIX')
+        cumulus = GranulesQuery('https://na/dev', 'NA')
+        cumulus.with_collection_id(collection_id)
+        cumulus_delete_result = cumulus.delete_entry(cumulus_lambda_prefix, granule_id)  # TODO not sure it is correct granule ID
+        LOGGER.debug(f'cumulus_delete_result: {cumulus_delete_result}')
+        es_delete_result = GranulesDbIndex().delete_entry(collection_identifier.tenant,
+                                                          collection_identifier.venue,
+                                                          granule_id
+                                                          )
+        LOGGER.debug(f'es_delete_result: {es_delete_result}')
+        es_delete_result = [Item.from_dict(k['_source']) for k in es_delete_result['hits']['hits']]
+        s3 = AwsS3()
+        for each_granule in es_delete_result:
+            s3_urls = [v.href for k, v in each_granule.assets.items()]
+            LOGGER.debug(f'deleting S3 for {each_granule.id} - s3_urls: {s3_urls}')
+            delete_result = s3.delete_multiple(s3_urls=s3_urls)
+            LOGGER.debug(f'delete_result for {each_granule.id} - delete_result: {delete_result}')
+    except Exception as e:
+        LOGGER.exception('failed during get_granules_dapa')
+        raise HTTPException(status_code=500, detail=str(e))
+    return {}
 
 
 @router.put("/{collection_id}/archive/{granule_id}")
