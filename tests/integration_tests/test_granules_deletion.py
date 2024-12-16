@@ -32,7 +32,7 @@ class TestGranulesDeletion(TestCase):
 
         self.tenant = 'UDS_LOCAL_TEST_3'  # 'uds_local_test'  # 'uds_sandbox'
         self.tenant_venue = 'DEV'  # 'DEV1'  # 'dev'
-        self.collection_name = 'CCC-02'  # 'uds_collection'  # 'sbx_collection'
+        self.collection_name = 'CCC-04'  # 'uds_collection'  # 'sbx_collection'
         self.collection_version = '08'.replace('.', '')  # '2402011200'
         return
 
@@ -91,5 +91,5 @@ class TestGranulesDeletion(TestCase):
 
         s3 = AwsS3()
         for each_url in asset_urls:
-            self.assertTrue(s3.set_s3_url(each_url).exists(s3.target_bucket, s3.target_key), f'file no longer exists: {each_url}')
+            self.assertFalse(s3.set_s3_url(each_url).exists(s3.target_bucket, s3.target_key), f'file still exists: {each_url}')
         return
