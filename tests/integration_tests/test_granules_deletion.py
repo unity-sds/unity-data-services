@@ -32,7 +32,7 @@ class TestGranulesDeletion(TestCase):
 
         self.tenant = 'UDS_LOCAL_TEST_3'  # 'uds_local_test'  # 'uds_sandbox'
         self.tenant_venue = 'DEV'  # 'DEV1'  # 'dev'
-        self.collection_name = 'CCC-01'  # 'uds_collection'  # 'sbx_collection'
+        self.collection_name = 'CCC-02'  # 'uds_collection'  # 'sbx_collection'
         self.collection_version = '08'.replace('.', '')  # '2402011200'
         return
 
@@ -74,7 +74,7 @@ class TestGranulesDeletion(TestCase):
 
         asset_urls = [v['href'] for k, v in response_json['features'][0]['assets'].items()]
         print(asset_urls)
-        post_url = f'{self.uds_url}collections/{collection_id}/items/{deleting_granule_id}/?delete_files=false'  # MCP Dev
+        post_url = f'{self.uds_url}collections/{collection_id}/items/{deleting_granule_id}/'  # MCP Dev
         print(post_url)
         query_result = requests.delete(url=post_url,
                                        headers=headers,

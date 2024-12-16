@@ -246,7 +246,7 @@ async def get_single_granule_dapa(request: Request, collection_id: str, granule_
 
 @router.delete("/{collection_id}/items/{granule_id}")
 @router.delete("/{collection_id}/items/{granule_id}/")
-async def delete_single_granule_dapa(request: Request, collection_id: str, granule_id: str, delete_files: bool=True):
+async def delete_single_granule_dapa(request: Request, collection_id: str, granule_id: str):
     authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
         .get_instance(UDSAuthorizerFactory.cognito,
                       es_url=os.getenv('ES_URL'),
@@ -267,23 +267,23 @@ async def delete_single_granule_dapa(request: Request, collection_id: str, granu
         cumulus_lambda_prefix = os.getenv('CUMULUS_LAMBDA_PREFIX')
         cumulus = GranulesQuery('https://na/dev', 'NA')
         cumulus.with_collection_id(collection_id)
-        # cumulus_delete_result = cumulus.delete_entry(cumulus_lambda_prefix, granule_id)  # TODO not sure it is correct granule ID
-        # LOGGER.debug(f'cumulus_delete_result: {cumulus_delete_result}')
+        cumulus_delete_result = cumulus.delete_entry(cumulus_lambda_prefix, granule_id)  # TODO not sure it is correct granule ID
+        LOGGER.debug(f'cumulus_delete_result: {cumulus_delete_result}')
         es_delete_result = GranulesDbIndex().delete_entry(collection_identifier.tenant,
                                                           collection_identifier.venue,
                                                           granule_id
                                                           )
         LOGGER.debug(f'es_delete_result: {es_delete_result}')
-        es_delete_result = [Item.from_dict(k['_source']) for k in es_delete_result['hits']['hits']]
-        if delete_files is False:
-            LOGGER.debug(f'Not deleting files as it is set to false in the request')
-            return {}
-        s3 = AwsS3()
-        for each_granule in es_delete_result:
-            s3_urls = [v.href for k, v in each_granule.assets.items()]
-            LOGGER.debug(f'deleting S3 for {each_granule.id} - s3_urls: {s3_urls}')
-            delete_result = s3.delete_multiple(s3_urls=s3_urls)
-            LOGGER.debug(f'delete_result for {each_granule.id} - delete_result: {delete_result}')
+        # es_delete_result = [Item.from_dict(k['_source']) for k in es_delete_result['hits']['hits']]
+        # if delete_files is False:
+        #     LOGGER.debug(f'Not deleting files as it is set to false in the request')
+        #     return {}
+        # s3 = AwsS3()
+        # for each_granule in es_delete_result:
+        #     s3_urls = [v.href for k, v in each_granule.assets.items()]
+        #     LOGGER.debug(f'deleting S3 for {each_granule.id} - s3_urls: {s3_urls}')
+        #     delete_result = s3.delete_multiple(s3_urls=s3_urls)
+        #     LOGGER.debug(f'delete_result for {each_granule.id} - delete_result: {delete_result}')
     except Exception as e:
         LOGGER.exception('failed during get_granules_dapa')
         raise HTTPException(status_code=500, detail=str(e))
