@@ -201,6 +201,23 @@ class GranulesDbIndex:
             raise ValueError(f"no such granule: {doc_id}")
         return result
 
+    def delete_entry(self, tenant: str, tenant_venue: str, doc_id: str, ):
+        read_alias_name = f'{DBConstants.granules_read_alias_prefix}_{tenant}_{tenant_venue}'.lower().strip()
+        result = self.__es.query({
+            'size': 9999,
+            'query': {'term': {'_id': doc_id}}
+        }, read_alias_name)
+        if result is None:
+            raise ValueError(f"no such granule: {doc_id}")
+        for each_granule in result['hits']['hits']:
+            delete_result = self.__es.delete_by_query({
+                'query': {'term': {'_id': each_granule['_id']}}
+            }, each_granule['_index'])
+            LOGGER.debug(f'delete_result: {delete_result}')
+            if delete_result is None:
+                raise ValueError(f"error deleting {each_granule}")
+        return result
+
     def update_entry(self, tenant: str, tenant_venue: str, json_body: dict, doc_id: str, ):
         write_alias_name = f'{DBConstants.granules_write_alias_prefix}_{tenant}_{tenant_venue}'.lower().strip()
         json_body['event_time'] = TimeUtils.get_current_unix_milli()
