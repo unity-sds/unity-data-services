@@ -246,7 +246,7 @@ async def get_single_granule_dapa(request: Request, collection_id: str, granule_
 
 @router.delete("/{collection_id}/items/{granule_id}")
 @router.delete("/{collection_id}/items/{granule_id}/")
-async def get_single_granule_dapa(request: Request, collection_id: str, granule_id: str):
+async def delete_single_granule_dapa(request: Request, collection_id: str, granule_id: str, delete_files: bool=True):
     authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
         .get_instance(UDSAuthorizerFactory.cognito,
                       es_url=os.getenv('ES_URL'),
@@ -275,6 +275,9 @@ async def get_single_granule_dapa(request: Request, collection_id: str, granule_
                                                           )
         LOGGER.debug(f'es_delete_result: {es_delete_result}')
         es_delete_result = [Item.from_dict(k['_source']) for k in es_delete_result['hits']['hits']]
+        if delete_files is False:
+            LOGGER.debug(f'Not deleting files as it is set to false in the request')
+            return {}
         s3 = AwsS3()
         for each_granule in es_delete_result:
             s3_urls = [v.href for k, v in each_granule.assets.items()]
