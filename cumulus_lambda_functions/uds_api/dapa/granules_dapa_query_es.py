@@ -1,6 +1,10 @@
+import json
+import os
 from copy import deepcopy
 
+from mdps_ds_lib.lib.aws.aws_lambda import AwsLambda
 from pystac import Link
+from starlette.datastructures import URL
 
 from cumulus_lambda_functions.daac_archiver.daac_archiver_logic import DaacArchiverLogic
 from cumulus_lambda_functions.granules_to_es.granules_index_mapping import GranulesIndexMapping
@@ -17,6 +21,7 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 
 class GranulesDapaQueryEs:
     def __init__(self, collection_id, limit, offset, input_datetime, filter_input, pagination_link_obj: PaginationLinksGenerator, base_url):
+        self.__collection_cnm_lambda_name = os.environ.get('COLLECTION_CREATION_LAMBDA_NAME', '').strip()
         self.__pagination_link_obj = pagination_link_obj
         self.__input_datetime = input_datetime
         self.__collection_id = collection_id
@@ -148,6 +153,64 @@ class GranulesDapaQueryEs:
         each_granules_query_result_stripped['links'].append(self_link)
         self.__restructure_each_granule_result(each_granules_query_result_stripped)
         return each_granules_query_result_stripped
+
+    def delete_facade(self, current_url: URL):
+        actual_path = current_url.path
+        actual_path = actual_path if actual_path.endswith('/') else f'{actual_path}/'
+        actual_path = f'{actual_path}actual'
+        LOGGER.info(f'sanity_check')
+
+        actual_event = {
+            'resource': actual_path,
+            'path': actual_path,
+            'httpMethod': 'DELETE',
+            'headers': {
+                'Accept': '*/*', 'Accept-Encoding': 'gzip, deflate', 'Authorization': 'Bearer xxx',
+                'Host': current_url.hostname, 'User-Agent': 'python-requests/2.28.2',
+                'X-Amzn-Trace-Id': 'Root=1-64a66e90-6fa8b7a64449014639d4f5b4', 'X-Forwarded-For': '44.236.15.58',
+                'X-Forwarded-Port': '443', 'X-Forwarded-Proto': 'https'},
+            'multiValueHeaders': {
+                'Accept': ['*/*'], 'Accept-Encoding': ['gzip, deflate'], 'Authorization': ['Bearer xxx'],
+                'Host': [current_url.hostname], 'User-Agent': ['python-requests/2.28.2'],
+                'X-Amzn-Trace-Id': ['Root=1-64a66e90-6fa8b7a64449014639d4f5b4'],
+                'X-Forwarded-For': ['127.0.0.1'], 'X-Forwarded-Port': ['443'], 'X-Forwarded-Proto': ['https']
+            },
+            'queryStringParameters': {},
+            'multiValueQueryStringParameters': {},
+            'pathParameters': {},
+            'stageVariables': None,
+            'requestContext': {
+                'resourceId': '',
+                'authorizer': {'principalId': '', 'integrationLatency': 0},
+                'resourcePath': actual_path, 'httpMethod': 'PUT',
+                'extendedRequestId': '', 'requestTime': '',
+                'path': actual_path, 'accountId': '',
+                'protocol': 'HTTP/1.1', 'stage': '', 'domainPrefix': '', 'requestTimeEpoch': 0,
+                'requestId': '',
+                'identity': {
+                    'cognitoIdentityPoolId': None, 'accountId': None, 'cognitoIdentityId': None, 'caller': None,
+                    'sourceIp': '127.0.0.1', 'principalOrgId': None, 'accessKey': None,
+                    'cognitoAuthenticationType': None,
+                    'cognitoAuthenticationProvider': None, 'userArn': None, 'userAgent': 'python-requests/2.28.2',
+                    'user': None
+                },
+                'domainName': current_url.hostname, 'apiId': ''
+            },
+            'body': json.dumps({}),
+            'isBase64Encoded': False
+        }
+        LOGGER.info(f'actual_event: {actual_event}')
+        response = AwsLambda().invoke_function(
+            function_name=self.__collection_cnm_lambda_name,
+            payload=actual_event,
+        )
+        LOGGER.debug(f'async function started: {response}')
+        return {
+            'statusCode': 202,
+            'body': {
+                'message': 'processing'
+            }
+        }
 
     def start(self):
         try:
