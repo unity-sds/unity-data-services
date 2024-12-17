@@ -308,7 +308,7 @@ async def delete_single_granule_dapa_facade(request: Request, collection_id: str
     try:
         LOGGER.debug(f'deleting granule: {granule_id}')
         granules_dapa_query = GranulesDapaQueryEs(collection_id, -1, -1, None, None, None, '')
-        delete_prep_result = granules_dapa_query.delete_facade(request.url)
+        delete_prep_result = granules_dapa_query.delete_facade(request.url, request.headers.get('Authorization', ''))
     except Exception as e:
         LOGGER.exception('failed during delete_single_granule_dapa')
         raise HTTPException(status_code=500, detail=str(e))

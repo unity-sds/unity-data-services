@@ -154,7 +154,7 @@ class GranulesDapaQueryEs:
         self.__restructure_each_granule_result(each_granules_query_result_stripped)
         return each_granules_query_result_stripped
 
-    def delete_facade(self, current_url: URL):
+    def delete_facade(self, current_url: URL, bearer_token: str):
         actual_path = current_url.path
         actual_path = actual_path if actual_path.endswith('/') else f'{actual_path}/'
         actual_path = f'{actual_path}actual'
@@ -165,12 +165,12 @@ class GranulesDapaQueryEs:
             'path': actual_path,
             'httpMethod': 'DELETE',
             'headers': {
-                'Accept': '*/*', 'Accept-Encoding': 'gzip, deflate', 'Authorization': 'Bearer xxx',
+                'Accept': '*/*', 'Accept-Encoding': 'gzip, deflate', 'Authorization': bearer_token,
                 'Host': current_url.hostname, 'User-Agent': 'python-requests/2.28.2',
                 'X-Amzn-Trace-Id': 'Root=1-64a66e90-6fa8b7a64449014639d4f5b4', 'X-Forwarded-For': '44.236.15.58',
                 'X-Forwarded-Port': '443', 'X-Forwarded-Proto': 'https'},
             'multiValueHeaders': {
-                'Accept': ['*/*'], 'Accept-Encoding': ['gzip, deflate'], 'Authorization': ['Bearer xxx'],
+                'Accept': ['*/*'], 'Accept-Encoding': ['gzip, deflate'], 'Authorization': [bearer_token],
                 'Host': [current_url.hostname], 'User-Agent': ['python-requests/2.28.2'],
                 'X-Amzn-Trace-Id': ['Root=1-64a66e90-6fa8b7a64449014639d4f5b4'],
                 'X-Forwarded-For': ['127.0.0.1'], 'X-Forwarded-Port': ['443'], 'X-Forwarded-Proto': ['https']
