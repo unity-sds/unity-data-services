@@ -210,8 +210,9 @@ class GranulesDbIndex:
         if result is None:
             raise ValueError(f"no such granule: {doc_id}")
         for each_granule in result['hits']['hits']:
+            LOGGER.debug(f"deleting {each_granule['_id']} from {each_granule['_index']}")
             delete_result = self.__es.delete_by_query({
-                'query': {'term': {'_id': each_granule['_id']}}
+                'query': {'term': {'id': each_granule['_id']}}
             }, each_granule['_index'])
             LOGGER.debug(f'delete_result: {delete_result}')
             if delete_result is None:
