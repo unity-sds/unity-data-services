@@ -1,5 +1,6 @@
 import json
 import os
+from time import sleep
 from typing import Union
 
 from starlette.responses import Response, JSONResponse
@@ -264,8 +265,9 @@ async def delete_single_granule_dapa_actual(request: Request, collection_id: str
         cumulus_lambda_prefix = os.getenv('CUMULUS_LAMBDA_PREFIX')
         cumulus = GranulesQuery('https://na/dev', 'NA')
         cumulus.with_collection_id(collection_id)
-        # cumulus_delete_result = cumulus.delete_entry(cumulus_lambda_prefix, granule_id)  # TODO not sure it is correct granule ID
-        # LOGGER.debug(f'cumulus_delete_result: {cumulus_delete_result}')
+        cumulus_delete_result = cumulus.delete_entry(cumulus_lambda_prefix, granule_id)  # TODO not sure it is correct granule ID
+        LOGGER.debug(f'cumulus_delete_result: {cumulus_delete_result}')
+        sleep(3)  # Testing if this helps
         es_delete_result = GranulesDbIndex().delete_entry(collection_identifier.tenant,
                                                           collection_identifier.venue,
                                                           granule_id
