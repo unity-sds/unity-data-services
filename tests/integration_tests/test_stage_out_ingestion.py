@@ -42,7 +42,7 @@ class TestStageOutIngestion(TestCase):
 
         self.tenant = 'UDS_LOCAL_TEST_3'  # 'uds_local_test'  # 'uds_sandbox'
         self.tenant_venue = 'DEV'  # 'DEV1'  # 'dev'
-        self.collection_name = 'CCC'  # 'uds_collection'  # 'sbx_collection'
+        self.collection_name = 'DDD'  # 'uds_collection'  # 'sbx_collection'
         self.collection_version = '24.03.20.14.40'.replace('.', '')  # '2402011200'
         return
 
