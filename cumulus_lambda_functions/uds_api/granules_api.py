@@ -2,12 +2,10 @@ import json
 import os
 from typing import Union
 
-from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
-from pystac import Item
+from starlette.responses import Response, JSONResponse
 
 from cumulus_lambda_functions.cumulus_wrapper.query_granules import GranulesQuery
 
-from cumulus_lambda_functions.daac_archiver.daac_archiver_logic import DaacArchiverLogic
 from cumulus_lambda_functions.uds_api.dapa.daac_archive_crud import DaacArchiveCrud, DaacDeleteModel, DaacAddModel, \
     DaacUpdateModel
 from cumulus_lambda_functions.uds_api.dapa.granules_dapa_query_es import GranulesDapaQueryEs
@@ -26,7 +24,6 @@ from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGen
 
 from fastapi import APIRouter, HTTPException, Request
 
-from cumulus_lambda_functions.uds_api.dapa.granules_dapa_query import GranulesDapaQuery
 from cumulus_lambda_functions.uds_api.dapa.pagination_links_generator import PaginationLinksGenerator
 from cumulus_lambda_functions.uds_api.web_service_constants import WebServiceConstants
 
@@ -244,9 +241,9 @@ async def get_single_granule_dapa(request: Request, collection_id: str, granule_
         raise HTTPException(status_code=500, detail=str(e))
     return granules_result
 
-@router.delete("/{collection_id}/items/{granule_id}")
-@router.delete("/{collection_id}/items/{granule_id}/")
-async def delete_single_granule_dapa(request: Request, collection_id: str, granule_id: str):
+@router.delete("/{collection_id}/items/{granule_id}/actual")
+@router.delete("/{collection_id}/items/{granule_id}/actual/")
+async def delete_single_granule_dapa_actual(request: Request, collection_id: str, granule_id: str):
     authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
         .get_instance(UDSAuthorizerFactory.cognito,
                       es_url=os.getenv('ES_URL'),
@@ -285,9 +282,40 @@ async def delete_single_granule_dapa(request: Request, collection_id: str, granu
         #     delete_result = s3.delete_multiple(s3_urls=s3_urls)
         #     LOGGER.debug(f'delete_result for {each_granule.id} - delete_result: {delete_result}')
     except Exception as e:
-        LOGGER.exception('failed during get_granules_dapa')
+        LOGGER.exception('failed during delete_single_granule_dapa_actual')
         raise HTTPException(status_code=500, detail=str(e))
     return {}
+
+
+@router.delete("/{collection_id}/items/{granule_id}")
+@router.delete("/{collection_id}/items/{granule_id}/")
+async def delete_single_granule_dapa_facade(request: Request, collection_id: str, granule_id: str, response: Response, response_class=JSONResponse):
+    authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
+        .get_instance(UDSAuthorizerFactory.cognito,
+                      es_url=os.getenv('ES_URL'),
+                      es_port=int(os.getenv('ES_PORT', '443'))
+                      )
+    auth_info = FastApiUtils.get_authorization_info(request)
+    collection_identifier = UdsCollections.decode_identifier(collection_id)
+    if not authorizer.is_authorized_for_collection(DBConstants.delete, collection_id,
+                                                   auth_info['ldap_groups'],
+                                                   collection_identifier.tenant,
+                                                   collection_identifier.venue):
+        LOGGER.debug(f'user: {auth_info["username"]} is not authorized for {collection_id}')
+        raise HTTPException(status_code=403, detail=json.dumps({
+            'message': 'not authorized to execute this action'
+        }))
+    try:
+        LOGGER.debug(f'deleting granule: {granule_id}')
+        granules_dapa_query = GranulesDapaQueryEs(collection_id, -1, -1, None, None, None, '')
+        delete_prep_result = granules_dapa_query.delete_facade(request.url, request.headers.get('Authorization', ''))
+    except Exception as e:
+        LOGGER.exception('failed during delete_single_granule_dapa')
+        raise HTTPException(status_code=500, detail=str(e))
+    if delete_prep_result['statusCode'] < 300:
+        response.status_code = delete_prep_result['statusCode']
+        return delete_prep_result['body']
+    raise HTTPException(status_code=delete_prep_result['statusCode'], detail=delete_prep_result['body'])
 
 
 @router.put("/{collection_id}/archive/{granule_id}")
