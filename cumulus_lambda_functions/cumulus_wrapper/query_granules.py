@@ -152,10 +152,10 @@ class GranulesQuery(CumulusBase):
             """
             LOGGER.debug(f'json query_result: {query_result}')
             if query_result['statusCode'] >= 500:
-                LOGGER.error(f'server error status code: {query_result.statusCode}. details: {query_result}')
+                LOGGER.error(f'server error status code: {query_result["statusCode"]}. details: {query_result}')
                 return {'server_error': query_result}
             if query_result['statusCode'] >= 400:
-                LOGGER.error(f'client error status code: {query_result.statusCode}. details: {query_result}')
+                LOGGER.error(f'client error status code: {query_result["statusCode"]}. details: {query_result}')
                 return {'client_error': query_result}
             query_result = json.loads(query_result['body'])
             """

@@ -33,8 +33,8 @@ class TestGranulesDeletion(TestCase):
 
         self.tenant = 'UDS_LOCAL_TEST_3'  # 'uds_local_test'  # 'uds_sandbox'
         self.tenant_venue = 'DEV'  # 'DEV1'  # 'dev'
-        self.collection_name = 'CCC-08'  # 'uds_collection'  # 'sbx_collection'
-        self.collection_version = '08'.replace('.', '')  # '2402011200'
+        self.collection_name = 'AAA-05'  # 'uds_collection'  # 'sbx_collection'
+        # self.collection_version = '08'.replace('.', '')  # '2402011200'
         return
 
     def test_01_setup_permissions(self):
