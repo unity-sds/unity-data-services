@@ -125,7 +125,7 @@ class TestCumulusCreateCollectionDapa(TestCase):
                                     )
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         query_result = json.loads(query_result.text)
-        print(query_result)
+        print(json.dumps(query_result, indent=4))
         self.assertTrue('links' in query_result, 'links missing')
         links = {k['rel']: k for k in query_result['links']}
         self.assertTrue('next' in links, f'missing next in links: {links}')
@@ -184,7 +184,8 @@ class TestCumulusCreateCollectionDapa(TestCase):
         return
 
     def test_granules_get(self):
-        post_url = f'{self.uds_url}collections/urn:nasa:unity:unity:dev:SBG-L2A_RFL___1/items/'  # MCP Dev
+        # post_url = f'{self.uds_url}collections/urn:nasa:unity:unity:dev:SBG-L2A_RFL___1/items/'  # MCP Dev
+        post_url = f'{self.uds_url}collections/urn:nasa:unity:asips:int:P1590011-T___1/items/'  # MCP OPS
         headers = {
             'Authorization': f'Bearer {self.bearer_token}',
         }
@@ -192,9 +193,9 @@ class TestCumulusCreateCollectionDapa(TestCase):
         query_result = requests.get(url=post_url,
                                     headers=headers,
                                     )
-        self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         response_json = json.loads(query_result.text)
         print(json.dumps(response_json, indent=4))
+        self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         links = {k['rel']: k['href'] for k in response_json['links'] if k['rel'] != 'root'}
         for k, v in links.items():
             self.assertTrue(v.startswith(self.uds_url), f'missing stage: {self.stage} in {v} for {k}')
