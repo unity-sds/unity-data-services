@@ -282,7 +282,7 @@ async def delete_single_granule_dapa_actual(request: Request, collection_id: str
         #     delete_result = s3.delete_multiple(s3_urls=s3_urls)
         #     LOGGER.debug(f'delete_result for {each_granule.id} - delete_result: {delete_result}')
     except Exception as e:
-        LOGGER.exception('failed during get_granules_dapa')
+        LOGGER.exception('failed during delete_single_granule_dapa_actual')
         raise HTTPException(status_code=500, detail=str(e))
     return {}
 

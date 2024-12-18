@@ -33,7 +33,7 @@ class TestGranulesDeletion(TestCase):
 
         self.tenant = 'UDS_LOCAL_TEST_3'  # 'uds_local_test'  # 'uds_sandbox'
         self.tenant_venue = 'DEV'  # 'DEV1'  # 'dev'
-        self.collection_name = 'AAA-05'  # 'uds_collection'  # 'sbx_collection'
+        self.collection_name = 'AAA-07'  # 'uds_collection'  # 'sbx_collection'
         # self.collection_version = '08'.replace('.', '')  # '2402011200'
         return
 
@@ -75,15 +75,15 @@ class TestGranulesDeletion(TestCase):
 
         asset_urls = [v['href'] for k, v in response_json['features'][0]['assets'].items()]
         print(asset_urls)
-        post_url = f'{self.uds_url}collections/{collection_id}/items/{deleting_granule_id}/'  # MCP Dev
+        post_url = f'{self.uds_url}collections/{collection_id}/items/{deleting_granule_id}/actual'  # MCP Dev
         print(post_url)
         query_result = requests.delete(url=post_url,
                                        headers=headers,
                                        )
-        self.assertEqual(query_result.status_code, 202, f'wrong status code. {query_result.text}')
+        self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         response_json = json.loads(query_result.text)
         print(json.dumps(response_json, indent=4))
-        sleep(60)
+        sleep(30)
         post_url = f'{self.uds_url}collections/{collection_id}/items/'  # MCP Dev
         query_result = requests.get(url=post_url, headers=headers,)
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
