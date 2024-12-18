@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+from time import sleep
 from unittest import TestCase
 
 import requests
@@ -32,8 +33,8 @@ class TestGranulesDeletion(TestCase):
 
         self.tenant = 'UDS_LOCAL_TEST_3'  # 'uds_local_test'  # 'uds_sandbox'
         self.tenant_venue = 'DEV'  # 'DEV1'  # 'dev'
-        self.collection_name = 'CCC-04'  # 'uds_collection'  # 'sbx_collection'
-        self.collection_version = '08'.replace('.', '')  # '2402011200'
+        self.collection_name = 'DDD-01'  # 'uds_collection'  # 'sbx_collection'
+        # self.collection_version = '08'.replace('.', '')  # '2402011200'
         return
 
     def test_01_setup_permissions(self):
@@ -82,7 +83,7 @@ class TestGranulesDeletion(TestCase):
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         response_json = json.loads(query_result.text)
         print(json.dumps(response_json, indent=4))
-
+        sleep(10)
         post_url = f'{self.uds_url}collections/{collection_id}/items/'  # MCP Dev
         query_result = requests.get(url=post_url, headers=headers,)
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')

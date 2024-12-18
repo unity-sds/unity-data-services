@@ -150,14 +150,14 @@ class GranulesQuery(CumulusBase):
             """
         {'statusCode': 200, 'body': '{"meta":{"name":"cumulus-api","stack":"am-uds-dev-cumulus","table":"granule","limit":3,"page":1,"count":0},"results":[]}', 'headers': {'x-powered-by': 'Express', 'access-control-allow-origin': '*', 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'content-type': 'application/json; charset=utf-8', 'content-length': '120', 'etag': 'W/"78-YdHqDNIH4LuOJMR39jGNA/23yOQ"', 'date': 'Tue, 07 Jun 2022 22:30:44 GMT', 'connection': 'close'}, 'isBase64Encoded': False}
             """
+            LOGGER.debug(f'json query_result: {query_result}')
             if query_result['statusCode'] >= 500:
-                LOGGER.error(f'server error status code: {query_result.statusCode}. details: {query_result}')
+                LOGGER.error(f'server error status code: {query_result["statusCode"]}. details: {query_result}')
                 return {'server_error': query_result}
             if query_result['statusCode'] >= 400:
-                LOGGER.error(f'client error status code: {query_result.statusCode}. details: {query_result}')
+                LOGGER.error(f'client error status code: {query_result["statusCode"]}. details: {query_result}')
                 return {'client_error': query_result}
             query_result = json.loads(query_result['body'])
-            LOGGER.info(f'json query_result: {query_result}')
             """
             {
               "detail": "Record deleted"

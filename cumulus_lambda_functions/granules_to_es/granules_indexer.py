@@ -73,6 +73,9 @@ class GranulesIndexer:
         result = JsonValidator(self.CUMULUS_SCHEMA).validate(incoming_msg)
         if result is not None:
             raise ValueError(f'input json has CUMULUS validation errors: {result}')
+        if 'event' not in incoming_msg or incoming_msg['event'].upper() == 'DELETE':
+            LOGGER.debug(f'missing event or it is DELETE event. Not inserting to ES')
+            return
         self.__cumulus_record = incoming_msg['record']
         if len(self.__cumulus_record['files']) < 1:
             # TODO ingest updating stage?
