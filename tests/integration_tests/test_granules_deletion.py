@@ -75,7 +75,7 @@ class TestGranulesDeletion(TestCase):
 
         asset_urls = [v['href'] for k, v in response_json['features'][0]['assets'].items()]
         print(asset_urls)
-        post_url = f'{self.uds_url}collections/{collection_id}/items/{deleting_granule_id}/actual'  # MCP Dev
+        post_url = f'{self.uds_url}collections/{collection_id}/items/{deleting_granule_id}/'  # MCP Dev
         print(post_url)
         query_result = requests.delete(url=post_url,
                                        headers=headers,
