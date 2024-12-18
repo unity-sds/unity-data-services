@@ -227,7 +227,8 @@ class GranulesDapaQueryEs:
                 self_link = Link(rel='self', target=f'{self.__base_url}/{WebServiceConstants.COLLECTIONS}/{self.__collection_id}/items/{each_granules_query_result_stripped["id"]}', media_type='application/json', title=each_granules_query_result_stripped["id"]).to_dict(False)
                 each_granules_query_result_stripped['links'].append(self_link)
                 self.__restructure_each_granule_result(each_granules_query_result_stripped)
-            pagination_link = '' if len(granules_query_result['hits']['hits']) < self.__limit else ','.join(granules_query_result['hits']['hits'][-1]['sort'])
+
+            pagination_link = '' if len(granules_query_result['hits']['hits']) < self.__limit else ','.join([k if isinstance(k, str) else str(k) for k in granules_query_result['hits']['hits'][-1]['sort']])
             return {
                 'statusCode': 200,
                 'body': {
