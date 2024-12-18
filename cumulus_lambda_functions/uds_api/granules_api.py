@@ -214,33 +214,33 @@ async def get_granules_dapa(request: Request, collection_id: str, limit: Union[i
     raise HTTPException(status_code=granules_result['statusCode'], detail=granules_result['body'])
 
 
-# @router.get("/{collection_id}/items/{granule_id}")
-# @router.get("/{collection_id}/items/{granule_id}/")
-# async def get_single_granule_dapa(request: Request, collection_id: str, granule_id: str):
-#     authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
-#         .get_instance(UDSAuthorizerFactory.cognito,
-#                       es_url=os.getenv('ES_URL'),
-#                       es_port=int(os.getenv('ES_PORT', '443'))
-#                       )
-#     auth_info = FastApiUtils.get_authorization_info(request)
-#     collection_identifier = UdsCollections.decode_identifier(collection_id)
-#     if not authorizer.is_authorized_for_collection(DBConstants.read, collection_id,
-#                                                    auth_info['ldap_groups'],
-#                                                    collection_identifier.tenant,
-#                                                    collection_identifier.venue):
-#         LOGGER.debug(f'user: {auth_info["username"]} is not authorized for {collection_id}')
-#         raise HTTPException(status_code=403, detail=json.dumps({
-#             'message': 'not authorized to execute this action'
-#         }))
-#     try:
-#         api_base_prefix = FastApiUtils.get_api_base_prefix()
-#         pg_link_generator = PaginationLinksGenerator(request)
-#         granules_dapa_query = GranulesDapaQueryEs(collection_id, 1, None, None, filter, None, f'{pg_link_generator.base_url}/{api_base_prefix}')
-#         granules_result = granules_dapa_query.get_single_granule(granule_id)
-#     except Exception as e:
-#         LOGGER.exception('failed during get_granules_dapa')
-#         raise HTTPException(status_code=500, detail=str(e))
-#     return granules_result
+@router.get("/{collection_id}/items/{granule_id}")
+@router.get("/{collection_id}/items/{granule_id}/")
+async def get_single_granule_dapa(request: Request, collection_id: str, granule_id: str):
+    authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
+        .get_instance(UDSAuthorizerFactory.cognito,
+                      es_url=os.getenv('ES_URL'),
+                      es_port=int(os.getenv('ES_PORT', '443'))
+                      )
+    auth_info = FastApiUtils.get_authorization_info(request)
+    collection_identifier = UdsCollections.decode_identifier(collection_id)
+    if not authorizer.is_authorized_for_collection(DBConstants.read, collection_id,
+                                                   auth_info['ldap_groups'],
+                                                   collection_identifier.tenant,
+                                                   collection_identifier.venue):
+        LOGGER.debug(f'user: {auth_info["username"]} is not authorized for {collection_id}')
+        raise HTTPException(status_code=403, detail=json.dumps({
+            'message': 'not authorized to execute this action'
+        }))
+    try:
+        api_base_prefix = FastApiUtils.get_api_base_prefix()
+        pg_link_generator = PaginationLinksGenerator(request)
+        granules_dapa_query = GranulesDapaQueryEs(collection_id, 1, None, None, filter, None, f'{pg_link_generator.base_url}/{api_base_prefix}')
+        granules_result = granules_dapa_query.get_single_granule(granule_id)
+    except Exception as e:
+        LOGGER.exception('failed during get_granules_dapa')
+        raise HTTPException(status_code=500, detail=str(e))
+    return granules_result
 
 @router.delete("/{collection_id}/items/{granule_id}")
 @router.delete("/{collection_id}/items/{granule_id}/")
@@ -288,35 +288,35 @@ async def delete_single_granule_dapa_actual(request: Request, collection_id: str
     return {}
 
 
-@router.delete("/{collection_id}/items/{granule_id}")
-@router.delete("/{collection_id}/items/{granule_id}/")
-async def delete_single_granule_dapa_facade(request: Request, collection_id: str, granule_id: str, response: Response, response_class=JSONResponse):
-    authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
-        .get_instance(UDSAuthorizerFactory.cognito,
-                      es_url=os.getenv('ES_URL'),
-                      es_port=int(os.getenv('ES_PORT', '443'))
-                      )
-    auth_info = FastApiUtils.get_authorization_info(request)
-    collection_identifier = UdsCollections.decode_identifier(collection_id)
-    if not authorizer.is_authorized_for_collection(DBConstants.delete, collection_id,
-                                                   auth_info['ldap_groups'],
-                                                   collection_identifier.tenant,
-                                                   collection_identifier.venue):
-        LOGGER.debug(f'user: {auth_info["username"]} is not authorized for {collection_id}')
-        raise HTTPException(status_code=403, detail=json.dumps({
-            'message': 'not authorized to execute this action'
-        }))
-    try:
-        LOGGER.debug(f'deleting granule: {granule_id}')
-        granules_dapa_query = GranulesDapaQueryEs(collection_id, -1, -1, None, None, None, '')
-        delete_prep_result = granules_dapa_query.delete_facade(request.url, request.headers.get('Authorization', ''))
-    except Exception as e:
-        LOGGER.exception('failed during delete_single_granule_dapa')
-        raise HTTPException(status_code=500, detail=str(e))
-    if delete_prep_result['statusCode'] < 300:
-        response.status_code = delete_prep_result['statusCode']
-        return delete_prep_result['body']
-    raise HTTPException(status_code=delete_prep_result['statusCode'], detail=delete_prep_result['body'])
+# @router.delete("/{collection_id}/items/{granule_id}")
+# @router.delete("/{collection_id}/items/{granule_id}/")
+# async def delete_single_granule_dapa_facade(request: Request, collection_id: str, granule_id: str, response: Response, response_class=JSONResponse):
+#     authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
+#         .get_instance(UDSAuthorizerFactory.cognito,
+#                       es_url=os.getenv('ES_URL'),
+#                       es_port=int(os.getenv('ES_PORT', '443'))
+#                       )
+#     auth_info = FastApiUtils.get_authorization_info(request)
+#     collection_identifier = UdsCollections.decode_identifier(collection_id)
+#     if not authorizer.is_authorized_for_collection(DBConstants.delete, collection_id,
+#                                                    auth_info['ldap_groups'],
+#                                                    collection_identifier.tenant,
+#                                                    collection_identifier.venue):
+#         LOGGER.debug(f'user: {auth_info["username"]} is not authorized for {collection_id}')
+#         raise HTTPException(status_code=403, detail=json.dumps({
+#             'message': 'not authorized to execute this action'
+#         }))
+#     try:
+#         LOGGER.debug(f'deleting granule: {granule_id}')
+#         granules_dapa_query = GranulesDapaQueryEs(collection_id, -1, -1, None, None, None, '')
+#         delete_prep_result = granules_dapa_query.delete_facade(request.url, request.headers.get('Authorization', ''))
+#     except Exception as e:
+#         LOGGER.exception('failed during delete_single_granule_dapa')
+#         raise HTTPException(status_code=500, detail=str(e))
+#     if delete_prep_result['statusCode'] < 300:
+#         response.status_code = delete_prep_result['statusCode']
+#         return delete_prep_result['body']
+#     raise HTTPException(status_code=delete_prep_result['statusCode'], detail=delete_prep_result['body'])
 
 
 @router.put("/{collection_id}/archive/{granule_id}")
