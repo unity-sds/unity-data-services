@@ -94,7 +94,7 @@ class CollectionDapaCreation:
                         'message': creation_result
                     }
                 }
-            uds_collection = UdsCollections(es_url=os.getenv('ES_URL'), es_port=int(os.getenv('ES_PORT', '443')))
+            uds_collection = UdsCollections(es_url=os.getenv('ES_URL'), es_port=int(os.getenv('ES_PORT', '443')), es_type=os.getenv('ES_TYPE', 'AWS'))
             try:
                 time_range = collection_transformer.get_collection_time_range()
                 uds_collection.add_collection(

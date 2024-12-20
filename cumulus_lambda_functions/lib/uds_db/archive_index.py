@@ -25,8 +25,9 @@ class UdsArchiveConfigIndex:
             'archiving_types': {'type': 'array', 'items': {'type': 'object'}},
         }
     }
-    def __init__(self, es_url, es_port=443):
-        self.__es: ESAbstract = ESFactory().get_instance('AWS',
+
+    def __init__(self, es_url, es_port=443, es_type='AWS'):
+        self.__es: ESAbstract = ESFactory().get_instance(es_type,
                                                          index='TODO',
                                                          base_url=es_url,
                                                          port=es_port)

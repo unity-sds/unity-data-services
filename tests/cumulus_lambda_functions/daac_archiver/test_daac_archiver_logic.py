@@ -18,7 +18,7 @@ class TestDaacArchiverLogic(TestCase):
     def test_01_send_to_daac(self):
         os.environ['ES_URL'] = 'vpc-uds-sbx-cumulus-es-qk73x5h47jwmela5nbwjte4yzq.us-west-2.es.amazonaws.com'
         os.environ['ES_PORT'] = '9200'
-        archive_index = UdsArchiveConfigIndex(os.environ['ES_URL'], int(os.environ['ES_PORT']))
+        archive_index = UdsArchiveConfigIndex(os.environ['ES_URL'], int(os.environ['ES_PORT']), os.getenv('ES_TYPE', 'AWS'))
         archive_index.set_tenant_venue(self.tenant, self.tenant_venue)
         temp_collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}___{self.collection_version}'
         temp_collection_id_no_version = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}'
@@ -95,7 +95,7 @@ class TestDaacArchiverLogic(TestCase):
     def test_02_receive_from_daac(self):
         os.environ['ES_URL'] = 'vpc-uds-sbx-cumulus-es-qk73x5h47jwmela5nbwjte4yzq.us-west-2.es.amazonaws.com'
         os.environ['ES_PORT'] = '9200'
-        archive_index = UdsArchiveConfigIndex(os.environ['ES_URL'], int(os.environ['ES_PORT']))
+        archive_index = UdsArchiveConfigIndex(os.environ['ES_URL'], int(os.environ['ES_PORT']), os.getenv('ES_TYPE', 'AWS'))
         archive_index.set_tenant_venue(self.tenant, self.tenant_venue)
         temp_collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}___{self.collection_version}'
         temp_collection_id_no_version = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}'

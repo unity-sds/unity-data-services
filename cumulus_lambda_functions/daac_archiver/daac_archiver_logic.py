@@ -23,7 +23,7 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 class DaacArchiverLogic:
     def __init__(self):
         self.__es_url, self.__es_port = os.getenv('ES_URL'), int(os.getenv('ES_PORT', '443'))
-        self.__archive_index_logic = UdsArchiveConfigIndex(self.__es_url, self.__es_port)
+        self.__archive_index_logic = UdsArchiveConfigIndex(self.__es_url, self.__es_port, os.getenv('ES_TYPE', 'AWS'))
         self.__granules_index = GranulesDbIndex()
         self.__sns = AwsSns()
         self.__s3 = AwsS3()

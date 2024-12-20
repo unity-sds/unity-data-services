@@ -192,7 +192,7 @@ async def get_single_collection(request: Request, collection_id: str, limit: Uni
                       )
     auth_info = FastApiUtils.get_authorization_info(request)
     uds_collections = UdsCollections(es_url=os.getenv('ES_URL'),
-                                     es_port=int(os.getenv('ES_PORT', '443')))
+                                     es_port=int(os.getenv('ES_PORT', '443')), es_type=os.getenv('ES_TYPE', 'AWS'))
     if collection_id is None or collection_id == '':
         raise HTTPException(status_code=500, detail=f'missing or invalid collection_id: {collection_id}')
     collection_identifier = uds_collections.decode_identifier(collection_id)
@@ -237,7 +237,7 @@ async def query_collections(request: Request, collection_id: Union[str, None] = 
                       )
     auth_info = FastApiUtils.get_authorization_info(request)
     uds_collections = UdsCollections(es_url=os.getenv('ES_URL'),
-                                     es_port=int(os.getenv('ES_PORT', '443')))
+                                     es_port=int(os.getenv('ES_PORT', '443')), es_type=os.getenv('ES_TYPE', 'AWS'))
     if collection_id is not None:
         collection_identifier = uds_collections.decode_identifier(collection_id)
         if not authorizer.is_authorized_for_collection(DBConstants.read, collection_id,

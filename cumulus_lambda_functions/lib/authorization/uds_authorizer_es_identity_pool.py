@@ -12,9 +12,9 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 
 class UDSAuthorizorEsIdentityPool(UDSAuthorizorAbstract):
 
-    def __init__(self, es_url: str, es_port=443) -> None:
+    def __init__(self, es_url: str, es_port=443, es_type='AWS') -> None:
         super().__init__()
-        self.__es: ESAbstract = ESFactory().get_instance('AWS',
+        self.__es: ESAbstract = ESFactory().get_instance(es_type,
                                                          index=DBConstants.authorization_index,
                                                          base_url=es_url,
                                                          port=es_port)

@@ -44,7 +44,7 @@ class DaacArchiveCrud:
             raise EnvironmentError(f'one or more missing env: {required_env}')
         self.__es_url = os.getenv('ES_URL')
         self.__es_port = int(os.getenv('ES_PORT', '443'))
-        self.__daac_config = UdsArchiveConfigIndex(self.__es_url, self.__es_port)
+        self.__daac_config = UdsArchiveConfigIndex(self.__es_url, self.__es_port, os.getenv('ES_TYPE', 'AWS'))
         collection_identifier = UdsCollections.decode_identifier(collection_id)
         self.__daac_config.set_tenant_venue(collection_identifier.tenant, collection_identifier.venue)
 
