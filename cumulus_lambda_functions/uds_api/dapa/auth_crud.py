@@ -97,7 +97,7 @@ class AuthCrud:
         self.__authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
             .get_instance(UDSAuthorizerFactory.cognito,
                           es_url=self.__es_url,
-                          es_port=self.__es_port
+                          es_port=self.__es_port, es_type=os.getenv('ES_TYPE', 'AWS')
                           )
 
     def is_admin(self):

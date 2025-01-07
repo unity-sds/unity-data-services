@@ -8,5 +8,5 @@ class UDSAuthorizerFactory(FactoryAbstract):
         if class_type == self.cognito:
             from cumulus_lambda_functions.lib.authorization.uds_authorizer_es_identity_pool import \
                 UDSAuthorizorEsIdentityPool
-            return UDSAuthorizorEsIdentityPool(kwargs['es_url'], kwargs['es_port'])
+            return UDSAuthorizorEsIdentityPool(kwargs['es_url'], kwargs['es_port'], kwargs['es_type'])
         raise ValueError(f'class_type: {class_type} not implemented')
