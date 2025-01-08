@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [9.4.1] - 2024-12-18
+### Fixed
+- [#489](https://github.com/unity-sds/unity-data-services/pull/489) fix: delete bug
+
+## [9.4.0] - 2024-12-16
+### Changed
+- [#485](https://github.com/unity-sds/unity-data-services/pull/485) feat: delete granule endpoint
+
+## [9.3.0] - 2024-12-11
+### Changed
+- [#482](https://github.com/unity-sds/unity-data-services/pull/482) feat: updated name spaces and naming of resources
+
+## [9.2.0] - 2024-12-09
+### Changed
+- [#478](https://github.com/unity-sds/unity-data-services/pull/478) feat: uds lib update
+
 ## [9.1.2] - 2024-12-09
 ### Fixed
 - [#448](https://github.com/unity-sds/unity-data-services/pull/448) fix: wrong location archive keys

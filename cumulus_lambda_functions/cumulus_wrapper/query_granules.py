@@ -21,6 +21,7 @@ class GranulesQuery(CumulusBase):
         super().__init__(cumulus_base, cumulus_token)
         self._conditions.append('status=completed')
         self._item_transformer = ItemTransformer()
+        self.__collection_id = None
 
     def with_filter(self, filter_key, filter_values: list):
         if len(filter_values) < 1:
@@ -34,6 +35,7 @@ class GranulesQuery(CumulusBase):
 
     def with_collection_id(self, collection_id: str):
         self._conditions.append(f'{self.__collection_id_key}={collection_id}')
+        self.__collection_id = collection_id
         return self
 
     def with_bbox(self):
@@ -129,6 +131,48 @@ class GranulesQuery(CumulusBase):
             LOGGER.exception('error while invoking')
             return {'server_error': f'error while invoking:{str(e)}'}
         return {'results': stac_list}
+
+    def delete_entry(self, private_api_prefix: str, granule_id: str):
+        payload = {
+            'httpMethod': 'DELETE',
+            'resource': '/{proxy+}',
+            'path': f'/{self.__granules_key}/{self.__collection_id}/{granule_id}',
+            'queryStringParameters': {**{k[0]: k[1] for k in [k1.split('=') for k1 in self._conditions]}},
+            # 'queryStringParameters': {'limit': '30'},
+            'headers': {
+                'Content-Type': 'application/json',
+            },
+            # 'body': json.dumps({"action": "removeFromCmr"})
+        }
+        LOGGER.debug(f'payload: {payload}')
+        try:
+            query_result = self._invoke_api(payload, private_api_prefix)
+            """
+        {'statusCode': 200, 'body': '{"meta":{"name":"cumulus-api","stack":"am-uds-dev-cumulus","table":"granule","limit":3,"page":1,"count":0},"results":[]}', 'headers': {'x-powered-by': 'Express', 'access-control-allow-origin': '*', 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'content-type': 'application/json; charset=utf-8', 'content-length': '120', 'etag': 'W/"78-YdHqDNIH4LuOJMR39jGNA/23yOQ"', 'date': 'Tue, 07 Jun 2022 22:30:44 GMT', 'connection': 'close'}, 'isBase64Encoded': False}
+            """
+            LOGGER.debug(f'json query_result: {query_result}')
+            if query_result['statusCode'] >= 500:
+                LOGGER.error(f'server error status code: {query_result["statusCode"]}. details: {query_result}')
+                return {'server_error': query_result}
+            if query_result['statusCode'] >= 400:
+                LOGGER.error(f'client error status code: {query_result["statusCode"]}. details: {query_result}')
+                return {'client_error': query_result}
+            query_result = json.loads(query_result['body'])
+            """
+            {
+              "detail": "Record deleted"
+            }
+            """
+            if 'detail' not in query_result:
+                LOGGER.error(f'missing key: detail. invalid response json: {query_result}')
+                return {'server_error': f'missing key: detail. invalid response json: {query_result}'}
+            if query_result['detail'] != 'Record deleted':
+                LOGGER.error(f'Wrong Message: {query_result}')
+                return {'server_error': f'Wrong Message: {query_result}'}
+        except Exception as e:
+            LOGGER.exception('error while invoking')
+            return {'server_error': f'error while invoking:{str(e)}'}
+        return {}
 
     def query(self, transform=True):
         conditions_str = '&'.join(self._conditions)
