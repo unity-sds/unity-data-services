@@ -156,12 +156,16 @@ class GranulesDbIndex:
             LOGGER.exception(f'failed to migrate index data: {(current_perc_index_name, new_perc_index_name)}')
         return
 
-    def get_latest_index(self, tenant, tenant_venue):
+    def get_latest_index_name(self, tenant, tenant_venue):
         write_alias_name = f'{DBConstants.granules_write_alias_prefix}_{tenant}_{tenant_venue}'.lower().strip()
         write_alias_name = self.__es.get_alias(write_alias_name)
         if len(write_alias_name) != 1:
             raise ValueError(f'missing index for {tenant}_{tenant_venue}. {write_alias_name}')
         latest_index_name = [k for k in write_alias_name.keys()][0]
+        return latest_index_name
+
+    def get_latest_index(self, tenant, tenant_venue):
+        latest_index_name = self.get_latest_index_name(tenant, tenant_venue)
         index_mapping = self.__es.get_index_mapping(latest_index_name)
         if index_mapping is None:
             raise ValueError(f'missing index: {latest_index_name}')
@@ -201,6 +205,18 @@ class GranulesDbIndex:
             raise ValueError(f"no such granule: {doc_id}")
         return result
 
+    def __query_by_id_local(self, tenant: str, tenant_venue: str, doc_id: str, ):
+        read_alias_name = f'{DBConstants.granules_read_alias_prefix}_{tenant}_{tenant_venue}'.lower().strip()
+        dsl = {
+            'query': {
+                'term': {'_id': doc_id}
+            }
+        }
+        result = self.__es.query(dsl, read_alias_name)
+        if len(result['hits']['hits']) < 1:
+            return None
+        return result['hits']['hits'][0]
+
     def delete_entry(self, tenant: str, tenant_venue: str, doc_id: str, ):
         read_alias_name = f'{DBConstants.granules_read_alias_prefix}_{tenant}_{tenant_venue}'.lower().strip()
         result = self.__es.query({
@@ -222,11 +238,34 @@ class GranulesDbIndex:
     def update_entry(self, tenant: str, tenant_venue: str, json_body: dict, doc_id: str, ):
         write_alias_name = f'{DBConstants.granules_write_alias_prefix}_{tenant}_{tenant_venue}'.lower().strip()
         json_body['event_time'] = TimeUtils.get_current_unix_milli()
-        self.__es.update_one(json_body, doc_id, index=write_alias_name)  # TODO assuming granule_id is prefixed with collection id
+        existing_entry = self.__query_by_id_local(tenant, tenant_venue, doc_id)
+        if existing_entry is None:
+            raise ValueError(f'unable to update {doc_id} as it is not found. ')
+        latest_index_name = self.get_latest_index_name(tenant, tenant_venue)
+        if existing_entry['_index'] == latest_index_name:
+            LOGGER.debug(f'{doc_id} in latest index: {latest_index_name}. continuing with update')
+            self.__es.update_one(json_body, doc_id, index=write_alias_name)  # TODO assuming granule_id is prefixed with collection id
+            LOGGER.debug(f'custom_metadata indexed')
+            return
+        LOGGER.debug(f'{doc_id} in older index: {latest_index_name} v. {existing_entry["_index"]}')
+        new_doc = {**existing_entry['_source'], **json_body}
+        self.__es.index_one(new_doc, doc_id, index=write_alias_name)  # TODO assuming granule_id is prefixed with collection id
         LOGGER.debug(f'custom_metadata indexed')
-        return
+        self.__es.delete_by_query()
+        # find existing doc_id
+        # if not found, throw error. Cannot update
+        # if found, check index.
+        # if latest index, proceed with update
+        # if older index, proceed with get + delete
+        # tweak meta locally, and add it.
+
 
     def add_entry(self, tenant: str, tenant_venue: str, json_body: dict, doc_id: str, ):
+        # find existing doc_id
+
+        # if not found, add it
+        # if found, and it is in latest index, add it.
+        # if found, and it is in older index, add current one, and delete the older one.
         write_alias_name = f'{DBConstants.granules_write_alias_prefix}_{tenant}_{tenant_venue}'.lower().strip()
         json_body['event_time'] = TimeUtils.get_current_unix_milli()
         # TODO validate custom metadata vs the latest index to filter extra items
