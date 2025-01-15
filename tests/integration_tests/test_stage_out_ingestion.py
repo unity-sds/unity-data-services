@@ -233,7 +233,7 @@ class TestStageOutIngestion(TestCase):
                                     "coordinates": [0.0, 0.0]
                                  },
                                  # bbox=[0.0, 0.0, 0.1, 0.1],
-                                 bbox=[0.1, 0.1, 0.0, 0.0],  # Testing invalid geo-shape
+                                 bbox=[170, 20, -170, 10],  # Testing invalid geo-shape
                                  datetime=TimeUtils().parse_from_unix(0, True).get_datetime_obj(),
                                  properties={
                                      "start_datetime": "2016-01-31T18:00:00.009057Z",
