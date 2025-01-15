@@ -34,12 +34,25 @@ class GranulesDbIndex:
 
     @staticmethod
     def to_es_bbox(bbox_array):
+        # lon = x, lat = y
+        # lon, lat, lon, lat
+        # x can be 170 to -170
+        # 170, 0, -170, 10
+        minX, minY, maxX, maxY = bbox_array
+
+        # Ensure the values are properly sorted
+        # if minX > maxX:
+        #     minX, maxX = maxX, minX
+        if minY > maxY:
+            minY, maxY = maxY, minY
+
         return {
             "type": "envelope",
-            "coordinates": [
-                [bbox_array[0], bbox_array[3]],  # Top-left corner (minLon, maxLat)
-                [bbox_array[2], bbox_array[1]]   # Bottom-right corner (maxLon, minLat)
-            ]
+            "coordinates": [[minX, maxY], [maxX, minY]],
+            # "coordinates": [
+            #     [bbox_array[0], bbox_array[3]],  # Top-left corner (minLon, maxLat)
+            #     [bbox_array[2], bbox_array[1]]   # Bottom-right corner (maxLon, minLat)
+            # ]
         }
 
     @staticmethod
@@ -265,3 +278,6 @@ class GranulesDbIndex:
                 'hits': result
             }
         }
+
+
+
