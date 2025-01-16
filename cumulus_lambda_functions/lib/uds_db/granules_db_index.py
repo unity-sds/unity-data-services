@@ -249,7 +249,7 @@ class GranulesDbIndex:
         while len(result) < original_size:
             search_dsl['size'] = (original_size - len(result)) * 2
             search_result = self.__es.query_pages(search_dsl, querying_index=read_alias_name)
-            if total_size != -999:
+            if total_size == -999:
                 total_size = self.__es.get_result_size(search_result)
             if len(search_result['hits']['hits']) < 1:
                 break

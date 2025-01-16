@@ -31,7 +31,7 @@ class TestGranulesDbIndex(TestCase):
     def test_02(self):
         os.environ['ES_URL'] = 'https://vpc-uds-sbx-cumulus-es-qk73x5h47jwmela5nbwjte4yzq.us-west-2.es.amazonaws.com'
         os.environ['ES_PORT'] = '9200'
-        self.tenant = 'UDS_MY_LOCAL_ARCHIVE_TEST'  # 'uds_local_test'  # 'uds_sandbox'
+        self.tenant = 'UDS_LOCAL_TEST_3'  # 'uds_local_test'  # 'uds_sandbox'
         self.tenant_venue = 'DEV'  # 'DEV1'  # 'dev'
         search_dsl = {
             'track_total_hits': True,
@@ -42,7 +42,7 @@ class TestGranulesDbIndex(TestCase):
             ],
             'query': {
                 'bool': {
-                    'must': {'term': {'collection': {'value': f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:UDS_UNIT_COLLECTION___2408290522'}}}
+                    'must': {'term': {'collection': {'value': f'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001'}}}
                 }
             },
         }
