@@ -194,8 +194,8 @@ class TestCumulusCreateCollectionDapa(TestCase):
                                     headers=headers,
                                     )
         response_json = json.loads(query_result.text)
-        print(f"length: {len(response_json['features'])}")
         print(json.dumps(response_json, indent=4))
+        print(f"length: {len(response_json['features'])}")
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         links = {k['rel']: k['href'] for k in response_json['links'] if k['rel'] != 'root'}
         for k, v in links.items():
