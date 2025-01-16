@@ -184,8 +184,8 @@ class TestCumulusCreateCollectionDapa(TestCase):
         return
 
     def test_granules_get(self):
-        # post_url = f'{self.uds_url}collections/urn:nasa:unity:unity:dev:SBG-L2A_RFL___1/items/'  # MCP Dev
-        post_url = f'{self.uds_url}collections/urn:nasa:unity:asips:int:P1590011-T___1/items/'  # MCP OPS
+        post_url = f'{self.uds_url}collections/URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001/items/?limit=10'  # MCP Dev
+        # post_url = f'{self.uds_url}collections/urn:nasa:unity:asips:int:P1590011-T___1/items/?limit=10'  # MCP OPS
         headers = {
             'Authorization': f'Bearer {self.bearer_token}',
         }
@@ -194,6 +194,7 @@ class TestCumulusCreateCollectionDapa(TestCase):
                                     headers=headers,
                                     )
         response_json = json.loads(query_result.text)
+        print(f"length: {len(response_json['features'])}")
         print(json.dumps(response_json, indent=4))
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
         links = {k['rel']: k['href'] for k in response_json['links'] if k['rel'] != 'root'}

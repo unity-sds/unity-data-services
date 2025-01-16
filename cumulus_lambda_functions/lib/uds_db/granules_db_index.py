@@ -236,18 +236,18 @@ class GranulesDbIndex:
 
     def dsl_search(self, tenant: str, tenant_venue: str, search_dsl: dict):
         read_alias_name = f'{DBConstants.granules_read_alias_prefix}_{tenant}_{tenant_venue}'.lower().strip()
-        if 'sort' not in search_dsl:
-            search_result = self.__es.query(search_dsl,
-                                            querying_index=read_alias_name) if 'sort' in search_dsl else self.__es.query(
-                search_dsl, querying_index=read_alias_name)
+        if 'sort' not in search_dsl:  # We cannot paginate w/o sort. So, max is 10k items:
+            # This also assumes "size" should be part of search_dsl
+            search_result = self.__es.query(search_dsl, querying_index=read_alias_name)
             LOGGER.debug(f'search_finished: {len(search_result["hits"]["hits"])}')
             return search_result
+        # we can run paginate search
         original_size = search_dsl['size'] if 'size' in search_dsl else 20
         result = []
         duplicates = set([])
         while len(result) < original_size:
             search_dsl['size'] = (original_size - len(result)) * 2
-            search_result = self.__es.query_pages(search_dsl, querying_index=read_alias_name) if 'sort' in search_dsl else self.__es.query(search_dsl, querying_index=read_alias_name)
+            search_result = self.__es.query_pages(search_dsl, querying_index=read_alias_name)
             if len(search_result['hits']['hits']) < 1:
                 break
             for each in search_result['hits']['hits']:
@@ -257,10 +257,12 @@ class GranulesDbIndex:
             search_dsl['search_after'] = search_result['hits']['hits'][-1]['sort']
 
         LOGGER.debug(f'search_finished: {len(result)}')
+        if len(result) > original_size:
+            result = result[:original_size]
         return {
             'hits': {
                 "total": {
-                    "value": len(result)
+                    "value": self.__es.get_result_size(result),
                 },
                 'hits': result
             }
