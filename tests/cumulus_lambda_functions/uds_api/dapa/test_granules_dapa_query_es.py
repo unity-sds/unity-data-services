@@ -22,6 +22,25 @@ class TestGranulesDapaQueryEs(TestCase):
         self.collection_version = '001'
         return
 
+    def test_start_01(self):
+        os.environ['ES_URL'] = 'vpc-uds-sbx-cumulus-es-qk73x5h47jwmela5nbwjte4yzq.us-west-2.es.amazonaws.com'
+        os.environ['ES_PORT'] = '9200'
+        self.tenant = 'UDS_LOCAL_TEST_3'  # 'uds_local_test'  # 'uds_sandbox'
+        self.tenant_venue = 'DEV'  # 'DEV1'  # 'dev'
+        self.collection_name = 'DDD-01'  # 'uds_collection'  # 'sbx_collection'
+        self.collection_version = '001'
+
+        collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:{self.collection_name}___{self.collection_version}'
+        granule_id = f'{collection_id}:test_file09'
+
+        granules_dapa_query = GranulesDapaQueryEs(collection_id, 10, '1736291597733,URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file10', None, None, None, f'localhost/api-prefix')
+        granules_result = granules_dapa_query.start()
+        print(granules_result)
+        print([k['id'] for k in granules_result['body']['features']])
+        # ['URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file20', 'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file19', 'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file14', 'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file17', 'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file18', 'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file12', 'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file13', 'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file15', 'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file06', 'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file01']
+        # ['URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file05', 'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file03', 'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file09', 'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file16', 'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file11', 'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file04', 'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file08', 'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file02', 'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file07', 'URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file10']
+        return
+
     def test_get_single_granule_01(self):
         os.environ['ES_URL'] = 'vpc-uds-sbx-cumulus-es-qk73x5h47jwmela5nbwjte4yzq.us-west-2.es.amazonaws.com'
         os.environ['ES_PORT'] = '9200'
