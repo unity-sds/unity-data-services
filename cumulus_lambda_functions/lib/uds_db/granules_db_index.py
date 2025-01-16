@@ -234,14 +234,6 @@ class GranulesDbIndex:
         LOGGER.debug(f'custom_metadata indexed')
         return
 
-    def get_size(self, tenant: str, tenant_venue: str, search_dsl: dict):
-        read_alias_name = f'{DBConstants.granules_read_alias_prefix}_{tenant}_{tenant_venue}'.lower().strip()
-        search_dsl['size'] = 0
-        search_dsl['track_total_hits'] = True
-        search_result = self.__es.query(search_dsl, querying_index=read_alias_name)
-        result_size = self.__es.get_result_size(search_result)
-        return result_size
-
     def dsl_search(self, tenant: str, tenant_venue: str, search_dsl: dict):
         read_alias_name = f'{DBConstants.granules_read_alias_prefix}_{tenant}_{tenant_venue}'.lower().strip()
         if 'sort' not in search_dsl:  # We cannot paginate w/o sort. So, max is 10k items:

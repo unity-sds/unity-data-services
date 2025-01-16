@@ -39,7 +39,7 @@ class GranulesDapaQueryEs:
         if self.__filter_input is not None:
             query_terms.append(CqlParser('properties').transform(self.__filter_input))
         query_dsl = {
-            'track_total_hits': False,
+            'track_total_hits': self.__offset is None,
             'size': self.__limit,
             # "collapse": {"field": "id"},
             'sort': [
@@ -232,7 +232,7 @@ class GranulesDapaQueryEs:
             return {
                 'statusCode': 200,
                 'body': {
-                    'numberMatched': {'total_size': result_size},
+                    'numberMatched': {'total_size': -1 if self.__offset is not None else result_size},
                     'numberReturned': len(granules_query_result['hits']['hits']),
                     'stac_version': '1.0.0',
                     'type': 'FeatureCollection',  # TODO correct name?
