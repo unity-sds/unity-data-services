@@ -262,7 +262,7 @@ class GranulesDbIndex:
         return {
             'hits': {
                 "total": {
-                    "value": len(result)
+                    "value": self.__es.get_result_size(result),
                 },
                 'hits': result
             }
