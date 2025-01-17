@@ -22,7 +22,8 @@ class GranulesDbIndex:
         self.__es: ESAbstract = ESFactory().get_instance(os.getenv('ES_TYPE', 'AWS'),
                                                          index=DBConstants.collections_index,
                                                          base_url=os.getenv('ES_URL'),
-                                                         port=int(os.getenv('ES_PORT', '443'))
+                                                         port=int(os.getenv('ES_PORT', '443')),
+                                                         use_ssl=os.getenv('ES_USE_SSL', 'TRUE').strip() is True,
                                                          )
         # self.__default_fields = {
         #     "granule_id": {"type": "keyword"},

@@ -12,7 +12,7 @@ class TestUdsArchiveConfigIndex(TestCase):
 
     def test_01(self):
         collection_id = f'URN:NASA:UNITY:{self.tenant}:{self.tenant_venue}:unit_test_1'
-        archive_index = UdsArchiveConfigIndex('vpc-uds-sbx-cumulus-es-qk73x5h47jwmela5nbwjte4yzq.us-west-2.es.amazonaws.com', 9200, 'AWS')
+        archive_index = UdsArchiveConfigIndex('vpc-uds-sbx-cumulus-es-qk73x5h47jwmela5nbwjte4yzq.us-west-2.es.amazonaws.com', 9200, 'AWS', True)
         archive_index.set_tenant_venue(self.tenant, self.tenant_venue)
         ingesting_dict = {
             'daac_collection_id': 'daac_unit_test_collection',

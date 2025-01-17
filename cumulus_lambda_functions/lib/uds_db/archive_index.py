@@ -26,10 +26,11 @@ class UdsArchiveConfigIndex:
         }
     }
 
-    def __init__(self, es_url, es_port=443, es_type='AWS'):
+    def __init__(self, es_url, es_port=443, es_type='AWS', use_ssl=True):
         self.__es: ESAbstract = ESFactory().get_instance(es_type,
                                                          index='TODO',
                                                          base_url=es_url,
+                                                         use_ssl=use_ssl,
                                                          port=es_port)
         self.__tenant, self.__venue = '', ''
 

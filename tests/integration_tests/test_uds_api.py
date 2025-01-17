@@ -44,6 +44,7 @@ class TestCumulusCreateCollectionDapa(TestCase):
 
 
     def test_add_admin_01(self):
+        print(self.bearer_token)
         collection_url = f'{self.uds_url}admin/auth'
         admin_add_body = {
             "actions": ["READ", "CREATE"],
