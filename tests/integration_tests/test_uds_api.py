@@ -184,8 +184,8 @@ class TestCumulusCreateCollectionDapa(TestCase):
         return
 
     def test_granules_get(self):
-        # post_url = f'{self.uds_url}collections/urn:nasa:unity:unity:dev:SBG-L2A_RFL___1/items/'  # MCP Dev
-        post_url = f'{self.uds_url}collections/urn:nasa:unity:asips:int:P1590011-T___1/items/'  # MCP OPS
+        post_url = f'{self.uds_url}collections/URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001/items/?limit=10'  # MCP Dev
+        # post_url = f'{self.uds_url}collections/urn:nasa:unity:asips:int:P1590011-T___1/items/?limit=10'  # MCP OPS
         headers = {
             'Authorization': f'Bearer {self.bearer_token}',
         }
@@ -194,11 +194,27 @@ class TestCumulusCreateCollectionDapa(TestCase):
                                     headers=headers,
                                     )
         response_json = json.loads(query_result.text)
-        print(json.dumps(response_json, indent=4))
+        # print(json.dumps(response_json, indent=4))
+        print(f"length: {len(response_json['features'])}")
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
+        total_size = response_json['numberMatched']['total_size']
+        current_size = len(response_json['features'])
         links = {k['rel']: k['href'] for k in response_json['links'] if k['rel'] != 'root'}
         for k, v in links.items():
             self.assertTrue(v.startswith(self.uds_url), f'missing stage: {self.stage} in {v} for {k}')
+
+        while len(response_json['features']) > 0:
+            get_next_link = [k['href'] for k in response_json['links'] if k['rel'] == 'next']
+            get_next_link = get_next_link[0]
+            print(get_next_link)
+            query_result = requests.get(url=get_next_link,
+                                        headers=headers,
+                                        )
+            response_json = json.loads(query_result.text)
+            self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
+            current_size += len(response_json['features'])
+            print(f"length: {len(response_json['features'])}")
+        self.assertEqual(total_size, current_size, f'mismatched size')
         return
 
     def test_single_granule_get(self):
