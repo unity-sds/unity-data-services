@@ -39,7 +39,7 @@ class GranulesDapaQueryEs:
         if self.__filter_input is not None:
             query_terms.append(CqlParser('properties').transform(self.__filter_input))
         query_dsl = {
-            'track_total_hits': True,
+            'track_total_hits': self.__offset is None,
             'size': self.__limit,
             # "collapse": {"field": "id"},
             'sort': [
@@ -228,11 +228,11 @@ class GranulesDapaQueryEs:
                 each_granules_query_result_stripped['links'].append(self_link)
                 self.__restructure_each_granule_result(each_granules_query_result_stripped)
 
-            pagination_link = '' if len(granules_query_result['hits']['hits']) < self.__limit else ','.join([k if isinstance(k, str) else str(k) for k in granules_query_result['hits']['hits'][-1]['sort']])
+            pagination_link = '' if len(granules_query_result['hits']['hits']) < 1 else ','.join([k if isinstance(k, str) else str(k) for k in granules_query_result['hits']['hits'][-1]['sort']])
             return {
                 'statusCode': 200,
                 'body': {
-                    'numberMatched': {'total_size': result_size},
+                    'numberMatched': {'total_size': -1 if self.__offset is not None else result_size},
                     'numberReturned': len(granules_query_result['hits']['hits']),
                     'stac_version': '1.0.0',
                     'type': 'FeatureCollection',  # TODO correct name?
