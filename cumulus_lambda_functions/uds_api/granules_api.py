@@ -1,8 +1,9 @@
 import json
 import os
 from time import sleep
-from typing import Union
+from typing import Union, Optional
 
+from pydantic import BaseModel
 from starlette.responses import Response, JSONResponse
 
 from cumulus_lambda_functions.cumulus_wrapper.query_granules import GranulesQuery
@@ -147,11 +148,13 @@ async def delete_single_granule_dapa_actual(request: Request, collection_id: str
         }))
     try:
         LOGGER.debug(f'deleting granule: {granule_id}')
-        cumulus_lambda_prefix = os.getenv('CUMULUS_LAMBDA_PREFIX')
-        cumulus = GranulesQuery('https://na/dev', 'NA')
-        cumulus.with_collection_id(collection_id)
-        cumulus_delete_result = cumulus.delete_entry(cumulus_lambda_prefix, granule_id)  # TODO not sure it is correct granule ID
-        LOGGER.debug(f'cumulus_delete_result: {cumulus_delete_result}')
+        include_cumulus = os.getenv('CUMULUS_INCLUSION', 'TRUE').upper().strip() == 'TRUE'
+        if include_cumulus:
+            cumulus_lambda_prefix = os.getenv('CUMULUS_LAMBDA_PREFIX')
+            cumulus = GranulesQuery('https://na/dev', 'NA')
+            cumulus.with_collection_id(collection_id)
+            cumulus_delete_result = cumulus.delete_entry(cumulus_lambda_prefix, granule_id)  # TODO not sure it is correct granule ID
+            LOGGER.debug(f'cumulus_delete_result: {cumulus_delete_result}')
         es_delete_result = GranulesDbIndex().delete_entry(collection_identifier.tenant,
                                                           collection_identifier.venue,
                                                           granule_id
@@ -172,6 +175,115 @@ async def delete_single_granule_dapa_actual(request: Request, collection_id: str
         raise HTTPException(status_code=500, detail=str(e))
     return {}
 
+
+class StacGranuleModel(BaseModel):
+    """
+        "type": "Feature",
+        "stac_version": "1.0.0",
+        "id": "URN:NASA:AVIRIS:f240424t01:p00_r10",
+        "properties": {
+            "start_datetime": "24-04-24T20:37:00.000000",
+            "end_datetime": "24-04-24T20:50:00.000000",
+            "site_name": "x001(orthocorrected)",
+            "nasa_log": 232016.0,
+            "investigator": "Raymond Kokaly",
+            "comments": "x001 s-)n; LN2 refill 2042",
+            "site_info": "GEMx - RFLY02",
+            "datetime": "1970-01-01T00:00:00Z"
+        },
+        "geometry": {
+            "type": "Point",
+            "coordinates": [
+                0.0,
+                0.0
+            ]
+        },
+        "links": [],
+        "assets": {
+            "l1b": {
+                "href": "https://popo.jpl.nasa.gov/gemx/data_products/l1b/f240424t01p00r10rdn_g.tar.gz",
+                "title": "f240424t01p00r10rdn_g.tar.gz",
+                "description": "2024-10-08 15:16",
+                "file:size": 2362232012.8
+            },
+            "l2": {
+                "href": "https://popo.jpl.nasa.gov/gemx/data_products/l2/f240424t01p00r10rfl.tar.gz",
+                "title": "f240424t01p00r10rfl.tar.gz",
+                "description": "2024-10-18 08:22",
+                "file:size": 4187593113.6
+            },
+            "quicklook": {
+                "href": "http://aviris.jpl.nasa.gov/ql/24qlook/f240424t01p00r10_geo.jpeg",
+                "title": "f240424t01p00r10_geo.jpeg",
+                "description": "Quicklook Link"
+            }
+        },
+        "bbox": [
+            32.5,
+            -114.314407,
+            33.5,
+            -114.314407
+        ],
+        "stac_extensions": [
+            "https://stac-extensions.github.io/file/v2.1.0/schema.json"
+        ],
+        "collection": "URN:NASA:AVIRIS:f240424t01"
+    """
+    stac_extensions: list[str]
+    collection: str
+    bbox: list[float]
+    assets: dict
+    links: list
+    geometry: dict
+    properties: dict
+    id: str
+    stac_version: str
+    type: str
+
+@router.put("/{collection_id}/items/{granule_id}")
+@router.put("/{collection_id}/items/{granule_id}/")
+async def add_single_granule_dapa(request: Request, collection_id: str, granule_id: str, new_granule: StacGranuleModel, response: Response):
+    authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
+        .get_instance(UDSAuthorizerFactory.cognito,
+                      es_url=os.getenv('ES_URL'),
+                      es_port=int(os.getenv('ES_PORT', '443')),
+                      use_ssl=os.getenv('ES_USE_SSL', 'TRUE').strip() is True,
+                      )
+    auth_info = FastApiUtils.get_authorization_info(request)
+    collection_identifier = UdsCollections.decode_identifier(collection_id)
+    if not authorizer.is_authorized_for_collection(DBConstants.create, collection_id,
+                                                   auth_info['ldap_groups'],
+                                                   collection_identifier.tenant,
+                                                   collection_identifier.venue):
+        LOGGER.debug(f'user: {auth_info["username"]} is not authorized for {collection_id}')
+        raise HTTPException(status_code=403, detail=json.dumps({
+            'message': 'not authorized to execute this action'
+        }))
+    try:
+        LOGGER.debug(f'adding granule: {granule_id}')
+        new_granule = new_granule.model_dump()
+        include_cumulus = os.getenv('CUMULUS_INCLUSION', 'TRUE').upper().strip() == 'TRUE'
+        if include_cumulus:
+            cumulus_lambda_prefix = os.getenv('CUMULUS_LAMBDA_PREFIX')
+            cumulus = GranulesQuery('https://na/dev', 'NA')
+            cumulus.with_collection_id(collection_id)
+            raise NotImplementedError(f'Please implement to convert stac into cumulus granule')
+            cumulus_add_result = cumulus.add_entry(cumulus_lambda_prefix, {})  # TODO not sure it is correct granule ID
+            LOGGER.debug(f'cumulus_add_result: {cumulus_add_result}')
+        if 'bbox' in new_granule:
+            new_granule['bbox'] = GranulesDbIndex.to_es_bbox(new_granule['bbox'])
+        collection_identifier = UdsCollections.decode_identifier(collection_id)
+        LOGGER.debug(f'new_granule: {new_granule}')
+        es_add_result = GranulesDbIndex().add_entry(collection_identifier.tenant,
+                                                    collection_identifier.venue,
+                                                    new_granule,
+                                                    granule_id
+                                                    )
+        LOGGER.debug(f'es_add_result: {es_add_result}')
+    except Exception as e:
+        LOGGER.exception('failed during add_single_granule_dapa')
+        raise HTTPException(status_code=500, detail=str(e))
+    return {}
 
 # @router.delete("/{collection_id}/items/{granule_id}")
 # @router.delete("/{collection_id}/items/{granule_id}/")

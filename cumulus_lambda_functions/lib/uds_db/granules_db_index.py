@@ -37,8 +37,11 @@ class GranulesDbIndex:
     def to_es_bbox(bbox_array):
         # lon = x, lat = y
         # lon, lat, lon, lat
+        # -180, -90, 180, 90
         # x can be 170 to -170
         # 170, 0, -170, 10
+        # latitude must be between -90.0 and 90.0
+        # longitude must be between -180.0 and 180.0
         minX, minY, maxX, maxY = bbox_array
 
         # Ensure the values are properly sorted
