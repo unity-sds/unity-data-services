@@ -142,6 +142,7 @@ async def create_new_collection(request: Request, new_collection: CumulusCollect
 
 
 @router.post("/actual")
+@router.post("/actual/")
 async def create_new_collection_real(request: Request, new_collection: CumulusCollectionModel):
     """
     Actual endpoint to create a new Cumulus Collection
