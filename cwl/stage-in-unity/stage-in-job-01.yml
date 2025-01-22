@@ -1,0 +1,3 @@
+download_dir: "granules"
+stac_json: "https://d3vc8w9zcq658.cloudfront.net/am-uds-dapa/collections/urn:nasa:unity:unity:dev:SBG-L2A_RSRFL___1/items"
+unity_client_id: "40c2s0ulbhp9i0fmaph3su9jch"

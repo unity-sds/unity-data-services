@@ -1,0 +1,6 @@
+project: "unity"
+venue: "dev"
+staging_bucket: "unity-dev-unity-unity-data"
+sample_output_data:
+  class: Directory
+  path: outputs
