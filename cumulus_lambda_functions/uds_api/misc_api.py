@@ -46,6 +46,13 @@ async def stac_entry(request: Request, response: Response):
 @router.get(f'/stac_entry')
 @router.get(f'/stac_entry/')
 async def stac_entry(request: Request, response: Response):
+    """
+    How to re-load UCS
+    https://github.com/unity-sds/unity-data-services/issues/381#issuecomment-2201165672
+    :param request:
+    :param response:
+    :return:
+    """
     request_headers = dict(request.headers)
     LOGGER.debug(f'stac_entry - request_headers: {request_headers}')
     print(request_headers)
