@@ -22,7 +22,7 @@ from cumulus_lambda_functions.lib.uds_db.uds_collections import UdsCollections
 
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Query, Path
 
 from cumulus_lambda_functions.uds_api.dapa.pagination_links_generator import PaginationLinksGenerator
 from cumulus_lambda_functions.uds_api.web_service_constants import WebServiceConstants
@@ -70,7 +70,12 @@ async def get_granules_dapa(request: Request, collection_id: str):
 
 @router.get("/{collection_id}/items")
 @router.get("/{collection_id}/items/")
-async def get_granules_dapa(request: Request, collection_id: str, limit: Union[int, None] = 10, offset: Union[str, None] = None, datetime: Union[str, None] = None, filter: Union[str, None] = None):
+async def get_granules_dapa(request: Request, collection_id: str=Path(description="Collection ID. To query across different collections, use '*'. Example: 'URN:NASA:UNITY:MY_TENANT:DEV:\\*'"),
+                            limit: Union[int, None] = Query(10, description='Number of items in each page.'),
+                            offset: Union[str, None] = Query(None, description='Pagination Item from current page to get the next page'),
+                            datetime: Union[str, None] = Query(None, description='Example: 2018-02-12T23:20:50Z'),
+                            filter: Union[str, None] = Query(None, description="OGC CQL filters: https://portal.ogc.org/files/96288#rc_cql-text -- Example: id in (g1,g2,g3) and tags::core = 'level-3' and (time1 < 34 or time1 > 14)"),
+                            bbox: Union[str, None]=Query(None, description='Bounding box in minx,miny,maxx,maxy -- Example: bbox=12.3,0.3,14.4,2.3')):
     authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
         .get_instance(UDSAuthorizerFactory.cognito,
                       es_url=os.getenv('ES_URL'),
@@ -90,7 +95,8 @@ async def get_granules_dapa(request: Request, collection_id: str, limit: Union[i
     try:
         pagination_links = PaginationLinksGenerator(request)
         api_base_prefix = FastApiUtils.get_api_base_prefix()
-        granules_dapa_query = GranulesDapaQueryEs(collection_id, limit, offset, datetime, filter, pagination_links, f'{pagination_links.base_url}/{api_base_prefix}')
+        bbox_array = [float(k) for k in bbox.split(',')]
+        granules_dapa_query = GranulesDapaQueryEs(collection_id, limit, offset, datetime, filter, pagination_links, f'{pagination_links.base_url}/{api_base_prefix}', bbox_array)
         granules_result = granules_dapa_query.start()
     except Exception as e:
         LOGGER.exception('failed during get_granules_dapa')
