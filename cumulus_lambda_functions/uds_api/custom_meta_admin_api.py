@@ -19,7 +19,7 @@ router = APIRouter(
 
 @router.put("/custom_metadata/{tenant}")
 @router.put("/custom_metadata/{tenant}/")
-async def es_granules_index_setup(request: Request, tenant: str, venue: Union[str, None] = None, request_body: dict = {}):
+async def custom_metadata_add(request: Request, tenant: str, venue: Union[str, None] = None, request_body: dict = {}):
     LOGGER.debug(f'started es_granules_index_setup')
     auth_info = FastApiUtils.get_authorization_info(request)
     query_body = {
@@ -40,7 +40,7 @@ async def es_granules_index_setup(request: Request, tenant: str, venue: Union[st
 
 @router.get("/custom_metadata/{tenant}")
 @router.get("/custom_metadata/{tenant}/")
-async def es_granules_index_setup(request: Request, tenant: str, venue: Union[str, None] = None):
+async def custom_metadata_get(request: Request, tenant: str, venue: Union[str, None] = None):
     LOGGER.debug(f'started es_granules_index_setup')
     auth_info = FastApiUtils.get_authorization_info(request)
     query_body = {
@@ -61,7 +61,7 @@ async def es_granules_index_setup(request: Request, tenant: str, venue: Union[st
 
 @router.delete("/custom_metadata/{tenant}/destroy")
 @router.delete("/custom_metadata/{tenant}/destroy/")
-async def es_granules_index_setup(request: Request, tenant: str, venue: Union[str, None] = None):
+async def custom_metadata_destroy(request: Request, tenant: str, venue: Union[str, None] = None):
     LOGGER.debug(f'started es_granules_index_setup')
     auth_info = FastApiUtils.get_authorization_info(request)
     query_body = {
@@ -82,7 +82,7 @@ async def es_granules_index_setup(request: Request, tenant: str, venue: Union[st
 
 @router.delete("/custom_metadata/{tenant}")
 @router.delete("/custom_metadata/{tenant}/")
-async def es_granules_index_delete_setup(request: Request, tenant: str, venue: Union[str, None] = None):
+async def custom_metadata_delete(request: Request, tenant: str, venue: Union[str, None] = None):
     LOGGER.debug(f'started es_granules_index_delete_setup')
     auth_info = FastApiUtils.get_authorization_info(request)
     query_body = {
