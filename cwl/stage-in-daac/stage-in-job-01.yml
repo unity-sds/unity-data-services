@@ -1,0 +1,2 @@
+download_dir: "granules"
+stac_json: "https://cmr.earthdata.nasa.gov/stac/LPCLOUD/collections/EMITL1BRAD_001/items?limit=2"
