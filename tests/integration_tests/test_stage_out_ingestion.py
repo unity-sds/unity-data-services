@@ -42,7 +42,7 @@ class TestStageOutIngestion(TestCase):
 
         self.tenant = 'UDS_LOCAL_TEST_3'  # 'uds_local_test'  # 'uds_sandbox'
         self.tenant_venue = 'DEV'  # 'DEV1'  # 'dev'
-        self.collection_name = 'CCC'  # 'uds_collection'  # 'sbx_collection'
+        self.collection_name = 'DDD'  # 'uds_collection'  # 'sbx_collection'
         self.collection_version = '24.03.20.14.40'.replace('.', '')  # '2402011200'
         return
 
@@ -232,7 +232,8 @@ class TestStageOutIngestion(TestCase):
                                     "type": "Point",
                                     "coordinates": [0.0, 0.0]
                                  },
-                                 bbox=[0.0, 0.0, 0.1, 0.1],
+                                 # bbox=[0.0, 0.0, 0.1, 0.1],
+                                 bbox=[170, 25, -170, 10],  # Testing invalid geo-shape
                                  datetime=TimeUtils().parse_from_unix(0, True).get_datetime_obj(),
                                  properties={
                                      "start_datetime": "2016-01-31T18:00:00.009057Z",
@@ -336,4 +337,5 @@ class TestStageOutIngestion(TestCase):
         response_json = json.loads(query_result.text)
         print(json.dumps(response_json, indent=4))
         self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
+        self.assertEqual(response_json['bbox'], [170, 10, -170, 25], 'wrong bbox')
         return
