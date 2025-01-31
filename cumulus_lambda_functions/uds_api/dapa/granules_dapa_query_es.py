@@ -20,7 +20,7 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 
 
 class GranulesDapaQueryEs:
-    def __init__(self, collection_id, limit, offset, input_datetime, filter_input, pagination_link_obj: PaginationLinksGenerator, base_url):
+    def __init__(self, collection_id, limit, offset, input_datetime, filter_input, pagination_link_obj: PaginationLinksGenerator, base_url, bbox=None):
         self.__collection_cnm_lambda_name = os.environ.get('COLLECTION_CREATION_LAMBDA_NAME', '').strip()
         self.__pagination_link_obj = pagination_link_obj
         self.__input_datetime = input_datetime
@@ -30,12 +30,22 @@ class GranulesDapaQueryEs:
         self.__base_url = base_url
         self.__filter_input = filter_input
         self.__granules_index = GranulesDbIndex()
+        self.__bbox = bbox
 
     def __generate_es_dsl(self):
-        query_terms = [
-            {'term': {'collection': {'value': self.__collection_id}}}
-        ]
+        query_terms = []
+        if not self.__collection_id.endswith(':*'):
+            query_terms.append({'term': {'collection': {'value': self.__collection_id}}})
         query_terms.extend(self.__get_time_range_terms())
+        if self.__bbox is not None:
+            query_terms.append({
+                "geo_shape": {
+                    "bbox": {
+                        "shape": self.__granules_index.to_es_bbox(self.__bbox),
+                        "relation": "intersects"
+                    }
+                }
+            })
         if self.__filter_input is not None:
             query_terms.append(CqlParser('properties').transform(self.__filter_input))
         query_dsl = {
