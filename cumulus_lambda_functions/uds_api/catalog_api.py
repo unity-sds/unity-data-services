@@ -39,7 +39,7 @@ async def get_catalog(request: Request, limit: Union[int, None] = 10, offset: Un
                       )
     auth_info = FastApiUtils.get_authorization_info(request)
     uds_collections = UdsCollections(es_url=os.getenv('ES_URL'),
-                                     es_port=int(os.getenv('ES_PORT', '443')))
+                                     es_port=int(os.getenv('ES_PORT', '443')), es_type=os.getenv('ES_TYPE', 'AWS'))
     collection_regexes = authorizer.get_authorized_collections(DBConstants.read, auth_info['ldap_groups'])
     LOGGER.info(f'collection_regexes: {collection_regexes}')
     authorized_collections = uds_collections.get_collections(collection_regexes)

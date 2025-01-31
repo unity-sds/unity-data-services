@@ -40,7 +40,7 @@ class GranulesCnmIngesterLogic:
         if 'UNITY_DEFAULT_PROVIDER' not in os.environ:
             raise ValueError(f'missing UNITY_DEFAULT_PROVIDER')
         self.__default_provider = os.environ.get('UNITY_DEFAULT_PROVIDER')
-        self.__uds_collection = UdsCollections(es_url=os.getenv('ES_URL'), es_port=int(os.getenv('ES_PORT', '443')))
+        self.__uds_collection = UdsCollections(es_url=os.getenv('ES_URL'), es_port=int(os.getenv('ES_PORT', '443')), es_type=os.getenv('ES_TYPE', 'AWS'))
 
     @property
     def successful_features_json(self):

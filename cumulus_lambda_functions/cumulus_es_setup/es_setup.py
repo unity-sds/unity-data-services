@@ -16,9 +16,10 @@ class SetupESIndexAlias:
         required_env = ['ES_URL']
         if not all([k in os.environ for k in required_env]):
             raise EnvironmentError(f'one or more missing env: {required_env}')
-        self.__es: ESAbstract = ESFactory().get_instance('AWS',
+        self.__es: ESAbstract = ESFactory().get_instance(os.getenv('ES_TYPE', 'AWS'),
                                                          index=DBConstants.collections_index,
                                                          base_url=os.getenv('ES_URL'),
+                                                         use_ssl=os.getenv('ES_USE_SSL', 'TRUE').strip() is True,
                                                          port=int(os.getenv('ES_PORT', '443'))
                                                          )
 
