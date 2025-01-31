@@ -1,0 +1,24 @@
+{
+  "type": "Catalog",
+  "id": "NA",
+  "stac_version": "1.0.0",
+  "description": "NA",
+  "links": [
+    {
+      "rel": "root",
+      "href": "./catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "item",
+      "href": "./output_1.nc.stac.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "item",
+      "href": "./output_2.nc.stac.json",
+      "type": "application/json"
+    }
+  ],
+  "stac_extensions": []
+}
