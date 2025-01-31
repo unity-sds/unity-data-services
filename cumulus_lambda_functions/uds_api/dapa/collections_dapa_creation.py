@@ -72,67 +72,100 @@ class CollectionDapaCreation:
         self.__request_body = request_body
         self.__collection_creation_lambda_name = os.environ.get('COLLECTION_CREATION_LAMBDA_NAME', '').strip()
         self.__cumulus_lambda_prefix = os.getenv('CUMULUS_LAMBDA_PREFIX')
+        self.__include_cumulus = os.getenv('CUMULUS_INCLUSION', 'TRUE').upper().strip() == 'TRUE'
         self.__ingest_sqs_url = os.getenv('CUMULUS_WORKFLOW_SQS_URL')
         self.__report_to_ems = os.getenv('REPORT_TO_EMS', 'TRUE').strip().upper() == 'TRUE'
         self.__workflow_name = os.getenv('CUMULUS_WORKFLOW_NAME', 'CatalogGranule')
         self.__provider_id = os.getenv('UNITY_DEFAULT_PROVIDER', '')
+        self.__collection_transformer = CollectionTransformer(self.__report_to_ems)
+        self.__uds_collection = UdsCollections(es_url=os.getenv('ES_URL'), es_port=int(os.getenv('ES_PORT', '443')), es_type=os.getenv('ES_TYPE', 'AWS'), use_ssl=os.getenv('ES_USE_SSL', 'TRUE').strip() is True)
+        self.__cumulus_collection_query = CollectionsQuery('', '')
+
+    def __create_collection_cumulus(self, cumulus_collection_doc):
+        creation_result = self.__cumulus_collection_query.create_collection(cumulus_collection_doc, self.__cumulus_lambda_prefix)
+        if 'status' not in creation_result:
+            LOGGER.error(f'status not in creation_result: {creation_result}')
+            return {
+                'statusCode': 500,
+                'body': {
+                    'message': creation_result
+                }
+            }, None
+        return None, creation_result
+
+    def __create_rules_cumulus(self, cumulus_collection_doc):
+        rule_creation_result = self.__cumulus_collection_query.create_sqs_rules(
+            cumulus_collection_doc,
+            self.__cumulus_lambda_prefix,
+            self.__ingest_sqs_url,
+            self.__provider_id,
+            self.__workflow_name,
+        )
+        if 'status' not in rule_creation_result:
+            LOGGER.error(f'status not in rule_creation_result. deleting collection: {rule_creation_result}')
+            delete_collection_result = self.__cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix,
+                                                                                  cumulus_collection_doc['name'],
+                                                                                  cumulus_collection_doc['version'])
+            self.__uds_collection.delete_collection(self.__collection_transformer.get_collection_id())
+            return {
+                'statusCode': 500,
+                'body': {
+                    'message': rule_creation_result,
+                    'details': f'collection deletion result: {delete_collection_result}'
+                }
+            }
+        return None
+
+    def __create_collection_uds(self, cumulus_collection_doc):
+
+        try:
+            time_range = self.__collection_transformer.get_collection_time_range()
+            self.__uds_collection.add_collection(
+                collection_id=self.__collection_transformer.get_collection_id(),
+                start_time=TimeUtils().set_datetime_obj(time_range[0][0]).get_datetime_unix(True),
+                end_time=TimeUtils().set_datetime_obj(time_range[0][1]).get_datetime_unix(True),
+                bbox=self.__collection_transformer.get_collection_bbox(),
+                granules_count=0,
+            )
+        except Exception as e:
+            LOGGER.exception(f'failed to add collection to Elasticsearch')
+            delete_collection_result = 'NA'
+            if self.__include_cumulus:
+                delete_collection_result = self.__cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix,
+                                                                                  cumulus_collection_doc['name'],
+                                                                                  cumulus_collection_doc['version'])
+            return {
+                'statusCode': 500,
+                'body': {
+                    'message': f'unable to add collection to Elasticsearch: {str(e)}',
+                    'details': f'collection deletion result: {delete_collection_result}'
+                }
+            }
+        return None
 
     def create(self):
         try:
-            # validation_result = pystac.Collection.from_dict(self.__request_body).validate()
-            cumulus_collection_query = CollectionsQuery('', '')
-
-            collection_transformer = CollectionTransformer(self.__report_to_ems)
-            cumulus_collection_doc = collection_transformer.from_stac(self.__request_body)
-            self.__provider_id = self.__provider_id if collection_transformer.output_provider is None else collection_transformer.output_provider
-            creation_result = cumulus_collection_query.create_collection(cumulus_collection_doc, self.__cumulus_lambda_prefix)
-            if 'status' not in creation_result:
-                LOGGER.error(f'status not in creation_result: {creation_result}')
-                return {
-                    'statusCode': 500,
-                    'body': {
-                        'message': creation_result
-                    }
-                }
-            uds_collection = UdsCollections(es_url=os.getenv('ES_URL'), es_port=int(os.getenv('ES_PORT', '443')))
-            try:
-                time_range = collection_transformer.get_collection_time_range()
-                uds_collection.add_collection(
-                    collection_id=collection_transformer.get_collection_id(),
-                    start_time=TimeUtils().set_datetime_obj(time_range[0][0]).get_datetime_unix(True),
-                    end_time=TimeUtils().set_datetime_obj(time_range[0][1]).get_datetime_unix(True),
-                    bbox=collection_transformer.get_collection_bbox(),
-                    granules_count=0,
-                )
-            except Exception as e:
-                LOGGER.exception(f'failed to add collection to Elasticsearch')
-                delete_collection_result = cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix, cumulus_collection_doc['name'], cumulus_collection_doc['version'])
-                return {
-                    'statusCode': 500,
-                    'body': {
-                        'message': f'unable to add collection to Elasticsearch: {str(e)}',
-                        'details': f'collection deletion result: {delete_collection_result}'
-                    }
-                }
+            cumulus_collection_doc = self.__collection_transformer.from_stac(self.__request_body)
+            self.__provider_id = self.__provider_id if self.__collection_transformer.output_provider is None else self.__collection_transformer.output_provider
             LOGGER.debug(f'__provider_id: {self.__provider_id}')
-            rule_creation_result = cumulus_collection_query.create_sqs_rules(
-                cumulus_collection_doc,
-                self.__cumulus_lambda_prefix,
-                self.__ingest_sqs_url,
-                self.__provider_id,
-                self.__workflow_name,
-            )
-            if 'status' not in rule_creation_result:
-                LOGGER.error(f'status not in rule_creation_result. deleting collection: {rule_creation_result}')
-                delete_collection_result = cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix, cumulus_collection_doc['name'], cumulus_collection_doc['version'])
-                uds_collection.delete_collection(collection_transformer.get_collection_id())
-                return {
-                    'statusCode': 500,
-                    'body': {
-                        'message': rule_creation_result,
-                        'details': f'collection deletion result: {delete_collection_result}'
-                    }
-                }
+            creation_result = 'NA'
+            if self.__include_cumulus:
+                creation_err, creation_result = self.__create_collection_cumulus(cumulus_collection_doc)
+                if creation_err is not None:
+                    return creation_err
+            uds_creation_result = self.__create_collection_uds(cumulus_collection_doc)
+            if uds_creation_result is not None:
+                return uds_creation_result
+            if self.__include_cumulus:
+                create_rule_result = self.__create_rules_cumulus(cumulus_collection_doc)
+                if create_rule_result is not None:
+                    return create_rule_result
+            # validation_result = pystac.Collection.from_dict(self.__request_body).validate()
+            # cumulus_collection_query = CollectionsQuery('', '')
+            #
+            # collection_transformer = CollectionTransformer(self.__report_to_ems)
+            # cumulus_collection_doc = collection_transformer.from_stac(self.__request_body)
+            # self.__provider_id = self.__provider_id if collection_transformer.output_provider is None else collection_transformer.output_provider
         except Exception as e:
             LOGGER.exception('error while creating new collection in Cumulus')
             return {
