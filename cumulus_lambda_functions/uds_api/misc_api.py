@@ -16,14 +16,21 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 
 router = APIRouter(
     prefix=f'/{WebServiceConstants.MISC}',
-    tags=["Granules CRUD API"],
+    tags=["Miscellaneous API"],
     responses={404: {"description": "Not found"}},
 )
 
 
 @router.get(f'/catalog_list')
 @router.get(f'/catalog_list/')
-async def stac_entry(request: Request, response: Response):
+async def catalog_list(request: Request, response: Response):
+    """
+    This is to list all catalogs for STAC Browser.
+    This doesn't require any authorization token.
+    :param request:
+    :param response:
+    :return:
+    """
     base_url = os.environ.get(WebServiceConstants.BASE_URL, f'{request.url.scheme}://{request.url.netloc}')
     base_url = base_url[:-1] if base_url.endswith('/') else base_url
     base_url = base_url if base_url.startswith('http') else f'https://{base_url}'
@@ -46,6 +53,15 @@ async def stac_entry(request: Request, response: Response):
 @router.get(f'/stac_entry')
 @router.get(f'/stac_entry/')
 async def stac_entry(request: Request, response: Response):
+    """
+    This is an API to start STAC Browser.
+    Optionally, it will add a required authorization cookie if available.
+    However, this endpoint should be called from a separate URL due to the infrastructure.
+
+    :param request:
+    :param response:
+    :return:
+    """
     request_headers = dict(request.headers)
     LOGGER.debug(f'stac_entry - request_headers: {request_headers}')
     print(request_headers)
