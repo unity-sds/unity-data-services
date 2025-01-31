@@ -19,10 +19,11 @@ class GranulesDbIndex:
         required_env = ['ES_URL']
         if not all([k in os.environ for k in required_env]):
             raise EnvironmentError(f'one or more missing env: {required_env}')
-        self.__es: ESAbstract = ESFactory().get_instance('AWS',
+        self.__es: ESAbstract = ESFactory().get_instance(os.getenv('ES_TYPE', 'AWS'),
                                                          index=DBConstants.collections_index,
                                                          base_url=os.getenv('ES_URL'),
-                                                         port=int(os.getenv('ES_PORT', '443'))
+                                                         port=int(os.getenv('ES_PORT', '443')),
+                                                         use_ssl=os.getenv('ES_USE_SSL', 'TRUE').strip() is True,
                                                          )
         # self.__default_fields = {
         #     "granule_id": {"type": "keyword"},
@@ -36,8 +37,11 @@ class GranulesDbIndex:
     def to_es_bbox(bbox_array):
         # lon = x, lat = y
         # lon, lat, lon, lat
+        # -180, -90, 180, 90
         # x can be 170 to -170
         # 170, 0, -170, 10
+        # latitude must be between -90.0 and 90.0
+        # longitude must be between -180.0 and 180.0
         minX, minY, maxX, maxY = bbox_array
 
         # Ensure the values are properly sorted

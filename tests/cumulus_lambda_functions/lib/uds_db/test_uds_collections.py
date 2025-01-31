@@ -6,7 +6,7 @@ from cumulus_lambda_functions.lib.uds_db.uds_collections import UdsCollections
 
 class TestUdsCollections(TestCase):
     def test_01(self):
-        uds_collection = UdsCollections('https://search-uds-local-sample-iuthdh4e3yqre3mcfjtlfmxbua.us-west-2.es.amazonaws.com', 443)
+        uds_collection = UdsCollections('https://search-uds-local-sample-iuthdh4e3yqre3mcfjtlfmxbua.us-west-2.es.amazonaws.com', 443, 'AWS')
         collection_prefix = f'urn:nasa:unity:unitty_project_1:DEV_001:ecm_{uuid.uuid4()}'
         collection_id = f'{collection_prefix}_test_1___1'
         uds_collection.add_collection(collection_id, 0, 10, [0.1, 1.2, 2.3, 3.4], 12)
