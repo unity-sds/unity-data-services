@@ -44,6 +44,7 @@ class TestCumulusCreateCollectionDapa(TestCase):
 
 
     def test_add_admin_01(self):
+        print(self.bearer_token)
         collection_url = f'{self.uds_url}admin/auth'
         admin_add_body = {
             "actions": ["READ", "CREATE"],
@@ -364,7 +365,7 @@ class TestCumulusCreateCollectionDapa(TestCase):
         # TODO the commented code works but need access to ES to work
         # os.environ['ES_URL'] = 'https://vpc-uds-sbx-cumulus-es-qk73x5h47jwmela5nbwjte4yzq.us-west-2.es.amazonaws.com'
         # os.environ['ES_PORT'] = '9200'
-        # es: ESAbstract = ESFactory().get_instance('AWS',
+        # es: ESAbstract = ESFactory().get_instance(os.getenv('ES_TYPE', 'AWS'),
         #                                           index=DBConstants.collections_index,
         #                                           base_url=os.getenv('ES_URL'),
         #                                           port=int(os.getenv('ES_PORT', '443'))
