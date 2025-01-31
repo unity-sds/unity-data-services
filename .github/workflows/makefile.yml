@@ -23,7 +23,7 @@ jobs:
     - run: |
         python3 "${GITHUB_WORKSPACE}/setup.py" install_lib
     - run: |
-        python3 -m pip uninstall botocore boto3 -y
+        python3 -m pip uninstall botocore boto3 s3transfer -y
     - run: |
         # make file runnable, might not be necessary
         chmod +x "${GITHUB_WORKSPACE}/ci.cd/create_aws_lambda_zip.sh"
