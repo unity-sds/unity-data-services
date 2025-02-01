@@ -75,7 +75,11 @@ async def get_granules_dapa(request: Request, collection_id: str=Path(descriptio
                             offset: Union[str, None] = Query(None, description='Pagination Item from current page to get the next page'),
                             datetime: Union[str, None] = Query(None, description='Example: 2018-02-12T23:20:50Z'),
                             filter: Union[str, None] = Query(None, description="OGC CQL filters: https://portal.ogc.org/files/96288#rc_cql-text -- Example: id in (g1,g2,g3) and tags::core = 'level-3' and (time1 < 34 or time1 > 14)"),
-                            bbox: Union[str, None]=Query(None, description='Bounding box in minx,miny,maxx,maxy -- Example: bbox=12.3,0.3,14.4,2.3')):
+                            bbox: Union[str, None]=Query(None, description='Bounding box in minx,miny,maxx,maxy -- Example: bbox=12.3,0.3,14.4,2.3'),
+                            sort_by: Union[str, None]=Query(None, description='Sort the results based on the comma separated parameters, each sorting key can be started with + / - for ascending / descending order. missing operator is assumed "+". Example: sortby=+id,-properties.created'),
+                            ):
+    # https://docs.ogc.org/DRAFTS/24-030.html#sortby-parameter
+    # https://docs.ogc.org/DRAFTS/24-030.html#_declaring_default_sort_order
     authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
         .get_instance(UDSAuthorizerFactory.cognito,
                       es_url=os.getenv('ES_URL'),
@@ -96,7 +100,7 @@ async def get_granules_dapa(request: Request, collection_id: str=Path(descriptio
         pagination_links = PaginationLinksGenerator(request)
         api_base_prefix = FastApiUtils.get_api_base_prefix()
         bbox_array = [float(k) for k in bbox.split(',')]
-        granules_dapa_query = GranulesDapaQueryEs(collection_id, limit, offset, datetime, filter, pagination_links, f'{pagination_links.base_url}/{api_base_prefix}', bbox_array)
+        granules_dapa_query = GranulesDapaQueryEs(collection_id, limit, offset, datetime, filter, pagination_links, f'{pagination_links.base_url}/{api_base_prefix}', bbox_array, sort_by)
         granules_result = granules_dapa_query.start()
     except Exception as e:
         LOGGER.exception('failed during get_granules_dapa')
