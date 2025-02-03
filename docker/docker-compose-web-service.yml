@@ -1,7 +1,7 @@
 version: "3.7"
 services:
   cumulus_granules_upload:
-    image: stac-web-swervice-1.0:latest
+    image: ghcr.io/unity-sds/unity-data-services:7.10.1
     restart: always
     entrypoint: 'uvicorn web_service_stac_browser:app --host 0.0.0.0 --port 8005 --log-level info --reload'
     tty: true
@@ -9,9 +9,6 @@ services:
     ports:
       - 8005:8005
     environment:
-      AWS_ACCESS_KEY_ID: 'dd'
-      AWS_SECRET_ACCESS_KEY: 'dddd'
-      AWS_SESSION_TOKEN: 'dddd'
       AWS_REGION: 'us-west-2'
 
       PYTHONPATH: '${PYTHONPATH}:/usr/src/app/unity'
