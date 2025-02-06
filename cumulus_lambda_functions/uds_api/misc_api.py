@@ -58,6 +58,9 @@ async def stac_entry(request: Request, response: Response):
     Optionally, it will add a required authorization cookie if available.
     However, this endpoint should be called from a separate URL due to the infrastructure.
 
+    How to re-load UCS
+    https://github.com/unity-sds/unity-data-services/issues/381#issuecomment-2201165672
+
     :param request:
     :param response:
     :return:
