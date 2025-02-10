@@ -12,11 +12,12 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 
 class UDSAuthorizorEsIdentityPool(UDSAuthorizorAbstract):
 
-    def __init__(self, es_url: str, es_port=443) -> None:
+    def __init__(self, es_url: str, es_port=443, es_type='AWS', use_ssl=True) -> None:
         super().__init__()
-        self.__es: ESAbstract = ESFactory().get_instance('AWS',
+        self.__es: ESAbstract = ESFactory().get_instance(es_type,
                                                          index=DBConstants.authorization_index,
                                                          base_url=es_url,
+                                                         use_ssl=use_ssl,
                                                          port=es_port)
 
     def add_authorized_group(self, action: [str], resource: [str], tenant: str, venue: str, ldap_group_name: str):

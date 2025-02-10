@@ -85,6 +85,7 @@ class TestGranulesDbIndex(TestCase):
         es: ESAbstract = ESFactory().get_instance('AWS',
                                                   index=DBConstants.collections_index,
                                                   base_url=os.getenv('ES_URL'),
+                                                  use_ssl=os.getenv('ES_USE_SSL', 'TRUE').strip() is True,
                                                   port=int(os.getenv('ES_PORT', '443'))
                                                   )
 

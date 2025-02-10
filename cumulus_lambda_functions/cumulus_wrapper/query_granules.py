@@ -132,6 +132,40 @@ class GranulesQuery(CumulusBase):
             return {'server_error': f'error while invoking:{str(e)}'}
         return {'results': stac_list}
 
+    def add_entry(self, private_api_prefix: str, new_granule: dict):
+        raise NotImplementedError(f'Please implement adding granules to Cumulus')
+        # https://nasa.github.io/cumulus-api/v18.4.0/#create-granule
+        # payload = {
+        #     'httpMethod': 'POST',
+        #     'resource': '/{proxy+}',
+        #     'path': f'/{self.__collections_key}',
+        #     'headers': {
+        #         'Content-Type': 'application/json',
+        #     },
+        #     'body': json.dumps(new_granule)
+        # }
+        # LOGGER.debug(f'payload: {payload}')
+        # try:
+        #     query_result = self._invoke_api(payload, private_api_prefix)
+        #     """
+        #     {'statusCode': 500, 'body': '', 'headers': {}}
+        #     """
+        #     if query_result['statusCode'] >= 500:
+        #         LOGGER.error(f'server error status code: {query_result["statusCode"]}. details: {query_result}')
+        #         return {'server_error': query_result}
+        #     if query_result['statusCode'] >= 400:
+        #         LOGGER.error(f'client error status code: {query_result["statusCode"]}. details: {query_result}')
+        #         return {'client_error': query_result}
+        #     query_result = json.loads(query_result['body'])
+        #     LOGGER.debug(f'json query_result: {query_result}')
+        #     if 'message' not in query_result:
+        #         return {'server_error': f'invalid response: {query_result}'}
+        # except Exception as e:
+        #     LOGGER.exception('error while invoking')
+        #     return {'server_error': f'error while invoking:{str(e)}'}
+        # return {'status': query_result['message']}
+        return
+
     def delete_entry(self, private_api_prefix: str, granule_id: str):
         payload = {
             'httpMethod': 'DELETE',
