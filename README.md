@@ -111,7 +111,7 @@ Questions about our project? Please see our: [FAQ]([INSERT LINK TO FAQ / DISCUSS
 1. Question 1
    - Answer to question 1.
 2. Question 2
-   - Answer to question 2
+   - Answer to question 2.
 -->
 
 <!-- example FAQ inline with no questions yet>
