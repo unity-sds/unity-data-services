@@ -20,7 +20,7 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 
 
 class GranulesDapaQueryEs:
-    def __init__(self, collection_id, limit, offset, input_datetime, filter_input, pagination_link_obj: PaginationLinksGenerator, base_url, bbox=None):
+    def __init__(self, collection_id, limit, offset, input_datetime, filter_input, pagination_link_obj: PaginationLinksGenerator, base_url, bbox=None, sort_by=None):
         self.__collection_cnm_lambda_name = os.environ.get('COLLECTION_CREATION_LAMBDA_NAME', '').strip()
         self.__pagination_link_obj = pagination_link_obj
         self.__input_datetime = input_datetime
@@ -31,6 +31,35 @@ class GranulesDapaQueryEs:
         self.__filter_input = filter_input
         self.__granules_index = GranulesDbIndex()
         self.__bbox = bbox
+        self.__sort_by = sort_by
+
+    def get_sorting_arguments(self):
+        if self.__sort_by is None or self.__sort_by == '':
+            return [
+                {'properties.datetime': {'order': 'desc'}},
+                {'id': {'order': 'asc'}}
+            ]
+        sorting_dict = {}
+        sort_keys = [k.strip() for k in self.__sort_by.split(',')]
+        for each_key in sort_keys:
+            if each_key.startswith('+'):
+                sorting_dict[each_key[1:]] = {'order': 'asc'}
+            elif each_key.startswith('-'):
+                sorting_dict[each_key[1:]] = {'order': 'desc'}
+            else:
+                sorting_dict[each_key] = {'order': 'asc'}
+        if 'properties.datetime' not in sorting_dict:
+            sorting_dict['properties.datetime'] = {'order': 'desc'}
+        if 'id' not in sorting_dict:
+            sorting_dict['id'] = {'order': 'asc'}
+
+        sorting_array = [
+            {'properties.datetime': sorting_dict.pop('properties.datetime')},
+            {'id': sorting_dict.pop('id')},
+        ]
+        for k, v in sorting_dict.items():
+            sorting_array.append({k: v})
+        return sorting_array
 
     def __generate_es_dsl(self):
         query_terms = []
@@ -52,10 +81,7 @@ class GranulesDapaQueryEs:
             'track_total_hits': self.__offset is None,
             'size': self.__limit,
             # "collapse": {"field": "id"},
-            'sort': [
-                {'properties.datetime': {'order': 'desc'}},
-                {'id': {'order': 'asc'}}
-            ],
+            'sort': self.get_sorting_arguments(),
             'query': {
                 'bool': {
                     'must': query_terms
