@@ -39,27 +39,27 @@ class GranulesDapaQueryEs:
                 {'properties.datetime': {'order': 'desc'}},
                 {'id': {'order': 'asc'}}
             ]
-        sorting_dict = {}
         sort_keys = [k.strip() for k in self.__sort_by.split(',')]
+        sort_key_set = set()
+        sort_keys_dsl = []
         for each_key in sort_keys:
             if each_key.startswith('+'):
-                sorting_dict[each_key[1:]] = {'order': 'asc'}
+                current_sort_key = each_key[1:]
+                current_sort_dict = {current_sort_key: {'order': 'asc'}}
             elif each_key.startswith('-'):
-                sorting_dict[each_key[1:]] = {'order': 'desc'}
+                current_sort_key = each_key[1:]
+                current_sort_dict = {current_sort_key: {'order': 'desc'}}
             else:
-                sorting_dict[each_key] = {'order': 'asc'}
-        if 'properties.datetime' not in sorting_dict:
-            sorting_dict['properties.datetime'] = {'order': 'desc'}
-        if 'id' not in sorting_dict:
-            sorting_dict['id'] = {'order': 'asc'}
-
-        sorting_array = [
-            {'properties.datetime': sorting_dict.pop('properties.datetime')},
-            {'id': sorting_dict.pop('id')},
-        ]
-        for k, v in sorting_dict.items():
-            sorting_array.append({k: v})
-        return sorting_array
+                current_sort_key = each_key
+                current_sort_dict = {current_sort_key: {'order': 'asc'}}
+            if current_sort_key not in sort_key_set:
+                sort_keys_dsl.append(current_sort_dict)
+                sort_key_set.add(current_sort_key)
+        if 'properties.datetime' not in sort_key_set:
+            sort_keys_dsl.append({'properties.datetime': {'order': 'desc'}})
+        if 'id' not in sort_key_set:
+            sort_keys_dsl.append({'id': {'order': 'asc'}})
+        return sort_keys_dsl
 
     def __generate_es_dsl(self):
         query_terms = []
