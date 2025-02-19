@@ -10,3 +10,11 @@ tags = {
 }
 aws_region = "us-west-2"
 image_tag="9.6.0"
+
+ecr_repo_name = "test4"
+cumulus_lambda_vpc_id = "vpc-xxx"
+cumulus_subnet_id = "subnet-xxx"
+security_group_id = "sg-xxx"
+ami_id = "ami-xxx"
+key_name = "mcp-unity-xxx-1"
+ec2_profile_iam_name = "uds-dev-cumulus_ecs_cluster_profile"

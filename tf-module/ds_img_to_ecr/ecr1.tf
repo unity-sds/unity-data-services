@@ -24,14 +24,15 @@ output "ecr_repo_url" {
   value = aws_ecr_repository.repo.repository_url
 }
 
-resource "null_resource" "docker_pull_push" {
-  provisioner "local-exec" {
-    command = <<EOT
-      aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${aws_ecr_repository.repo.repository_url}
-      docker pull  --platform=linux/amd64 ${var.github_image_url}:${var.image_tag}
-      docker tag ${var.github_image_url}:${var.image_tag} ${aws_ecr_repository.repo.repository_url}:${var.image_tag}
-      docker push ${aws_ecr_repository.repo.repository_url}:${var.image_tag}
-    EOT
-  }
-  depends_on = [aws_ecr_repository.repo]
-}
+# Backup option to upload docker locally. But EC2 may be a more stable option...
+#resource "null_resource" "docker_pull_push" {
+#  provisioner "local-exec" {
+#    command = <<EOT
+#      aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${aws_ecr_repository.repo.repository_url}
+#      docker pull  --platform=linux/amd64 ${var.github_image_url}:${var.image_tag}
+#      docker tag ${var.github_image_url}:${var.image_tag} ${aws_ecr_repository.repo.repository_url}:${var.image_tag}
+#      docker push ${aws_ecr_repository.repo.repository_url}:${var.image_tag}
+#    EOT
+#  }
+#  depends_on = [aws_ecr_repository.repo]
+#}
