@@ -1,0 +1,12 @@
+tags = {
+  Venue = "venue-dev",
+  ServiceArea = "ds",
+  CapVersion = "18.0.0"
+  Component = "Cumulus",
+  Proj = "Unity",
+  CreatedBy = "ds",
+  Env = "venue-dev",
+  Stack = "Cumulus"
+}
+aws_region = "us-west-2"
+image_tag="9.6.0"
