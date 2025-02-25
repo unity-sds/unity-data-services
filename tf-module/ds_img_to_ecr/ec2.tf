@@ -1,6 +1,70 @@
-data "aws_iam_instance_profile" "ec2_profile" {
-  name = var.ec2_profile_iam_name
+resource "aws_iam_role" "ec2_docker_builder_profile_role" {
+  name = "${var.prefix}-ec2_docker_builder_profile_role"
+  permissions_boundary = "arn:aws:iam::${local.account_id}:policy/mcp-tenantOperator-AMI-APIG"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        },
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
 }
+
+
+# IAM Policy for accessing S3 and SNS in other accounts
+resource "aws_iam_policy" "ec2_docker_builder_profile_role_policy" {
+  name        = "${var.prefix}-ec2_docker_builder_profile_role_policy"
+  description = ""
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchGetImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload",
+          "ecr:PutImage",
+          "ec2:TerminateInstances"
+        ],
+        "Resource": "*"
+      },
+
+    ]
+  })
+}
+
+# Attach policy to the role
+resource "aws_iam_role_policy_attachment" "ec2_docker_builder_profile_role_policy_attachment" {
+  role       = aws_iam_role.ec2_docker_builder_profile_role.name
+  policy_arn = aws_iam_policy.ec2_docker_builder_profile_role_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "ec2_docker_builder_profile_role_policy_attachment_ssm" {
+  role       = aws_iam_role.ec2_docker_builder_profile_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_role_policy_attachment" "ec2_docker_builder_profile_role_policy_attachment_cloudwatch" {
+  role       = aws_iam_role.ec2_docker_builder_profile_role.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
+
+resource "aws_iam_instance_profile" "ec2_docker_builder_profile" {
+  name = "${var.prefix}-ec2_docker_builder_profile"
+  role = aws_iam_role.ec2_docker_builder_profile_role.name
+}
+
 data "aws_subnet" "ec2_subnet" {
   id = var.cumulus_subnet_id
 }
@@ -10,9 +74,8 @@ resource "aws_instance" "docker_builder" {
   security_groups = var.security_group_id
   ami                    = var.ami_id
   instance_type          = var.instance_type
-  key_name               = var.key_name
-  associate_public_ip_address = true
-  iam_instance_profile   = data.aws_iam_instance_profile.ec2_profile.name
+  associate_public_ip_address = false
+  iam_instance_profile   = aws_iam_instance_profile.ec2_docker_builder_profile.name
 
   user_data = <<-EOF
     #!/bin/bash
@@ -45,7 +108,7 @@ resource "aws_instance" "docker_builder" {
   EOF
 
   tags = {
-    Name = "Docker-Build-Instance"
+    Name = "${var.prefix}-docker_builder"
   }
 }
 

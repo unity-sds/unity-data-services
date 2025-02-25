@@ -1,3 +1,6 @@
+variable "prefix" {
+  type = string
+}
 variable "aws_region" {
   type    = string
   default = "us-west-2"
@@ -34,16 +37,6 @@ variable "instance_type" {
   description = "The type of EC2 instance"
   default = "t3.medium"
   type        = string
-}
-
-variable "key_name" {
-  description = "The name of the SSH key pair"
-  type        = string
-}
-
-variable "ec2_profile_iam_name" {
-  description = "EC2 Profile IAM name. Note that it is different from uds-sbx-cumulus_ecs_cluster_instance_role. uds-sbx-cumulus_ecs_cluster_profile is the correct name"
-  type = string
 }
 
 variable "security_group_id" {
