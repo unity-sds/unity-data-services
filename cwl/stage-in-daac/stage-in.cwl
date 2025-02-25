@@ -12,7 +12,7 @@ requirements:
     envDef:
       DOWNLOAD_DIR: $(runtime.outdir)/$(inputs.download_dir)
       STAC_JSON: $(inputs.stac_json)
-      LOG_LEVEL: '10'
+      LOG_LEVEL: $(inputs.log_level)
       PARALLEL_COUNT: '-1'
       DOWNLOAD_RETRY_WAIT_TIME: '30'
       DOWNLOAD_RETRY_TIMES: '5'
@@ -28,6 +28,8 @@ requirements:
 
 inputs:
   download_dir:
+    type: string
+  log_level:
     type: string
   stac_json:
     type: string
