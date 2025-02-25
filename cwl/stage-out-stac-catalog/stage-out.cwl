@@ -17,7 +17,7 @@ requirements:
     envDef:
       STAGING_BUCKET: $(inputs.staging_bucket)
       CATALOG_FILE: '/tmp/outputs/catalog.json'
-      LOG_LEVEL: '10'
+      LOG_LEVEL: $(inputs.log_level)
       PARALLEL_COUNT: '-1'
       OUTPUT_DIRECTORY: $(runtime.outdir)
       PROJECT: $(inputs.project)
@@ -27,6 +27,8 @@ requirements:
       BASE_DIRECTORY: '/tmp/outputs'
 
 inputs:
+  log_level:
+    type: string
   project:
     type: string
   venue:
