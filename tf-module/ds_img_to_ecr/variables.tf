@@ -39,10 +39,6 @@ variable "instance_type" {
   type        = string
 }
 
-variable "security_group_id" {
-  description = "Security Group ID which is setup for ssh connections, https connections, and so on.. "
-  type        = list(string)
-}
 variable "cumulus_lambda_vpc_id" {
   description = "VPC ID."
   type = string
