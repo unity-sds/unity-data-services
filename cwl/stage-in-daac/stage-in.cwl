@@ -30,6 +30,7 @@ inputs:
   download_dir:
     type: string
   log_level:
+    default: '20'
     type: string
   stac_json:
     type: string

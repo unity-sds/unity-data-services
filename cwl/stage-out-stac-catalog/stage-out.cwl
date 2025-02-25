@@ -28,6 +28,7 @@ requirements:
 
 inputs:
   log_level:
+    default: '20'
     type: string
   project:
     type: string
