@@ -1,3 +1,4 @@
 prefix = "uds-sbx"
 ecr_github_username = "abcd"
 ecr_github_token = "abcd"
+aws_region = "us-west-2"
