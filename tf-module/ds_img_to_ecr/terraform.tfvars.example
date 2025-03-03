@@ -1,20 +1,3 @@
 prefix = "uds-sbx"
 ecr_github_username = "abcd"
 ecr_github_token = "abcd"
-
-tags = {
-  Venue = "venue-dev",
-  ServiceArea = "ds",
-  CapVersion = "18.0.0"
-  Component = "Cumulus",
-  Proj = "Unity",
-  CreatedBy = "ds",
-  Env = "venue-dev",
-  Stack = "Cumulus"
-}
-image_tag="9.6.0"
-
-ecr_repo_name = "test4"
-cumulus_lambda_vpc_id = "vpc-xxx"
-cumulus_subnet_id = "subnet-xxx"
-ami_id = "ami-xxx"
