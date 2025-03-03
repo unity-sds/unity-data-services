@@ -2,7 +2,7 @@ terraform {
   backend "s3" {
     region         = "us-west-2"
     bucket         = "am-uds-dev-cumulus-tf-state"
-    key            = "am-uds-dev-cumulus/ds_img_to_ecr/unity/terraform.tfstate"
+    key            = "am-uds-dev-cumulus/ds_img_to_ecr_pt/unity/terraform.tfstate"
     dynamodb_table = "am-uds-dev-cumulus-tf-locks"
   }
 }

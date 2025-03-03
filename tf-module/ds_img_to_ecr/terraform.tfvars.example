@@ -1,4 +1,7 @@
 prefix = "uds-sbx"
+ecr_github_username = "abcd"
+ecr_github_token = "abcd"
+
 tags = {
   Venue = "venue-dev",
   ServiceArea = "ds",
@@ -9,7 +12,6 @@ tags = {
   Env = "venue-dev",
   Stack = "Cumulus"
 }
-aws_region = "us-west-2"
 image_tag="9.6.0"
 
 ecr_repo_name = "test4"
