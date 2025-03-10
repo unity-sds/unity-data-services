@@ -21,10 +21,11 @@ class UdsCollections:
     start_time = 'start_time'
     end_time = 'end_time'
 
-    def __init__(self, es_url, es_port=443):
-        self.__es: ESAbstract = ESFactory().get_instance('AWS',
+    def __init__(self, es_url, es_port=443, es_type='AWS', use_ssl=True):
+        self.__es: ESAbstract = ESFactory().get_instance(es_type,
                                                          index=DBConstants.collections_index,
                                                          base_url=es_url,
+                                                         use_ssl=use_ssl,
                                                          port=es_port)
 
     @staticmethod

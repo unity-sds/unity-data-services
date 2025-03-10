@@ -20,7 +20,7 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 
 
 class GranulesDapaQueryEs:
-    def __init__(self, collection_id, limit, offset, input_datetime, filter_input, pagination_link_obj: PaginationLinksGenerator, base_url):
+    def __init__(self, collection_id, limit, offset, input_datetime, filter_input, pagination_link_obj: PaginationLinksGenerator, base_url, bbox=None, sort_by=None):
         self.__collection_cnm_lambda_name = os.environ.get('COLLECTION_CREATION_LAMBDA_NAME', '').strip()
         self.__pagination_link_obj = pagination_link_obj
         self.__input_datetime = input_datetime
@@ -30,22 +30,58 @@ class GranulesDapaQueryEs:
         self.__base_url = base_url
         self.__filter_input = filter_input
         self.__granules_index = GranulesDbIndex()
+        self.__bbox = bbox
+        self.__sort_by = sort_by
+
+    def get_sorting_arguments(self):
+        if self.__sort_by is None or self.__sort_by == '':
+            return [
+                {'properties.datetime': {'order': 'desc'}},
+                {'id': {'order': 'asc'}}
+            ]
+        sort_keys = [k.strip() for k in self.__sort_by.split(',')]
+        sort_key_set = set()
+        sort_keys_dsl = []
+        for each_key in sort_keys:
+            if each_key.startswith('+'):
+                current_sort_key = each_key[1:]
+                current_sort_dict = {current_sort_key: {'order': 'asc'}}
+            elif each_key.startswith('-'):
+                current_sort_key = each_key[1:]
+                current_sort_dict = {current_sort_key: {'order': 'desc'}}
+            else:
+                current_sort_key = each_key
+                current_sort_dict = {current_sort_key: {'order': 'asc'}}
+            if current_sort_key not in sort_key_set:
+                sort_keys_dsl.append(current_sort_dict)
+                sort_key_set.add(current_sort_key)
+        if 'properties.datetime' not in sort_key_set:
+            sort_keys_dsl.append({'properties.datetime': {'order': 'desc'}})
+        if 'id' not in sort_key_set:
+            sort_keys_dsl.append({'id': {'order': 'asc'}})
+        return sort_keys_dsl
 
     def __generate_es_dsl(self):
-        query_terms = [
-            {'term': {'collection': {'value': self.__collection_id}}}
-        ]
+        query_terms = []
+        if not self.__collection_id.endswith(':*'):
+            query_terms.append({'term': {'collection': {'value': self.__collection_id}}})
         query_terms.extend(self.__get_time_range_terms())
+        if self.__bbox is not None:
+            query_terms.append({
+                "geo_shape": {
+                    "bbox": {
+                        "shape": self.__granules_index.to_es_bbox(self.__bbox),
+                        "relation": "intersects"
+                    }
+                }
+            })
         if self.__filter_input is not None:
             query_terms.append(CqlParser('properties').transform(self.__filter_input))
         query_dsl = {
             'track_total_hits': self.__offset is None,
             'size': self.__limit,
             # "collapse": {"field": "id"},
-            'sort': [
-                {'properties.datetime': {'order': 'desc'}},
-                {'id': {'order': 'asc'}}
-            ],
+            'sort': self.get_sorting_arguments(),
             'query': {
                 'bool': {
                     'must': query_terms

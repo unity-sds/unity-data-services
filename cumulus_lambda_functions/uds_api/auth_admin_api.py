@@ -10,7 +10,7 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 
 router = APIRouter(
     prefix=f'/{WebServiceConstants.ADMIN}/auth',
-    tags=["Admin Records CRUD", "Admins-Only"],
+    tags=["Admin Records CRUD (Admins-Only)"],
     responses={404: {"description": "Not found"}},
 )
 
