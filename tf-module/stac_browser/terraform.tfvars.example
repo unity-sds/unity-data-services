@@ -1,0 +1,5 @@
+prefix = "uds-sbx"
+ami_id = "ami-xxx"
+cumulus_lambda_vpc_id = "vpc-xxx"
+image_tag="9.6.0"
+subnet_ids = ["subnet-private-subnet-id-1", "subnet-private-subnet-id-2"]
