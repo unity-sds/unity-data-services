@@ -5,32 +5,9 @@ resource "aws_security_group" "ds_alb_security_group" {
   tags = var.tags
 }
 
-resource "aws_vpc_security_group_ingress_rule" "ds_alb_security_group_443_128" {
-  security_group_id = aws_security_group.ds_alb_security_group.id
-  cidr_ipv4         = "128.149.0.0/16"
-  from_port         = 8005
-  ip_protocol       = "tcp"
-  to_port           = 8005
-}
 resource "aws_vpc_security_group_ingress_rule" "ds_alb_security_group_443_10" {
   security_group_id = aws_security_group.ds_alb_security_group.id
   cidr_ipv4         = "10.52.0.0/16"
-  from_port         = 8005
-  ip_protocol       = "tcp"
-  to_port           = 8005
-}
-
-resource "aws_vpc_security_group_ingress_rule" "ds_alb_security_group_443_10_0" {
-  security_group_id = aws_security_group.ds_alb_security_group.id
-  cidr_ipv4         = "10.0.0.0/16"
-  from_port         = 8005
-  ip_protocol       = "tcp"
-  to_port           = 8005
-}
-
-resource "aws_vpc_security_group_ingress_rule" "ds_alb_security_group_443_137" {
-  security_group_id = aws_security_group.ds_alb_security_group.id
-  cidr_ipv4         = "137.79.0.0/16"
   from_port         = 8005
   ip_protocol       = "tcp"
   to_port           = 8005

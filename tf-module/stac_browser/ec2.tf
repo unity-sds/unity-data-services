@@ -15,39 +15,6 @@ resource "aws_iam_role" "ds_stac_browser_profile_role" {
   })
 }
 
-# IAM Policy for accessing S3 and SNS in other accounts
-resource "aws_iam_policy" "ds_stac_browser_role_profile_role_policy" {
-  name        = "${var.prefix}-ds_stac_browser_role_profile_role_policy"
-  description = ""
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Action = [
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:GetAuthorizationToken",
-          "ecr:BatchGetImage",
-          "ecr:InitiateLayerUpload",
-          "ecr:UploadLayerPart",
-          "ecr:CompleteLayerUpload",
-          "ecr:PutImage",
-          "ec2:TerminateInstances"
-        ],
-        "Resource": "*"
-      },
-
-    ]
-  })
-}
-
-# Attach policy to the role
-resource "aws_iam_role_policy_attachment" "ec2_docker_builder_profile_role_policy_attachment" {
-  role       = aws_iam_role.ds_stac_browser_profile_role.name
-  policy_arn = aws_iam_policy.ds_stac_browser_role_profile_role_policy.arn
-}
-
 
 resource "aws_iam_role_policy_attachment" "ds_stac_browser_profile_role_policy_attachment_ssm" {
   role       = aws_iam_role.ds_stac_browser_profile_role.name
@@ -73,50 +40,9 @@ resource "aws_security_group" "ds_stac_browser_security_group" {
   tags = var.tags
 }
 
-
-resource "aws_vpc_security_group_ingress_rule" "ds_stac_browser_security_group22_128" {
-  security_group_id = aws_security_group.ds_stac_browser_security_group.id
-  cidr_ipv4         = "128.149.0.0/16"
-  from_port         = 22
-  ip_protocol       = "tcp"
-  to_port           = 22
-}
-
-resource "aws_vpc_security_group_ingress_rule" "ds_stac_browser_security_group_22_137" {
-  security_group_id = aws_security_group.ds_stac_browser_security_group.id
-  cidr_ipv4         = "137.79.0.0/16"
-  from_port         = 22
-  ip_protocol       = "tcp"
-  to_port           = 22
-}
-
-resource "aws_vpc_security_group_ingress_rule" "ds_stac_browser_security_group_443_128" {
-  security_group_id = aws_security_group.ds_stac_browser_security_group.id
-  cidr_ipv4         = "128.149.0.0/16"
-  from_port         = 8005
-  ip_protocol       = "tcp"
-  to_port           = 8005
-}
-
 resource "aws_vpc_security_group_ingress_rule" "ds_stac_browser_security_group_443_10" {
   security_group_id = aws_security_group.ds_stac_browser_security_group.id
   cidr_ipv4         = "10.52.0.0/16"
-  from_port         = 8005
-  ip_protocol       = "tcp"
-  to_port           = 8005
-}
-
-resource "aws_vpc_security_group_ingress_rule" "ds_stac_browser_security_group_443_10_0" {
-  security_group_id = aws_security_group.ds_stac_browser_security_group.id
-  cidr_ipv4         = "10.0.0.0/16"
-  from_port         = 8005
-  ip_protocol       = "tcp"
-  to_port           = 8005
-}
-
-resource "aws_vpc_security_group_ingress_rule" "ds_stac_browser_security_group_443_137" {
-  security_group_id = aws_security_group.ds_stac_browser_security_group.id
-  cidr_ipv4         = "137.79.0.0/16"
   from_port         = 8005
   ip_protocol       = "tcp"
   to_port           = 8005
