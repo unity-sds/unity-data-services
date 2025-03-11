@@ -7,7 +7,7 @@ resource "aws_security_group" "ds_alb_security_group" {
 
 resource "aws_vpc_security_group_ingress_rule" "ds_alb_security_group_443_10" {
   security_group_id = aws_security_group.ds_alb_security_group.id
-  cidr_ipv4         = "10.52.0.0/16"
+  cidr_ipv4         = var.shared_services_ec2_subnet_cidr
   from_port         = 8005
   ip_protocol       = "tcp"
   to_port           = 8005

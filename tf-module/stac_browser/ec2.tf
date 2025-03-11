@@ -42,7 +42,7 @@ resource "aws_security_group" "ds_stac_browser_security_group" {
 
 resource "aws_vpc_security_group_ingress_rule" "ds_stac_browser_security_group_443_10" {
   security_group_id = aws_security_group.ds_stac_browser_security_group.id
-  cidr_ipv4         = "10.52.0.0/16"
+  cidr_ipv4         = var.alb_subnet_cidr
   from_port         = 8005
   ip_protocol       = "tcp"
   to_port           = 8005

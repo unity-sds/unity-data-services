@@ -44,3 +44,13 @@ variable "image_tag" {
   description = "The tag of the image to pull from GitHub"
   type        = string
 }
+
+variable "shared_services_ec2_subnet_cidr" {
+  type = string
+  description = "CIDR of the Subnet where Shared Services EC2 resides. This is to allow connections from Shared services to ALB. Example: 10.52.0.0/16"
+}
+
+variable "alb_subnet_cidr" {
+  type        = string
+  description = "CIDR of the Subnet where ALB resides. This is to allow connections from ALB to Stac Browser EC2. Example: 10.52.0.0/16"
+}
