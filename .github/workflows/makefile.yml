@@ -147,3 +147,52 @@ jobs:
         asset_name: "${{ env.TERRAFORM_MARKETPLACE_ARTIFACT_FILE }}"
         asset_content_type: application/zip
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    - name: Upload PreRelease Asset TERRAFORM_ECR_ARTIFACT_FILE
+      id: upload-prerelease-asset-TERRAFORM_ECR_ARTIFACT_FILE
+#      if: ${{ contains(github.ref, 'main') }}
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_prerelease.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+        asset_path: "${{ env.TERRAFORM_ECR_ARTIFACT_FILE }}"
+        asset_name: "${{ env.TERRAFORM_ECR_ARTIFACT_FILE }}"
+        asset_content_type: application/zip
+    - name: Upload Release Asset TERRAFORM_ECR_ARTIFACT_FILE
+      id: upload-release-asset-TERRAFORM_ECR_ARTIFACT_FILE
+      if: ${{ contains(github.ref, 'master') }}
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+        asset_path: "${{ env.TERRAFORM_ECR_ARTIFACT_FILE }}"
+        asset_name: "${{ env.TERRAFORM_ECR_ARTIFACT_FILE }}"
+        asset_content_type: application/zip
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    - name: Upload PreRelease Asset TERRAFORM_STAC_BR_ARTIFACT_FILE
+      id: upload-prerelease-asset-TERRAFORM_STAC_BR_ARTIFACT_FILE
+#      if: ${{ contains(github.ref, 'main') }}
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_prerelease.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+        asset_path: "${{ env.TERRAFORM_STAC_BR_ARTIFACT_FILE }}"
+        asset_name: "${{ env.TERRAFORM_STAC_BR_ARTIFACT_FILE }}"
+        asset_content_type: application/zip
+    - name: Upload Release Asset TERRAFORM_STAC_BR_ARTIFACT_FILE
+      id: upload-release-asset-TERRAFORM_STAC_BR_ARTIFACT_FILE
+      if: ${{ contains(github.ref, 'master') }}
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+        asset_path: "${{ env.TERRAFORM_STAC_BR_ARTIFACT_FILE }}"
+        asset_name: "${{ env.TERRAFORM_STAC_BR_ARTIFACT_FILE }}"
+        asset_content_type: application/zip
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
