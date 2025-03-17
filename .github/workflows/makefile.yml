@@ -71,8 +71,9 @@ jobs:
           ${{ github.event.head_commit.message }}
         draft: false
         prerelease: true
-    - name: Upload PreRelease Asset 1
-      id: upload-prerelease-asset-1
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    - name: Upload PreRelease Asset ARTIFACT_FILE
+      id: upload-prerelease-asset-ARTIFACT_FILE
 #      if: ${{ contains(github.ref, 'main') }}
       uses: actions/upload-release-asset@v1
       env:
@@ -82,8 +83,21 @@ jobs:
         asset_path: "${{ env.ARTIFACT_FILE }}"
         asset_name: "${{ env.ARTIFACT_FILE }}"
         asset_content_type: application/zip
-    - name: Upload PreRelease Asset 2
-      id: upload-prerelease-asset-2
+    - name: Upload Release Asset ARTIFACT_FILE
+      id: upload-release-asset-ARTIFACT_FILE
+      if: ${{ contains(github.ref, 'master') }}
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+        asset_path: "${{ env.ARTIFACT_FILE }}"
+        asset_name: "${{ env.ARTIFACT_FILE }}"
+        asset_content_type: application/zip
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    - name: Upload PreRelease Asset TERRAFORM_ARTIFACT_FILE
+      id: upload-prerelease-asset-TERRAFORM_ARTIFACT_FILE
 #      if: ${{ contains(github.ref, 'main') }}
       uses: actions/upload-release-asset@v1
       env:
@@ -93,6 +107,19 @@ jobs:
         asset_path: "${{ env.TERRAFORM_ARTIFACT_FILE }}"
         asset_name: "${{ env.TERRAFORM_ARTIFACT_FILE }}"
         asset_content_type: application/zip
+    - name: Upload Release Asset TERRAFORM_ARTIFACT_FILE
+      id: upload-release-asset-TERRAFORM_ARTIFACT_FILE
+      if: ${{ contains(github.ref, 'master') }}
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+        asset_path: "${{ env.TERRAFORM_ARTIFACT_FILE }}"
+        asset_name: "${{ env.TERRAFORM_ARTIFACT_FILE }}"
+        asset_content_type: application/zip
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     - name: Upload PreRelease Asset TERRAFORM_MARKETPLACE_ARTIFACT_FILE
       id: upload-prerelease-asset-TERRAFORM_MARKETPLACE_ARTIFACT_FILE
 #      if: ${{ contains(github.ref, 'main') }}
@@ -103,28 +130,6 @@ jobs:
         upload_url: ${{ steps.create_prerelease.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
         asset_path: "${{ env.TERRAFORM_MARKETPLACE_ARTIFACT_FILE }}"
         asset_name: "${{ env.TERRAFORM_MARKETPLACE_ARTIFACT_FILE }}"
-        asset_content_type: application/zip
-    - name: Upload Release Asset 1
-      id: upload-release-asset-1
-      if: ${{ contains(github.ref, 'master') }}
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-        asset_path: "${{ env.ARTIFACT_FILE }}"
-        asset_name: "${{ env.ARTIFACT_FILE }}"
-        asset_content_type: application/zip
-    - name: Upload Release Asset 2
-      id: upload-release-asset-2
-      if: ${{ contains(github.ref, 'master') }}
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-        asset_path: "${{ env.TERRAFORM_ARTIFACT_FILE }}"
-        asset_name: "${{ env.TERRAFORM_ARTIFACT_FILE }}"
         asset_content_type: application/zip
     - name: Upload Release Asset TERRAFORM_MARKETPLACE_ARTIFACT_FILE
       id: upload-release-asset-TERRAFORM_MARKETPLACE_ARTIFACT_FILE
@@ -137,3 +142,4 @@ jobs:
         asset_path: "${{ env.TERRAFORM_MARKETPLACE_ARTIFACT_FILE }}"
         asset_name: "${{ env.TERRAFORM_MARKETPLACE_ARTIFACT_FILE }}"
         asset_content_type: application/zip
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
