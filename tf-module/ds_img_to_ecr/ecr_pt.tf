@@ -1,6 +1,11 @@
+resource "random_string" "suffix" {
+  length  = 6
+  special = false
+}
+
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret
 resource "aws_secretsmanager_secret" "ds_upstream_image" {
-  name = replace("ecr-pullthroughcache/${var.prefix}-ds_upstream_image", "_", "-")
+  name = replace("ecr-pullthroughcache/${var.prefix}-ds_upstream_image-${random_string.suffix.result}", "_", "-")
 }
 
 # https://registry.terraform.io/providers/-/aws/latest/docs/resources/ecr_pull_through_cache_rule
