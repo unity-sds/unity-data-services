@@ -38,10 +38,14 @@ jobs:
         echo "ARTIFACT_FILE=$artifact_file_name" >> $GITHUB_ENV
         echo "TERRAFORM_ARTIFACT_FILE=$terraform_artifact_file_name" >> $GITHUB_ENV
         echo "TERRAFORM_MARKETPLACE_ARTIFACT_FILE=$terraform_marketplace_artifact_file_name" >> $GITHUB_ENV
+        echo "TERRAFORM_ECR_ARTIFACT_FILE=$terraform_ecr_artifact_file_name" >> $GITHUB_ENV
+        echo "TERRAFORM_STAC_BR_ARTIFACT_FILE=$terraform_stac_br_artifact_file_name" >> $GITHUB_ENV
         
         cp "${GITHUB_WORKSPACE}/cumulus_lambda_functions_deployment.zip" "$artifact_file_name"
         cp "${GITHUB_WORKSPACE}/terraform_cumulus_lambda_functions_deployment.zip" "$terraform_artifact_file_name"
         cp "${GITHUB_WORKSPACE}/terraform_marketplace_deployment.zip" "$terraform_marketplace_artifact_file_name"
+        cp "${GITHUB_WORKSPACE}/terraform_ecr_deployment.zip" "$terraform_ecr_artifact_file_name"
+        cp "${GITHUB_WORKSPACE}/terraform_stac_br_deployment.zip" "$terraform_stac_br_artifact_file_name"
     - name: Create Release
       id: create_release
       if: ${{ contains(github.ref, 'master') }}
