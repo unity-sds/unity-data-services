@@ -4,27 +4,7 @@ exec > /var/log/user-data-debug.log 2>&1
 
 echo "User data script started"
 
-# Wait for snapd service to be active
-while ! systemctl is-active --quiet snapd; do
-  echo "Waiting for snapd to start..."
-  sleep 5
-done
 
-echo "Snapd is now running"
-
-whoami >> /var/log/user-data-whoami.log
-snap refresh snapd
-echo "snap refreshed"
-snap install docker;
-echo "docker installed";
-
-# Wait for Snapd to initialize Docker (give it a few seconds)
-while ! systemctl is-active --quiet snap.docker.dockerd.service; do
-  echo "Waiting for Docker service to start..."
-  sleep 5
-done
-sleep 5
-echo "Docker is now running"
 
 docker pull --platform=linux/amd64 ${github_image_url}:${image_tag} ;
 echo "docker pulled";
