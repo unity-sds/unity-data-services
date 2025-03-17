@@ -1,0 +1,40 @@
+#!/bin/bash
+set -ex
+exec > /var/log/user-data-debug.log 2>&1
+
+echo "User data script started"
+
+# Wait for snapd service to be active
+while ! systemctl is-active --quiet snapd; do
+  echo "Waiting for snapd to start..."
+  sleep 5
+done
+
+echo "Snapd is now running"
+
+whoami >> /var/log/user-data-whoami.log
+snap refresh snapd
+echo "snap refreshed"
+snap install docker;
+echo "docker installed";
+
+# Wait for Snapd to initialize Docker (give it a few seconds)
+while ! systemctl is-active --quiet snap.docker.dockerd.service; do
+  echo "Waiting for Docker service to start..."
+  sleep 5
+done
+sleep 5
+echo "Docker is now running"
+
+docker pull --platform=linux/amd64 ${github_image_url}:${image_tag} ;
+echo "docker pulled";
+
+echo '''#!/bin/bash
+uvicorn web_service_stac_browser:app --host 0.0.0.0 --port 8005 --log-level info --reload''' > /root/ss.sh
+echo 'done scripting' >> /var/log/user-data-whoami.log;
+chmod 755 /root/ss.sh ;
+echo 'done script permission' >> /var/log/user-data-whoami.log;
+
+echo "script wrote";
+
+docker run -d --name my_service --restart always   --tty   --workdir /usr/src/app/unity/cumulus_lambda_functions/uds_api -v "/root/ss.sh":"/usr/src/app/unity/cumulus_lambda_functions/uds_api/ss.sh":z  -p 8005:8005   -e AWS_REGION='us-west-2'   -e PYTHONPATH='$PYTHONPATH:/usr/src/app/unity'   -e LOG_LEVEL='10'   -e DAPA_API_URL_BASE='https://d3vc8w9zcq658.cloudfront.net/am-uds-dapa'   -e DAPA_API_PREIFX_KEY='data' -e STATIC_PARENT_DIR='/usr/src/app/unity/cumulus_lambda_functions/uds_api/'     --entrypoint /usr/src/app/unity/cumulus_lambda_functions/uds_api/ss.sh   ${github_image_url}:${image_tag}
