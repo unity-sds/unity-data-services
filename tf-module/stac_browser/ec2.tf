@@ -71,7 +71,7 @@ resource "aws_instance" "ds_stac_browser" {
     github_image_url: var.github_image_url,
     image_tag: var.image_tag,
   })
-  tags = {
+  tags = merge(var.tags, {
     Name = "${var.prefix}-ds_stac_browser"
-  }
+  })
 }
