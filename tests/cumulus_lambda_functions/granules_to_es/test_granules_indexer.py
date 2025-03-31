@@ -201,3 +201,27 @@ class TestGranulesIndexer(TestCase):
         print(result)
         self.assertEqual(result['bbox'], {'type': 'envelope', 'coordinates': [[0.0, 0.0], [10.0, -10.0]]}, f'wrong bbox')
         return
+
+    def test_wkt_to_es(self):
+        result = GranulesDbIndex.wkt_to_es('POINT (30 10)')
+        print(result)
+        result = GranulesDbIndex.wkt_to_es('LINESTRING (30 10, 10 30, 40 40)')
+        print(result)
+        result = GranulesDbIndex.wkt_to_es('POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')
+        print(result)
+        result = GranulesDbIndex.wkt_to_es('POLYGON ((35 10, 45 45, 15 40, 10 20, 35 10),(20 30, 35 35, 30 20, 20 30))')
+        print(result)
+        result = GranulesDbIndex.wkt_to_es('MULTIPOINT ((10 40), (40 30), (20 20), (30 10))')
+        print(result)
+        result = GranulesDbIndex.wkt_to_es('MULTIPOINT (10 40, 40 30, 20 20, 30 10)')
+        print(result)
+        result = GranulesDbIndex.wkt_to_es('MULTILINESTRING ((10 10, 20 20, 10 40),(40 40, 30 30, 40 20, 30 10))')
+        print(result)
+        result = GranulesDbIndex.wkt_to_es('MULTIPOLYGON (((30 20, 45 40, 10 40, 30 20)),((15 5, 40 10, 10 20, 5 10, 15 5)))')
+        print(result)
+        result = GranulesDbIndex.wkt_to_es('MULTIPOLYGON (((40 40, 20 45, 45 30, 40 40)),((20 35, 10 30, 10 10, 30 5, 45 20, 20 35),(30 20, 20 15, 20 25, 30 20)))')
+        print(result)
+        result = GranulesDbIndex.wkt_to_es('GEOMETRYCOLLECTION (POINT (40 10),LINESTRING (10 10, 20 20, 10 40),POLYGON ((40 40, 20 45, 45 30, 40 40)))')
+        print(result)
+
+        return

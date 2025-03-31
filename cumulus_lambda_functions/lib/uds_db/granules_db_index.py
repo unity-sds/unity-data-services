@@ -1,6 +1,8 @@
 import os
 from copy import deepcopy
 
+from shapely import wkt
+
 from cumulus_lambda_functions.granules_to_es.granules_index_mapping import GranulesIndexMapping
 from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 
@@ -33,6 +35,57 @@ class GranulesDbIndex:
         self.__default_fields = GranulesIndexMapping.stac_mappings
         self.__ss_fields = GranulesIndexMapping.percolator_mappings
 
+    @staticmethod
+    def wkt_to_es(wkt_string):
+        geom = wkt.loads(wkt_string)
+
+        # Convert to Elasticsearch compatible format
+        if geom.geom_type == "Point":
+            es_format = {
+                "type": "Point",
+                "coordinates": [geom.x, geom.y]
+            }
+
+        elif geom.geom_type == "LineString":
+            es_format = {
+                "type": "LineString",
+                "coordinates": list(geom.coords)
+            }
+
+        elif geom.geom_type == "Polygon":
+            es_format = {
+                "type": "Polygon",
+                "coordinates": [list(geom.exterior.coords)]
+            }
+
+        elif geom.geom_type == "MultiPoint":
+            es_format = {
+                "type": "MultiPoint",
+                "coordinates": [[p.x, p.y] for p in geom.geoms]
+            }
+
+        elif geom.geom_type == "MultiLineString":
+            es_format = {
+                "type": "MultiLineString",
+                "coordinates": [list(line.coords) for line in geom.geoms]
+            }
+
+        elif geom.geom_type == "MultiPolygon":
+            es_format = {
+                "type": "MultiPolygon",
+                "coordinates": [[list(polygon.exterior.coords)] for polygon in geom.geoms]
+            }
+
+        elif geom.geom_type == "GeometryCollection":
+            es_format = {
+                "type": "GeometryCollection",
+                "geometries": [GranulesDbIndex.wkt_to_es(geom_wkt.wkt) for geom_wkt in geom.geoms]
+            }
+
+        else:
+            raise ValueError(f"Unsupported geometry type: {geom.geom_type}")
+
+        return es_format
     @staticmethod
     def to_es_bbox(bbox_array):
         # lon = x, lat = y

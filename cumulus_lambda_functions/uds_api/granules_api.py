@@ -74,6 +74,7 @@ async def get_granules_dapa(request: Request, collection_id: str=Path(descriptio
                             limit: Union[int, None] = Query(10, description='Number of items in each page.'),
                             offset: Union[str, None] = Query(None, description='Pagination Item from current page to get the next page'),
                             datetime: Union[str, None] = Query(None, description='Example: 2018-02-12T23:20:50Z'),
+                            geom: Union[str, None] = Query(None, description='https://docs.ogc.org/per/20-025r1.html#_geom'),
                             filter: Union[str, None] = Query(None, description="OGC CQL filters: https://portal.ogc.org/files/96288#rc_cql-text -- Example: id in (g1,g2,g3) and tags::core = 'level-3' and (time1 < 34 or time1 > 14)"),
                             bbox: Union[str, None]=Query(None, description='Bounding box in minx,miny,maxx,maxy -- Example: bbox=12.3,0.3,14.4,2.3'),
                             sortby: Union[str, None]=Query(None, description='Sort the results based on the comma separated parameters, each sorting key can be started with + / - for ascending / descending order. missing operator is assumed "+". Example: sortby=+id,-properties.created'),
