@@ -49,15 +49,20 @@ class GranulesDbIndex:
         elif geom.geom_type == "LineString":
             es_format = {
                 "type": "LineString",
-                "coordinates": list(geom.coords)
+                "coordinates": [list(k) for k in geom.coords]
             }
 
         elif geom.geom_type == "Polygon":
+            if geom.boundary.geom_type == 'LineString':
+                coordinates = [[list(k) for k in geom.boundary.coords]]
+            elif geom.boundary.geom_type == 'MultiLineString':
+                coordinates = [[list(k) for k in line.coords] for line in geom.boundary.geoms]
+            else:
+                raise ValueError(f'unknown Polygon type: {geom.geom_type}. input: {wkt_string} ')
             es_format = {
                 "type": "Polygon",
-                "coordinates": [list(geom.exterior.coords)]
+                "coordinates": coordinates
             }
-
         elif geom.geom_type == "MultiPoint":
             es_format = {
                 "type": "MultiPoint",
@@ -67,13 +72,13 @@ class GranulesDbIndex:
         elif geom.geom_type == "MultiLineString":
             es_format = {
                 "type": "MultiLineString",
-                "coordinates": [list(line.coords) for line in geom.geoms]
+                "coordinates": [[list(k) for k in line.coords] for line in geom.geoms]
             }
 
         elif geom.geom_type == "MultiPolygon":
             es_format = {
                 "type": "MultiPolygon",
-                "coordinates": [[list(polygon.exterior.coords)] for polygon in geom.geoms]
+                "coordinates": [GranulesDbIndex.wkt_to_es(geom_wkt.wkt)['coordinates'] for geom_wkt in geom.geoms]
             }
 
         elif geom.geom_type == "GeometryCollection":
