@@ -95,7 +95,7 @@ class GranulesIndexer:
             self.__cumulus_record['custom_metadata'] = stac_input_meta.custom_properties
         else:
             LOGGER.warning(f'unable to find STAC JSON file in {potential_files}')
-        stac_item = ItemTransformer().to_stac(self.__cumulus_record)
+        stac_item = ItemTransformer().to_stac(self.__cumulus_record, stac_input_meta.stac_item)
         if stac_input_meta is not None and stac_input_meta.bbox is not None:
             stac_item['bbox'] = stac_input_meta.bbox
         if 'bbox' in stac_item:

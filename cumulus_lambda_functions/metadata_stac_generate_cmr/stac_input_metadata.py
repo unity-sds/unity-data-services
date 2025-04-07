@@ -18,6 +18,20 @@ class StacInputMetadata:
         self.__insert_dt = None
         self.__custom_properties = {}
         self.__bbox = None
+        self.__stac_item = None
+
+    @property
+    def stac_item(self):
+        return self.__stac_item
+
+    @stac_item.setter
+    def stac_item(self, val):
+        """
+        :param val:
+        :return: None
+        """
+        self.__stac_item = val
+        return
 
     @property
     def bbox(self):
@@ -158,4 +172,5 @@ class StacInputMetadata:
         granule_metadata_props.prod_dt = TimeUtils().parse_from_unix(stac_item.datetime.timestamp()).get_datetime_str(fmt='%Y-%m-%dT%H:%M:%S.%fZ')
         granule_metadata_props.beginning_dt = stac_item.properties['start_datetime'] if stac_item.properties['start_datetime'] else TimeUtils().parse_from_unix(0).get_datetime_str()
         granule_metadata_props.ending_dt = stac_item.properties['end_datetime'] if stac_item.properties['end_datetime'] else TimeUtils().parse_from_unix(0).get_datetime_str()
+        self.stac_item = stac_item
         return granule_metadata_props

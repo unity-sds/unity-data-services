@@ -20,7 +20,7 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 
 
 class GranulesDapaQueryEs:
-    def __init__(self, collection_id, limit, offset, input_datetime, filter_input, pagination_link_obj: PaginationLinksGenerator, base_url, bbox=None, sort_by=None):
+    def __init__(self, collection_id, limit, offset, input_datetime, filter_input, pagination_link_obj: PaginationLinksGenerator, base_url, bbox=None, sort_by=None, geometry=None):
         self.__collection_cnm_lambda_name = os.environ.get('COLLECTION_CREATION_LAMBDA_NAME', '').strip()
         self.__pagination_link_obj = pagination_link_obj
         self.__input_datetime = input_datetime
@@ -31,6 +31,7 @@ class GranulesDapaQueryEs:
         self.__filter_input = filter_input
         self.__granules_index = GranulesDbIndex()
         self.__bbox = bbox
+        self.__geometry = geometry
         self.__sort_by = sort_by
 
     def get_sorting_arguments(self):
@@ -71,6 +72,15 @@ class GranulesDapaQueryEs:
                 "geo_shape": {
                     "bbox": {
                         "shape": self.__granules_index.to_es_bbox(self.__bbox),
+                        "relation": "intersects"
+                    }
+                }
+            })
+        if self.__geometry is not None:
+            query_terms.append({
+                "geo_shape": {
+                    "geometry": {
+                        "shape": self.__granules_index.wkt_to_es(self.__geometry),
                         "relation": "intersects"
                     }
                 }
