@@ -101,7 +101,7 @@ async def get_granules_dapa(request: Request, collection_id: str=Path(descriptio
         pagination_links = PaginationLinksGenerator(request)
         api_base_prefix = FastApiUtils.get_api_base_prefix()
         bbox_array = [float(k) for k in bbox.split(',')] if bbox is not None else None
-        granules_dapa_query = GranulesDapaQueryEs(collection_id, limit, offset, datetime, filter, pagination_links, f'{pagination_links.base_url}/{api_base_prefix}', bbox_array, sortby)
+        granules_dapa_query = GranulesDapaQueryEs(collection_id, limit, offset, datetime, filter, pagination_links, f'{pagination_links.base_url}/{api_base_prefix}', bbox_array, sortby, geom)
         granules_result = granules_dapa_query.start()
     except Exception as e:
         LOGGER.exception('failed during get_granules_dapa')
