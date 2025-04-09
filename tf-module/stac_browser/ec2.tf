@@ -70,6 +70,7 @@ resource "aws_instance" "ds_stac_browser" {
   user_data = templatefile("${path.module}/ec2_start.txt", {
     github_image_url: var.github_image_url,
     image_tag: var.image_tag,
+    dapa_api_url_base_val: var.dapa_api_url_base_val
   })
   tags = merge(var.tags, {
     Name = "${var.prefix}-ds_stac_browser"

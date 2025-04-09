@@ -5,3 +5,4 @@ image_tag="9.6.0"
 subnet_ids = ["subnet-private-subnet-id-1", "subnet-private-subnet-id-2"]
 shared_services_ec2_subnet_cidr = "10.52.0.0/16"
 alb_subnet_cidr = "10.52.0.0/16"
+dapa_api_url_base_val = "https://d3vc8w9zcq658.cloudfront.net/am-uds-dapa"

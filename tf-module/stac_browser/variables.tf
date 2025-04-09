@@ -54,3 +54,8 @@ variable "alb_subnet_cidr" {
   type        = string
   description = "CIDR of the Subnet where ALB resides. This is to allow connections from ALB to Stac Browser EC2. Example: 10.52.0.0/16"
 }
+
+variable "dapa_api_url_base_val" {
+  type = string
+  description = "Base URL to hit Stac API to retrieve catalog and so on.. It must start with https and must include the prefix such as `/am-uds-dapa` example: https://d3vc8w9zcq658.cloudfront.net/am-uds-dapa."
+}
