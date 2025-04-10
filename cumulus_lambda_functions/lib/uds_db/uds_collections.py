@@ -107,10 +107,7 @@ class UdsCollections:
             'query': {
                 'bool': {
                     'should': [
-                        {'regexp': {DBConstants.collection_id: {
-                            'value': k,
-                            'case_insensitive': True
-                        }}} for k in collection_regex
+                        {'regexp': {DBConstants.collection_id: k}} for k in collection_regex
                     ]
                 }
             },
