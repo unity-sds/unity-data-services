@@ -54,9 +54,11 @@ resource "aws_api_gateway_deployment" "shared_services_api_gateway_deployment" {
 
     aws_api_gateway_integration.misc_catalog_list_lambda_integration,
     aws_api_gateway_integration.misc_stac_entry_lambda_integration,
+    aws_api_gateway_integration.misc_version_lambda_integration,
 
     aws_api_gateway_integration.stac_browser_lambda_integration,
     aws_api_gateway_integration.stac_browser_proxy_lambda_integration,
+
 
     module.uds_all_cors_method.options_integration_object,
     module.uds_all_any_to_lambda_module.lambda_integration_object,
