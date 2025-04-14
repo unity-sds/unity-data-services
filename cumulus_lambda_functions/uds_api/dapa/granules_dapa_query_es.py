@@ -172,7 +172,8 @@ class GranulesDapaQueryEs:
             'size': 1,
             'sort': [{'id': {'order': 'asc'}}],
             'query': {'bool': {'must': [{
-                'term': {'id': granule_id}
+                'term': {'id': granule_id}}, {
+                'term': {'collection': self.__collection_id},
             }]}}
         }
         LOGGER.debug(f'granules_query_dsl: {granules_query_dsl}')
