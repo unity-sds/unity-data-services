@@ -137,7 +137,7 @@ async def get_single_granule_dapa(request: Request, collection_id: str, granule_
         LOGGER.exception('failed during get_granules_dapa')
         raise HTTPException(status_code=500, detail=str(e))
     if granules_result is None:
-        raise HTTPException(status_code=200, detail={'message': f'no granule with id: {granule_id} in collection: {collection_id}'})
+        raise HTTPException(status_code=404, detail={'message': f'no granule with id: {granule_id} in collection: {collection_id}'})
     return granules_result
 
 @router.delete("/{collection_id}/items/{granule_id}")
