@@ -31,6 +31,7 @@ async def catalog_list(request: Request, response: Response):
     :param response:
     :return:
     """
+    print('inside catalog_list')
     base_url = os.environ.get(WebServiceConstants.BASE_URL, f'{request.url.scheme}://{request.url.netloc}')
     base_url = base_url[:-1] if base_url.endswith('/') else base_url
     base_url = base_url if base_url.startswith('http') else f'https://{base_url}'
@@ -49,6 +50,7 @@ async def catalog_list(request: Request, response: Response):
         "accessInfo": None
     }]
     return stac_browser_expecting_result
+
 
 @router.get(f'/stac_entry')
 @router.get(f'/stac_entry/')
@@ -79,3 +81,23 @@ async def stac_entry(request: Request, response: Response):
         redirect_response.set_cookie(key="unity_token", value=request_headers['oidc_access_token'], httponly=False, secure=False, samesite='strict')  # missing , domain=base_url
         redirect_response.set_cookie(key="test1", value=f"{time()}", httponly=False, secure=False, samesite='strict')  # missing , domain=base_url
     return redirect_response
+
+
+@router.get(f'/version')
+@router.get(f'/version/')
+async def ds_version(request: Request, response: Response):
+    print('inside ds_version')
+
+    """
+    This is to list all catalogs for STAC Browser.
+    This doesn't require any authorization token.
+    :param request:
+    :param response:
+    :return:
+    """
+    version_details = {
+        'temp': os.path.dirname(__file__),
+        'version': 'TODO',
+        'built': 'TODO'
+    }
+    return version_details

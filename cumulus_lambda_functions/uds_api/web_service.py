@@ -64,7 +64,7 @@ async def get_open_api(request: Request):
         default_open_api_doc['paths'].pop(k)
     return app.openapi()
 
-
+print('hello about to call mangum')
 # to make it work with Amazon Lambda, we create a handler object
 handler = Mangum(app=app)
 
