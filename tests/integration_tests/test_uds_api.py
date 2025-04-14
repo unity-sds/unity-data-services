@@ -233,6 +233,25 @@ class TestCumulusCreateCollectionDapa(TestCase):
 
         return
 
+
+    def test_single_granule_get_temp(self):
+        # post_url = f'{self.uds_url}collections/urn:nasa:unity:uds_local_test:DEV1:CHRP_16_DAY_REBIN___10/items/urn:nasa:unity:uds_local_test:DEV1:CHRP_16_DAY_REBIN___10:SNDR.SS1330.CHIRP.20230101T0000.m06.g001.L1_J1.std.v02_48.G.200101070318_REBIN'
+        post_url = f'{self.uds_url}collections/URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-02___001/items/URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file10'
+        headers = {
+            'Authorization': f'Bearer {self.bearer_token}',
+        }
+        print(post_url)
+        query_result = requests.get(url=post_url, headers=headers,)
+        self.assertEqual(query_result.status_code, 404, f'wrong status code. {query_result.text}')
+        response_json = json.loads(query_result.text)
+        print(json.dumps(response_json))
+
+        post_url = f'{self.uds_url}collections/URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001/items/URN:NASA:UNITY:UDS_LOCAL_TEST_3:DEV:DDD-01___001:test_file10'
+        query_result = requests.get(url=post_url, headers=headers,)
+        self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
+        print(json.dumps(response_json))
+        return
+
     def test_create_new_collection(self):
         post_url = f'{self.uds_url}collections/'  # MCP Dev
         headers = {
