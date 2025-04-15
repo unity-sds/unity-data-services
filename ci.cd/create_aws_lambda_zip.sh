@@ -2,6 +2,20 @@
 
 apt-get update -y && apt-get install zip -y
 
+# github.job
+github_branch=${GITHUB_REF##*/}
+software_version_trailing=""
+main_branch="main"
+if [ "$github_branch" = "$main_branch" ];
+then
+  software_version=""
+else
+  software_version_trailing="-${github_branch}-${GITHUB_RUN_ID}"
+fi
+software_version=`python3 ${project_root_dir}/setup.py --version`
+echo "software_version=${software_version}${software_version_trailing}" >> ${GITHUB_ENV}
+cat ${GITHUB_ENV}
+
 ZIP_NAME='cumulus_lambda_functions_deployment.zip'
 TERRAFORM_ZIP_NAME='terraform_cumulus_lambda_functions_deployment.zip'
 TERRAFORM_MARKETPLACE_ZIP_NAME='terraform_marketplace_deployment.zip'
@@ -45,16 +59,4 @@ zip -9 ${terraform_ecr_zip_file} * **/*
 cd $project_root_dir/tf-module/stac_browser
 zip -9 ${terraform_stac_br_zip_file} * **/*
 
-# github.job
-github_branch=${GITHUB_REF##*/}
-software_version_trailing=""
-main_branch="main"
-if [ "$github_branch" = "$main_branch" ];
-then
-  software_version=""
-else
-  software_version_trailing="-${github_branch}-${GITHUB_RUN_ID}"
-fi
-software_version=`python3 ${project_root_dir}/setup.py --version`
-echo "software_version=${software_version}${software_version_trailing}" >> ${GITHUB_ENV}
-cat ${GITHUB_ENV}
+
