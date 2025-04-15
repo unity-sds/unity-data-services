@@ -14,7 +14,6 @@ else
 fi
 software_version=`python3 ${project_root_dir}/setup.py --version`
 echo "software_version=${software_version}${software_version_trailing}" >> ${GITHUB_ENV}
-cat ${GITHUB_ENV}
 
 ZIP_NAME='cumulus_lambda_functions_deployment.zip'
 TERRAFORM_ZIP_NAME='terraform_cumulus_lambda_functions_deployment.zip'
@@ -60,3 +59,4 @@ cd $project_root_dir/tf-module/stac_browser
 zip -9 ${terraform_stac_br_zip_file} * **/*
 
 
+cat ${GITHUB_ENV}
