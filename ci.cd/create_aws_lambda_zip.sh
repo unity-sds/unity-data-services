@@ -12,8 +12,6 @@ then
 else
   software_version_trailing="-${github_branch}-${GITHUB_RUN_ID}"
 fi
-software_version=`python3 ${project_root_dir}/setup.py --version`
-echo "software_version=${software_version}${software_version_trailing}" >> ${GITHUB_ENV}
 
 ZIP_NAME='cumulus_lambda_functions_deployment.zip'
 TERRAFORM_ZIP_NAME='terraform_cumulus_lambda_functions_deployment.zip'
@@ -22,6 +20,10 @@ TERRAFORM_ECR_ZIP_NAME='terraform_ecr_deployment.zip'
 TERRAFORM_STAC_BR_ZIP_NAME='terraform_stac_br_deployment.zip'
 
 project_root_dir=${GITHUB_WORKSPACE}
+
+software_version=`python3 ${project_root_dir}/setup.py --version`
+echo "software_version=${software_version}${software_version_trailing}" >> ${GITHUB_ENV}
+
 zip_file="${project_root_dir}/$ZIP_NAME" ; # save the result file in current working directory
 terraform_zip_file="${project_root_dir}/$TERRAFORM_ZIP_NAME" ; # save the result file in current working directory
 terraform_marketplace_zip_file="${project_root_dir}/$TERRAFORM_MARKETPLACE_ZIP_NAME" ; # save the result file in current working directory
