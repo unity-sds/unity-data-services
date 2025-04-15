@@ -18,6 +18,13 @@ terraform_stac_br_zip_file="${project_root_dir}/$TERRAFORM_STAC_BR_ZIP_NAME" ; #
 source_dir=`python3 -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])'`
 
 cd ${source_dir}
+built_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+cat <<EOF > ds_version.json
+{
+  "version": "$software_version",
+  "built": "$built_time"
+}
+EOF
 rm -rf ${zip_file} && \
 zip -r9 ${zip_file} . && \
 echo "zipped to ${zip_file}"

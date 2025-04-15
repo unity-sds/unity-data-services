@@ -1,8 +1,10 @@
 import json
 import os
+from glob import glob
 from time import time
 from typing import Union
 
+from mdps_ds_lib.lib.utils.file_utils import FileUtils
 from starlette.responses import Response, RedirectResponse
 from cumulus_lambda_functions.uds_api.fast_api_utils import FastApiUtils
 
@@ -31,7 +33,6 @@ async def catalog_list(request: Request, response: Response):
     :param response:
     :return:
     """
-    print('inside catalog_list')
     base_url = os.environ.get(WebServiceConstants.BASE_URL, f'{request.url.scheme}://{request.url.netloc}')
     base_url = base_url[:-1] if base_url.endswith('/') else base_url
     base_url = base_url if base_url.startswith('http') else f'https://{base_url}'
@@ -86,8 +87,6 @@ async def stac_entry(request: Request, response: Response):
 @router.get(f'/version')
 @router.get(f'/version/')
 async def ds_version(request: Request, response: Response):
-    print('inside ds_version')
-
     """
     This is to list all catalogs for STAC Browser.
     This doesn't require any authorization token.
@@ -95,9 +94,17 @@ async def ds_version(request: Request, response: Response):
     :param response:
     :return:
     """
+    version_details_unknown = {
+        'version': 'unknown',
+        'built': 'unknown'
+    }
+    if not FileUtils.file_exist('/var/task/ds_version.json'):
+        print(f'missing file : {[k for k in glob("/var/task/*.json")]}')
+        return version_details_unknown
+    version_details = FileUtils.read_json('/var/task/ds_version.json')
+
     version_details = {
-        'temp': os.path.dirname(__file__),
-        'version': 'TODO',
-        'built': 'TODO'
+        **version_details_unknown,
+        **version_details,
     }
     return version_details
