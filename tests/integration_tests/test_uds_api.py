@@ -233,6 +233,20 @@ class TestCumulusCreateCollectionDapa(TestCase):
 
         return
 
+    def test_version_get(self):
+        post_url = f'{self.uds_url}misc/version/'
+        headers = {
+            'Authorization': f'Bearer {self.bearer_token}',
+        }
+        print(post_url)
+        query_result = requests.get(url=post_url,
+                                    headers=headers,
+                                    )
+        # self.assertEqual(query_result.status_code, 200, f'wrong status code. {query_result.text}')
+        response_json = json.loads(query_result.text)
+        print(json.dumps(response_json))
+        return
+
     def test_create_new_collection(self):
         post_url = f'{self.uds_url}collections/'  # MCP Dev
         headers = {
