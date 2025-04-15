@@ -172,7 +172,8 @@ class GranulesDapaQueryEs:
             'size': 1,
             'sort': [{'id': {'order': 'asc'}}],
             'query': {'bool': {'must': [{
-                'term': {'id': granule_id}
+                'term': {'id': granule_id}}, {
+                'term': {'collection': self.__collection_id},
             }]}}
         }
         LOGGER.debug(f'granules_query_dsl: {granules_query_dsl}')
@@ -182,7 +183,7 @@ class GranulesDapaQueryEs:
                                                              granules_query_dsl)
         LOGGER.debug(f'granules_query_result: {granules_query_result}')
         if len(granules_query_result['hits']['hits']) < 1:
-            raise ValueError(f'cannot find granule for : {granule_id}')
+            return None
 
         each_granules_query_result_stripped = granules_query_result['hits']['hits'][0]['_source']
         self_link = Link(rel='self', target=f'{self.__base_url}/{WebServiceConstants.COLLECTIONS}/{self.__collection_id}/items/{each_granules_query_result_stripped["id"]}', media_type='application/json', title=each_granules_query_result_stripped["id"]).to_dict(False)
