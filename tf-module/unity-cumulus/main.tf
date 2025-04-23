@@ -182,7 +182,8 @@ resource "aws_ssm_parameter" "health_check_value" {
   tier = "Advanced"
   value = jsonencode({
     healthCheckUrl   = "${var.uds_base_url}/${var.dapa_api_prefix}/collections",
-    landingPageUrl   = "${var.unity_ui_base_url}/data/misc/stac_entry",
+    landingPageUrl   = "${var.unity_ui_base_url}/data/misc/stac_entry/",
+#    landingPageUrl   = "${var.unity_ui_base_url}/data/stac_browser/",  # TODO
     componentName    = "Data Catalog",
   })
   tags = var.tags
