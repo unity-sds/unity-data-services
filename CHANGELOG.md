@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [9.11.5] - 2025-04-24
+### Fixed
+- [#568](https://github.com/unity-sds/unity-data-services/pull/568) fix: case insensitive
+
+## [9.11.4] - 2025-04-23
+### Fixed
+- [#569](https://github.com/unity-sds/unity-data-services/pull/569) fix: healthcheck update
+
+## [9.11.3] - 2025-04-21
+### Fixed
+- [#565](https://github.com/unity-sds/unity-data-services/pull/565) fix: data service version endpoint
+
+## [9.11.2] - 2025-04-15
+### Fixed
+- [#564](https://github.com/unity-sds/unity-data-services/pull/564) fix: check collection when querying single granule
+
 ## [9.11.1] - 2025-04-10
 ### Fixed
 - [#561](https://github.com/unity-sds/unity-data-services/pull/561) fix: docker error
