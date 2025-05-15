@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [9.11.6] - 2025-05-14
+### Fixed
+- [#575](https://github.com/unity-sds/unity-data-services/pull/575) fix: lib version bump
+
 ## [9.11.5] - 2025-04-24
 ### Fixed
 - [#568](https://github.com/unity-sds/unity-data-services/pull/568) fix: case insensitive
