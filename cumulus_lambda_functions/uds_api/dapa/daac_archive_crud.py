@@ -19,6 +19,8 @@ class DaacUpdateModel(BaseModel):
     daac_collection_id: str
     daac_data_version: Optional[str] = None
     daac_sns_topic_arn: Optional[str] = None
+    daac_role_arn: Optional[str] = None
+    daac_role_session_name: Optional[str] = None
     archiving_types: Optional[list[ArchivingTypesModel]] = None
 
 
