@@ -50,6 +50,21 @@ class DaacArchiverLogic:
         FileUtils.remove_if_exists(local_file)
         return cnm_response_json
 
+    @staticmethod
+    def revert_to_s3_url(input_url):
+        if input_url.startswith("s3://"):
+            return input_url
+        if input_url.startswith("http://") or input_url.startswith("https://"):
+            parts = input_url.split('/', 3)
+            if len(parts) < 4:
+                ValueError(f'invalid url: {input_url}')
+            path_parts = parts[3].split('/', 1)
+            if len(path_parts) != 2:
+                ValueError(f'invalid url: {input_url}')
+            bucket, key = path_parts
+            return f"s3://{bucket}/{key}"
+        raise ValueError(f'unknown schema: {input_url}')
+
     def __extract_files(self, uds_cnm_json: dict, daac_config: dict):
         granule_files = uds_cnm_json['product']['files']
         if 'archiving_types' not in daac_config or len(daac_config['archiving_types']) < 1:
@@ -57,6 +72,7 @@ class DaacArchiverLogic:
         archiving_types = {k['data_type']: [] if 'file_extension' not in k else k['file_extension'] for k in daac_config['archiving_types']}
         result_files = []
         for each_file in granule_files:
+            print(f'each_file: {each_file}')
             """
             {
                 "type": "data",
@@ -71,6 +87,7 @@ class DaacArchiverLogic:
             if each_file['type'] not in archiving_types:
                 continue
             file_extensions = archiving_types[each_file['type']]
+            each_file['uri'] = self.revert_to_s3_url(each_file['uri'])
             if len(file_extensions) < 1:
                 result_files.append(each_file)  # TODO remove missing md5?
             temp_filename = each_file['name'].upper().strip()
@@ -86,21 +103,29 @@ class DaacArchiverLogic:
             LOGGER.debug(f'uds_cnm_json is not configured for archival. uds_cnm_json: {uds_cnm_json}')
             return
         daac_config = daac_config[0]  # TODO This is currently not supporting more than 1 daac.
+        result = JsonValidator(UdsArchiveConfigIndex.basic_schema).validate(daac_config)
+        if result is not None:
+            raise ValueError(f'daac_config does not have valid schema. Pls re-add the daac config: {result} for {daac_config}')
         try:
             self.__sns.set_topic_arn(daac_config['daac_sns_topic_arn'])
             daac_cnm_message = {
-                "collection": daac_config['daac_collection_name'],
+                "collection": {
+                    'name': daac_config['daac_collection_name'],
+                    'version': daac_config['daac_data_version'],
+                },
                 "identifier": uds_cnm_json['identifier'],
                 "submissionTime": f'{TimeUtils.get_current_time()}Z',
                 "provider": granule_identifier.tenant,
                 "version": "1.6.0",  # TODO this is hardcoded?
                 "product": {
                     "name": granule_identifier.id,
-                    "dataVersion": daac_config['daac_data_version'],
+                    # "dataVersion": daac_config['daac_data_version'],
                     'files': self.__extract_files(uds_cnm_json, daac_config),
                 }
             }
-            self.__sns.publish_message(json.dumps(daac_cnm_message))
+            print(f'uds_cnm_json: {uds_cnm_json}')
+            print(f'daac_cnm_message: {daac_cnm_message}')
+            self.__sns.set_external_role(daac_config['daac_role_arn'], daac_config['daac_role_session_name']).publish_message(json.dumps(daac_cnm_message), True)
             self.__granules_index.update_entry(granule_identifier.tenant, granule_identifier.venue, {
                 'archive_status': 'cnm_s_success',
                 'archive_error_message': '',

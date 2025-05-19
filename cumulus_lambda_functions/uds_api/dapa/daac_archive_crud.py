@@ -26,6 +26,8 @@ class DaacAddModel(BaseModel):
     daac_collection_id: str
     daac_data_version: str
     daac_sns_topic_arn: str
+    daac_role_arn: str
+    daac_role_session_name: str
     archiving_types: Optional[list[ArchivingTypesModel]] = []
 
 
