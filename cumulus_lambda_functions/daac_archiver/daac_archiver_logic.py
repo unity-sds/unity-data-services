@@ -43,7 +43,8 @@ class DaacArchiverLogic:
                 return None
         if len(cnm_response_keys) > 1:
             LOGGER.warning(f'more than 1 cnm response file: {cnm_response_keys}')
-        cnm_response_keys = cnm_response_keys[0]
+        # assuming the names are the same, and it has processing date in the filename, it is easier to reverse it
+        cnm_response_keys = sorted(cnm_response_keys)[-1]  # sort and get the last one which is supposed to be the most recent one.
         LOGGER.debug(f'cnm_response_keys: {cnm_response_keys}')
         local_file = self.__s3.set_s3_url(f's3://{self.__s3.target_bucket}/{cnm_response_keys}').download('/tmp')
         cnm_response_json = FileUtils.read_json(local_file)
