@@ -73,7 +73,7 @@ class DaacArchiverLogic:
         archiving_types = {k['data_type']: [] if 'file_extension' not in k else k['file_extension'] for k in daac_config['archiving_types']}
         result_files = []
         for each_file in granule_files:
-            print(f'each_file: {each_file}')
+            LOGGER.debug(f'each_file: {each_file}')
             """
             {
                 "type": "data",
@@ -97,6 +97,7 @@ class DaacArchiverLogic:
         return result_files
 
     def send_to_daac_internal(self, uds_cnm_json: dict):
+        LOGGER.debug(f'uds_cnm_json: {uds_cnm_json}')
         granule_identifier = UdsCollections.decode_identifier(uds_cnm_json['identifier'])  # This is normally meant to be for collection. Since our granule ID also has collection id prefix. we can use this.
         self.__archive_index_logic.set_tenant_venue(granule_identifier.tenant, granule_identifier.venue)
         daac_config = self.__archive_index_logic.percolate_document(uds_cnm_json['identifier'])
@@ -124,8 +125,7 @@ class DaacArchiverLogic:
                     'files': self.__extract_files(uds_cnm_json, daac_config),
                 }
             }
-            print(f'uds_cnm_json: {uds_cnm_json}')
-            print(f'daac_cnm_message: {daac_cnm_message}')
+            LOGGER.debug(f'daac_cnm_message: {daac_cnm_message}')
             self.__sns.set_external_role(daac_config['daac_role_arn'], daac_config['daac_role_session_name']).publish_message(json.dumps(daac_cnm_message), True)
             self.__granules_index.update_entry(granule_identifier.tenant, granule_identifier.venue, {
                 'archive_status': 'cnm_s_success',
