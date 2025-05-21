@@ -15,11 +15,14 @@ class UdsArchiveConfigIndex:
     basic_schema = {
         'type': 'object',
         "additionalProperties": False,
-        'required': ['daac_collection_id', 'daac_sns_topic_arn', 'daac_data_version', 'collection', 'ss_username', 'archiving_types'],
+        'required': ['daac_collection_id', 'daac_sns_topic_arn', 'daac_data_version', 'daac_role_arn', 'daac_role_session_name',
+                     'collection', 'ss_username', 'archiving_types'],
         'properties': {
             'daac_collection_id': {'type': 'string'},
             'daac_sns_topic_arn': {'type': 'string'},
             'daac_data_version': {'type': 'string'},
+            'daac_role_arn': {'type': 'string'},
+            'daac_role_session_name': {'type': 'string'},
             'collection': {'type': 'string'},
             'ss_username': {'type': 'string'},
             'archiving_types': {'type': 'array', 'items': {'type': 'object'}},
