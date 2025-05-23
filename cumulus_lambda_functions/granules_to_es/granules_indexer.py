@@ -78,7 +78,11 @@ class GranulesIndexer:
             return
         self.__cumulus_record = incoming_msg['record']
         if len(self.__cumulus_record['files']) < 1:
+            LOGGER.debug(f'No files in cumulus record. Not inserting to ES')
             # TODO ingest updating stage?
+            return
+        if 'status' not in self.__cumulus_record or self.__cumulus_record['status'].upper() != 'COMPLETED':
+            LOGGER.debug(f'missing status or it is NOT COMPLETED status. Not inserting to ES')
             return
         stac_input_meta = None
         potential_files = self.__get_potential_files()
