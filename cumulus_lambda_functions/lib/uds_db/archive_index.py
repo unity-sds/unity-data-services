@@ -29,6 +29,23 @@ class UdsArchiveConfigIndex:
         }
     }
 
+    db_record_schema = {
+        'type': 'object',
+        'required': ['daac_collection_name', 'daac_sns_topic_arn', 'daac_data_version', 'daac_role_arn',
+                     'daac_role_session_name',
+                     'collection', 'ss_username', 'archiving_types'],
+        'properties': {
+            'daac_collection_name': {'type': 'string'},
+            'daac_sns_topic_arn': {'type': 'string'},
+            'daac_data_version': {'type': 'string'},
+            'daac_role_arn': {'type': 'string'},
+            'daac_role_session_name': {'type': 'string'},
+            'collection': {'type': 'string'},
+            'ss_username': {'type': 'string'},
+            'archiving_types': {'type': 'array', 'items': {'type': 'object'}},
+        }
+    }
+
     def __init__(self, es_url, es_port=443, es_type='AWS', use_ssl=True):
         self.__es: ESAbstract = ESFactory().get_instance(es_type,
                                                          index='TODO',
