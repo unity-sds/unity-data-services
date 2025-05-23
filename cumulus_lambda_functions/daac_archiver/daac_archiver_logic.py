@@ -105,7 +105,7 @@ class DaacArchiverLogic:
             LOGGER.debug(f'uds_cnm_json is not configured for archival. uds_cnm_json: {uds_cnm_json}')
             return
         daac_config = daac_config[0]  # TODO This is currently not supporting more than 1 daac.
-        result = JsonValidator(UdsArchiveConfigIndex.basic_schema).validate(daac_config)
+        result = JsonValidator(UdsArchiveConfigIndex.db_record_schema).validate(daac_config)
         if result is not None:
             raise ValueError(f'daac_config does not have valid schema. Pls re-add the daac config: {result} for {daac_config}')
         try:
