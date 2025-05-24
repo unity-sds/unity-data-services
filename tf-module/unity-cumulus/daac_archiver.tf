@@ -38,6 +38,7 @@ resource "aws_lambda_function" "daac_archiver_response" {
   handler       = "cumulus_lambda_functions.daac_archiver.lambda_function.lambda_handler_response"
   runtime       = "python3.9"
   timeout       = 300
+  memory_size   = 256
   environment {
     variables = {
       LOG_LEVEL = var.log_level
