@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [9.12.0] - 2025-05-24
+### Changed
+- [#585](https://github.com/unity-sds/unity-data-services/pull/585) feat: add ram size in lambdas
+
+## [9.11.9] - 2025-05-23
+### Fixed
+- [#582](https://github.com/unity-sds/unity-data-services/pull/582) fix: use correct schema
+
+## [9.11.8] - 2025-05-21
+### Fixed
+- [#580](https://github.com/unity-sds/unity-data-services/pull/580) fix: update-archival-index-mapping
+
+## [9.11.7] - 2025-05-21
+### Fixed
+- [#578](https://github.com/unity-sds/unity-data-services/pull/578) fix: sending sns to daac
+
+## [9.11.6] - 2025-05-14
+### Fixed
+- [#575](https://github.com/unity-sds/unity-data-services/pull/575) fix: lib version bump
+
 ## [9.11.5] - 2025-04-24
 ### Fixed
 - [#568](https://github.com/unity-sds/unity-data-services/pull/568) fix: case insensitive

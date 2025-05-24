@@ -9,6 +9,12 @@ class GranulesIndexMapping:
         "daac_data_version": {
             "type": "keyword"
         },
+        "daac_role_arn": {
+            "type": "keyword"
+        },
+        "daac_role_session_name": {
+            "type": "keyword"
+        },
         "archiving_types": {
             "type": "object",
             "properties": {
