@@ -6,6 +6,7 @@ resource "aws_lambda_function" "granules_cnm_ingester" {
   handler       = "cumulus_lambda_functions.granules_cnm_ingester.lambda_function.lambda_handler"
   runtime       = "python3.9"
   timeout       = 300
+  memory_size   = 512
   reserved_concurrent_executions = var.granules_cnm_ingester__lambda_concurrency  # TODO
   environment {
     variables = {
@@ -66,6 +67,7 @@ resource "aws_lambda_function" "granules_cnm_response_writer" {
   handler       = "cumulus_lambda_functions.granules_cnm_response_writer.lambda_function.lambda_handler"
   runtime       = "python3.9"
   timeout       = 300
+  memory_size   = 256
   reserved_concurrent_executions = var.granules_cnm_response_writer__lambda_concurrency  # TODO
   environment {
     variables = {
