@@ -26,5 +26,18 @@ class TestUdsCollections(TestCase):
         self.assertEqual(aa.venue, 'DEV', f'wrong venue')
         self.assertEqual(aa.tenant, 'UDS_LOCAL', f'wrong tenant')
         print(aa)
+
+        granule_id = 'URN:NASA:UNITY:unity:test:TRPSDL2ALLCRS1MGLOS___2:TROPESS_CrIS-JPSS1_L2_Standard_H2O_20250108_MUSES_R1p23_megacity_los_angeles_MGLOS_F2p5_J0'
+        aa = UdsCollections.decode_granule_identifier(granule_id)
+        self.assertEqual(aa.venue, 'test', f'wrong venue')
+        self.assertEqual(aa.tenant, 'unity', f'wrong tenant')
+        self.assertEqual(aa.granule, 'TROPESS_CrIS-JPSS1_L2_Standard_H2O_20250108_MUSES_R1p23_megacity_los_angeles_MGLOS_F2p5_J0')
+        print(aa)
+        granule_id = 'URN:NASA:UNITY:unity:test:TRPSDL2ALLCRS1MGLOS___2:TROPESS_CrIS-JPSS1_L2_Standard_H2O_20250108_MUSES_R1p23_megacity_los_angeles_MGLOS_F2p5_J0:1:2:3:4'
+        aa = UdsCollections.decode_granule_identifier(granule_id)
+        self.assertEqual(aa.venue, 'test', f'wrong venue')
+        self.assertEqual(aa.tenant, 'unity', f'wrong tenant')
+        self.assertEqual(aa.granule, 'TROPESS_CrIS-JPSS1_L2_Standard_H2O_20250108_MUSES_R1p23_megacity_los_angeles_MGLOS_F2p5_J0:1:2:3:4')
+
         return
 
