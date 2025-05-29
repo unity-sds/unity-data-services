@@ -1,10 +1,12 @@
 import json
 import os
+from datetime import datetime
 from typing import Union
 
-from pystac import Catalog, Link
+from pystac import Catalog, Link, Collection, Extent, SpatialExtent, TemporalExtent, Summaries, Provider
 
 from cumulus_lambda_functions.lib.uds_db.db_constants import DBConstants
+from cumulus_lambda_functions.lib.uds_db.granules_db_index import GranulesDbIndex
 
 from cumulus_lambda_functions.lib.uds_db.uds_collections import UdsCollections
 
@@ -276,3 +278,60 @@ async def query_collections(request: Request, collection_id: Union[str, None] = 
     if collections_result['statusCode'] == 200:
         return collections_result['body']
     raise HTTPException(status_code=collections_result['statusCode'], detail=collections_result['body'])
+
+@router.delete("/{collection_id}")
+@router.delete("/{collection_id}/")
+async def delete_single_collection(request: Request, collection_id: str):
+    LOGGER.debug(f'starting delete_single_collection: {collection_id}')
+    LOGGER.debug(f'starting delete_single_collection request: {request}')
+
+    authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
+        .get_instance(UDSAuthorizerFactory.cognito,
+                      es_url=os.getenv('ES_URL'),
+                      es_port=int(os.getenv('ES_PORT', '443'))
+                      )
+    auth_info = FastApiUtils.get_authorization_info(request)
+    uds_collections = UdsCollections(es_url=os.getenv('ES_URL'),
+                                     es_port=int(os.getenv('ES_PORT', '443')), es_type=os.getenv('ES_TYPE', 'AWS'))
+    if collection_id is None or collection_id == '':
+        raise HTTPException(status_code=500, detail=f'missing or invalid collection_id: {collection_id}')
+    collection_identifier = uds_collections.decode_identifier(collection_id)
+    if not authorizer.is_authorized_for_collection(DBConstants.delete, collection_id,
+                                                   auth_info['ldap_groups'],
+                                                   collection_identifier.tenant,
+                                                   collection_identifier.venue):
+        LOGGER.debug(f'user: {auth_info["username"]} is not authorized for {collection_id}')
+        raise HTTPException(status_code=403, detail=json.dumps({
+            'message': 'not authorized to execute this action'
+        }))
+
+    granules_count = GranulesDbIndex().get_size(collection_identifier.tenant, collection_identifier.venue,
+                                                collection_id)
+    LOGGER.debug(f'granules_count: {granules_count} for {collection_id}')
+    if granules_count > 0:
+        LOGGER.debug(f'NOT deleting {collection_id} as it is not empty')
+        raise HTTPException(status_code=409, detail=f'NOT deleting {collection_id} as it is not empty')
+
+    try:
+        new_collection = Collection(
+            id=collection_id,
+            description='TODO',
+            extent = Extent(
+                SpatialExtent([[0.0, 0.0, 0.0, 0.0]]),
+                TemporalExtent([[datetime.utcnow(), datetime.utcnow()]])
+            ),
+            license = "proprietary",
+            providers = [],
+                # title=input_collection['LongName'],
+                # keywords=[input_collection['SpatialKeywords']['Keyword']],
+            summaries = Summaries({
+                "totalGranules": [-1],
+            }),
+            )
+        creation_result = CollectionDapaCreation(new_collection).delete()
+    except Exception as e:
+        LOGGER.exception('failed during ingest_cnm_dapa')
+        raise HTTPException(status_code=500, detail=str(e))
+    if creation_result['statusCode'] < 300:
+        return creation_result['body'], creation_result['statusCode']
+    raise HTTPException(status_code=creation_result['statusCode'], detail=creation_result['body'])
