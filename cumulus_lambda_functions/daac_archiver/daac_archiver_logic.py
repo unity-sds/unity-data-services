@@ -98,7 +98,7 @@ class DaacArchiverLogic:
 
     def send_to_daac_internal(self, uds_cnm_json: dict):
         LOGGER.debug(f'uds_cnm_json: {uds_cnm_json}')
-        granule_identifier = UdsCollections.decode_identifier(uds_cnm_json['identifier'])  # This is normally meant to be for collection. Since our granule ID also has collection id prefix. we can use this.
+        granule_identifier = UdsCollections.decode_granule_identifier(uds_cnm_json['identifier'])  # This is normally meant to be for collection. Since our granule ID also has collection id prefix. we can use this.
         self.__archive_index_logic.set_tenant_venue(granule_identifier.tenant, granule_identifier.venue)
         daac_config = self.__archive_index_logic.percolate_document(uds_cnm_json['identifier'])
         if daac_config is None or len(daac_config) < 1:
@@ -120,7 +120,7 @@ class DaacArchiverLogic:
                 "provider": granule_identifier.tenant,
                 "version": "1.6.0",  # TODO this is hardcoded?
                 "product": {
-                    "name": granule_identifier.id,
+                    "name": granule_identifier.granule,
                     # "dataVersion": daac_config['daac_data_version'],
                     'files': self.__extract_files(uds_cnm_json, daac_config),
                 }
