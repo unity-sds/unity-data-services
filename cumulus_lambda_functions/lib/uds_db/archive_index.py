@@ -15,7 +15,7 @@ class UdsArchiveConfigIndex:
     basic_schema = {
         'type': 'object',
         "additionalProperties": False,
-        'required': ['daac_collection_id', 'daac_sns_topic_arn', 'daac_provider', 'daac_data_version', 'daac_role_arn', 'daac_role_session_name',
+        'required': ['daac_collection_id', 'daac_sns_topic_arn', 'daac_data_version', 'daac_role_arn', 'daac_role_session_name',
                      'collection', 'ss_username', 'archiving_types'],
         'properties': {
             'daac_collection_id': {'type': 'string'},
@@ -32,7 +32,7 @@ class UdsArchiveConfigIndex:
 
     db_record_schema = {
         'type': 'object',
-        'required': ['daac_collection_name', 'daac_sns_topic_arn', 'daac_provider', 'daac_data_version', 'daac_role_arn',
+        'required': ['daac_collection_name', 'daac_sns_topic_arn', 'daac_data_version', 'daac_role_arn',
                      'daac_role_session_name',
                      'collection', 'ss_username', 'archiving_types'],
         'properties': {
