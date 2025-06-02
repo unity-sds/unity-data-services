@@ -158,6 +158,39 @@ class CollectionsQuery(CumulusBase):
             return {'server_error': f'error while invoking:{str(e)}'}
         return {'results': query_result}
 
+    def delete_sqs_rules(self, new_collection: dict, private_api_prefix: str):
+        # $ curl --request DELETE https://example.com/rules/repeat_test --header 'Authorization: Bearer ReplaceWithTheToken'
+        underscore_collection_name = re.sub(r'[^a-zA-Z0-9_]', '___', new_collection["name"])  # replace any character that's not alphanumeric or underscore with 3 underscores
+        rule_name = f'{underscore_collection_name}___{new_collection["version"]}___rules_sqs'
+        payload = {
+            'httpMethod': 'DELETE',
+            'resource': '/{proxy+}',
+            'path': f'/{self.__rules_key}/{rule_name}',
+            'headers': {
+                'Content-Type': 'application/json',
+            },
+        }
+        LOGGER.debug(f'payload: {payload}')
+        try:
+            query_result = self._invoke_api(payload, private_api_prefix)
+            """
+            {'statusCode': 500, 'body': '', 'headers': {}}
+            """
+            if query_result['statusCode'] >= 500:
+                LOGGER.error(f'server error status code: {query_result["statusCode"]}. details: {query_result}')
+                return {'server_error': query_result}
+            if query_result['statusCode'] >= 400:
+                LOGGER.error(f'client error status code: {query_result["statusCode"]}. details: {query_result}')
+                return {'client_error': query_result}
+            query_result = json.loads(query_result['body'])
+            LOGGER.debug(f'json query_result: {query_result}')
+            if 'message' not in query_result:
+                return {'server_error': f'invalid response: {query_result}'}
+        except Exception as e:
+            LOGGER.exception('error while invoking')
+            return {'server_error': f'error while invoking:{str(e)}'}
+        return {'status': query_result['message']}
+
     def create_sqs_rules(self, new_collection: dict, private_api_prefix: str, sqs_url: str, provider_name: str = '', workflow_name: str = 'CatalogGranule', visibility_timeout: int = 1800):
         """
 curl --request POST "$CUMULUS_BASEURL/rules" --header "Authorization: Bearer $cumulus_token"  --header 'Content-Type: application/json' --data '{
