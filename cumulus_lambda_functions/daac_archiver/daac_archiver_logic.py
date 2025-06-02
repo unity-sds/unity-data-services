@@ -117,7 +117,7 @@ class DaacArchiverLogic:
                 },
                 "identifier": uds_cnm_json['identifier'],
                 "submissionTime": f'{TimeUtils.get_current_time()}Z',
-                "provider": granule_identifier.tenant,
+                "provider": daac_config['daac_provider'] if 'daac_provider' in daac_config else granule_identifier.tenant,
                 "version": "1.6.0",  # TODO this is hardcoded?
                 "product": {
                     "name": granule_identifier.granule,

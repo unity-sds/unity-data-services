@@ -19,6 +19,7 @@ class UdsArchiveConfigIndex:
                      'collection', 'ss_username', 'archiving_types'],
         'properties': {
             'daac_collection_id': {'type': 'string'},
+            'daac_provider': {'type': 'string'},
             'daac_sns_topic_arn': {'type': 'string'},
             'daac_data_version': {'type': 'string'},
             'daac_role_arn': {'type': 'string'},
@@ -36,6 +37,7 @@ class UdsArchiveConfigIndex:
                      'collection', 'ss_username', 'archiving_types'],
         'properties': {
             'daac_collection_name': {'type': 'string'},
+            'daac_provider': {'type': 'string'},
             'daac_sns_topic_arn': {'type': 'string'},
             'daac_data_version': {'type': 'string'},
             'daac_role_arn': {'type': 'string'},
