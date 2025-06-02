@@ -315,6 +315,7 @@ async def delete_single_collection(request: Request, collection_id: str):
     try:
         new_collection = Collection(
             id=collection_id,
+            title=collection_id,
             description='TODO',
             extent = Extent(
                 SpatialExtent([[0.0, 0.0, 0.0, 0.0]]),
@@ -328,6 +329,14 @@ async def delete_single_collection(request: Request, collection_id: str):
                 "totalGranules": [-1],
             }),
             )
+        new_collection.links = [
+            Link(rel='root',
+                 target=f'./collection.json',
+                 media_type='application/json', title=f"{new_collection.id}"),
+            Link(rel='item',
+                 target='./collection.json',
+                 media_type='application/json', title=f"{new_collection.id} Granules")
+        ]
         creation_result = CollectionDapaCreation(new_collection).delete()
     except Exception as e:
         LOGGER.exception('failed during ingest_cnm_dapa')
