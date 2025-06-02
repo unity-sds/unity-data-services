@@ -337,7 +337,7 @@ async def delete_single_collection(request: Request, collection_id: str):
                  target='./collection.json',
                  media_type='application/json', title=f"{new_collection.id} Granules")
         ]
-        creation_result = CollectionDapaCreation(new_collection).delete()
+        creation_result = CollectionDapaCreation(new_collection.to_dict(False, False)).delete()
     except Exception as e:
         LOGGER.exception('failed during ingest_cnm_dapa')
         raise HTTPException(status_code=500, detail=str(e))
