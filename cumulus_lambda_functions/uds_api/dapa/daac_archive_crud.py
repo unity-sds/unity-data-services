@@ -17,6 +17,7 @@ class ArchivingTypesModel(BaseModel):
 
 class DaacUpdateModel(BaseModel):
     daac_collection_id: str
+    daac_provider: Optional[str] = None
     daac_data_version: Optional[str] = None
     daac_sns_topic_arn: Optional[str] = None
     daac_role_arn: Optional[str] = None
@@ -26,6 +27,7 @@ class DaacUpdateModel(BaseModel):
 
 class DaacAddModel(BaseModel):
     daac_collection_id: str
+    daac_provider: Optional[str] = None
     daac_data_version: str
     daac_sns_topic_arn: str
     daac_role_arn: str
@@ -104,7 +106,7 @@ class DaacArchiveCrud:
                 }
 
             ingesting_dict = {
-                **self.__request_body,
+                **{k: v for k, v in self.__request_body.items() if v is not None},
                 'ss_username': self.__authorization_info['username'],
                 'collection': self.__collection_id,
             }
