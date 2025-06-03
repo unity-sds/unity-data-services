@@ -81,6 +81,18 @@ class CollectionDapaCreation:
         self.__uds_collection = UdsCollections(es_url=os.getenv('ES_URL'), es_port=int(os.getenv('ES_PORT', '443')), es_type=os.getenv('ES_TYPE', 'AWS'), use_ssl=os.getenv('ES_USE_SSL', 'TRUE').strip() is True)
         self.__cumulus_collection_query = CollectionsQuery('', '')
 
+    def __delete_collection_cumulus(self, cumulus_collection_doc):
+        delete_result = self.__cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix, cumulus_collection_doc['name'], cumulus_collection_doc['version'])
+        if 'status' not in delete_result:
+            LOGGER.error(f'status not in creation_result: {delete_result}')
+            return {
+                'statusCode': 500,
+                'body': {
+                    'message': delete_result
+                }
+            }, None
+        return None, delete_result
+
     def __create_collection_cumulus(self, cumulus_collection_doc):
         creation_result = self.__cumulus_collection_query.create_collection(cumulus_collection_doc, self.__cumulus_lambda_prefix)
         if 'status' not in creation_result:
@@ -116,6 +128,37 @@ class CollectionDapaCreation:
             }
         return None
 
+    def __delete_rules_cumulus(self, cumulus_collection_doc):
+        rule_deletion_result = self.__cumulus_collection_query.delete_sqs_rules(
+            cumulus_collection_doc,
+            self.__cumulus_lambda_prefix
+        )
+        if 'status' not in rule_deletion_result:
+            LOGGER.error(f'status not in rule_creation_result. deleting collection: {rule_deletion_result}')
+            return {
+                'statusCode': 500,
+                'body': {
+                    'message': rule_deletion_result,
+                    'details': f'collection deletion result: {rule_deletion_result}'
+                }
+            }
+        return None
+
+    def __delete_collection_uds(self):
+        try:
+            delete_collection_result = self.__uds_collection.delete_collection(
+                collection_id=self.__collection_transformer.get_collection_id()
+            )
+        except Exception as e:
+            LOGGER.exception(f'failed to add collection to Elasticsearch')
+            return {
+                'statusCode': 500,
+                'body': {
+                    'message': f'unable to delete collection to Elasticsearch: {str(e)}',
+                }
+            }
+        return None
+
     def __create_collection_uds(self, cumulus_collection_doc):
 
         try:
@@ -142,6 +185,42 @@ class CollectionDapaCreation:
                 }
             }
         return None
+
+    def delete(self):
+        deletion_result = {}
+        try:
+            cumulus_collection_doc = self.__collection_transformer.from_stac(self.__request_body)
+            self.__provider_id = self.__provider_id if self.__collection_transformer.output_provider is None else self.__collection_transformer.output_provider
+            LOGGER.debug(f'__provider_id: {self.__provider_id}')
+            creation_result = 'NA'
+
+            if self.__include_cumulus:
+                rules_deletion_result = self.__delete_rules_cumulus(cumulus_collection_doc)
+                deletion_result['cumulus_rule_deletion'] = rules_deletion_result if rules_deletion_result is not None else 'succeeded'
+                delete_err, delete_result = self.__delete_collection_cumulus(cumulus_collection_doc)
+                deletion_result['cumulus_collection_deletion'] = delete_err if delete_err is not None else delete_result
+            else:
+                deletion_result['cumulus_rule_deletion'] = 'NA'
+                deletion_result['cumulus_collection_deletion'] = 'NA'
+
+            uds_deletion_result = self.__delete_collection_uds()
+            deletion_result['uds_collection_deletion'] = uds_deletion_result if uds_deletion_result is not None else 'succeeded'
+        except Exception as e:
+            LOGGER.exception('error while creating new collection in Cumulus')
+            return {
+                'statusCode': 500,
+                'body': {
+                    'message': f'error while creating new collection in Cumulus. check details',
+                    'details': str(e)
+                }
+            }
+        LOGGER.info(f'creation_result: {creation_result}')
+        return {
+            'statusCode': 200,
+            'body': {
+                'message': deletion_result
+            }
+        }
 
     def create(self):
         try:
