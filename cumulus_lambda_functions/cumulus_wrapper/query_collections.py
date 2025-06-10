@@ -195,7 +195,7 @@ class CollectionsQuery(CumulusBase):
     def delete_executions(self, new_collection: dict, private_api_prefix: str):
         # $ curl --request DELETE https://example.com/rules/repeat_test --header 'Authorization: Bearer ReplaceWithTheToken'
         request_body = {
-            "collectionId": new_collection["name"],
+            "collectionId": f'{new_collection["name"]}___{new_collection["version"]}',
             "esBatchSize": 100000,
             "dbBatchSize": 50000
         }
