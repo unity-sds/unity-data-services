@@ -34,6 +34,7 @@ class CollectionsQuery(CumulusBase):
         collection_names = [k.split('___')[0] for k in collection_ids]
         self._conditions.append(f'{self.__collection_name}__in={",".join(collection_names)}')
         return self
+
     def get_size(self, private_api_prefix: str):
         query_params = {'field': 'status', 'type': 'collections'}
         main_conditions = {k[0]: k[1] for k in [k1.split('=') for k1 in self._conditions]}
@@ -169,6 +170,44 @@ class CollectionsQuery(CumulusBase):
             'headers': {
                 'Content-Type': 'application/json',
             },
+        }
+        LOGGER.debug(f'payload: {payload}')
+        try:
+            query_result = self._invoke_api(payload, private_api_prefix)
+            """
+            {'statusCode': 500, 'body': '', 'headers': {}}
+            """
+            if query_result['statusCode'] >= 500:
+                LOGGER.error(f'server error status code: {query_result["statusCode"]}. details: {query_result}')
+                return {'server_error': query_result}
+            if query_result['statusCode'] >= 400:
+                LOGGER.error(f'client error status code: {query_result["statusCode"]}. details: {query_result}')
+                return {'client_error': query_result}
+            query_result = json.loads(query_result['body'])
+            LOGGER.debug(f'json query_result: {query_result}')
+            if 'message' not in query_result:
+                return {'server_error': f'invalid response: {query_result}'}
+        except Exception as e:
+            LOGGER.exception('error while invoking')
+            return {'server_error': f'error while invoking:{str(e)}'}
+        return {'status': query_result['message']}
+
+    def delete_executions(self, new_collection: dict, private_api_prefix: str):
+        # $ curl --request DELETE https://example.com/rules/repeat_test --header 'Authorization: Bearer ReplaceWithTheToken'
+        underscore_collection_name = re.sub(r'[^a-zA-Z0-9_]', '___', new_collection["name"])  # replace any character that's not alphanumeric or underscore with 3 underscores
+        request_body = {
+            "collectionId": f'{underscore_collection_name}___{new_collection["version"]}',
+            "esBatchSize": 100000,
+            "dbBatchSize": 50000
+        }
+        payload = {
+            'httpMethod': 'POST',
+            'resource': '/{proxy+}',
+            'path': f'/executions/bulk-delete-by-collection',
+            'headers': {
+                'Content-Type': 'application/json',
+            },
+            'body': json.dumps(request_body)
         }
         LOGGER.debug(f'payload: {payload}')
         try:
