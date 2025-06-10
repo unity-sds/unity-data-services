@@ -108,6 +108,37 @@ class CollectionDapaCreation:
             }
         return None
 
+    def __delete_rules_cumulus(self, cumulus_collection_doc):
+        rule_deletion_result = self.__cumulus_collection_query.delete_sqs_rules(
+            cumulus_collection_doc,
+            self.__cumulus_lambda_prefix
+        )
+        if 'status' not in rule_deletion_result:
+            LOGGER.error(f'status not in rule_creation_result. deleting collection: {rule_deletion_result}')
+            return {
+                'statusCode': 500,
+                'body': {
+                    'message': rule_deletion_result,
+                    'details': f'collection deletion result: {rule_deletion_result}'
+                }
+            }
+        return None
+
+    def __delete_collection_uds(self):
+        try:
+            delete_collection_result = self.__uds_collection.delete_collection(
+                collection_id=self.__collection_transformer.get_collection_id()
+            )
+        except Exception as e:
+            LOGGER.exception(f'failed to add collection to Elasticsearch')
+            return {
+                'statusCode': 500,
+                'body': {
+                    'message': f'unable to delete collection to Elasticsearch: {str(e)}',
+                }
+            }
+        return None
+
     def __create_collection_uds(self, cumulus_collection_doc):
 
         try:
