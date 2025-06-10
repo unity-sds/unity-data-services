@@ -1,5 +1,6 @@
 import json
 import os
+from time import sleep
 from typing import Optional
 
 import pystac
@@ -81,68 +82,16 @@ class CollectionDapaCreation:
         self.__uds_collection = UdsCollections(es_url=os.getenv('ES_URL'), es_port=int(os.getenv('ES_PORT', '443')), es_type=os.getenv('ES_TYPE', 'AWS'), use_ssl=os.getenv('ES_USE_SSL', 'TRUE').strip() is True)
         self.__cumulus_collection_query = CollectionsQuery('', '')
 
-    def __delete_collection_cumulus(self, cumulus_collection_doc):
-        delete_result = self.__cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix, cumulus_collection_doc['name'], cumulus_collection_doc['version'])
-        if 'status' not in delete_result:
-            LOGGER.error(f'status not in creation_result: {delete_result}')
+    def analyze_cumulus_result(self, cumulus_request_result):
+        if 'status' not in cumulus_request_result:
+            LOGGER.error(f'status not in cumulus_request_result: {cumulus_request_result}')
             return {
                 'statusCode': 500,
                 'body': {
-                    'message': delete_result
+                    'message': cumulus_request_result
                 }
             }, None
-        return None, delete_result
-
-    def __create_collection_cumulus(self, cumulus_collection_doc):
-        creation_result = self.__cumulus_collection_query.create_collection(cumulus_collection_doc, self.__cumulus_lambda_prefix)
-        if 'status' not in creation_result:
-            LOGGER.error(f'status not in creation_result: {creation_result}')
-            return {
-                'statusCode': 500,
-                'body': {
-                    'message': creation_result
-                }
-            }, None
-        return None, creation_result
-
-    def __create_rules_cumulus(self, cumulus_collection_doc):
-        rule_creation_result = self.__cumulus_collection_query.create_sqs_rules(
-            cumulus_collection_doc,
-            self.__cumulus_lambda_prefix,
-            self.__ingest_sqs_url,
-            self.__provider_id,
-            self.__workflow_name,
-        )
-        if 'status' not in rule_creation_result:
-            LOGGER.error(f'status not in rule_creation_result. deleting collection: {rule_creation_result}')
-            delete_collection_result = self.__cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix,
-                                                                                  cumulus_collection_doc['name'],
-                                                                                  cumulus_collection_doc['version'])
-            self.__uds_collection.delete_collection(self.__collection_transformer.get_collection_id())
-            return {
-                'statusCode': 500,
-                'body': {
-                    'message': rule_creation_result,
-                    'details': f'collection deletion result: {delete_collection_result}'
-                }
-            }
-        return None
-
-    def __delete_rules_cumulus(self, cumulus_collection_doc):
-        rule_deletion_result = self.__cumulus_collection_query.delete_sqs_rules(
-            cumulus_collection_doc,
-            self.__cumulus_lambda_prefix
-        )
-        if 'status' not in rule_deletion_result:
-            LOGGER.error(f'status not in rule_creation_result. deleting collection: {rule_deletion_result}')
-            return {
-                'statusCode': 500,
-                'body': {
-                    'message': rule_deletion_result,
-                    'details': f'collection deletion result: {rule_deletion_result}'
-                }
-            }
-        return None
+        return None, cumulus_request_result
 
     def __delete_collection_uds(self):
         try:
@@ -195,11 +144,18 @@ class CollectionDapaCreation:
             creation_result = 'NA'
 
             if self.__include_cumulus:
-                rules_deletion_result = self.__delete_rules_cumulus(cumulus_collection_doc)
-                deletion_result['cumulus_rule_deletion'] = rules_deletion_result if rules_deletion_result is not None else 'succeeded'
-                delete_err, delete_result = self.__delete_collection_cumulus(cumulus_collection_doc)
+                executions_delete_result = self.__cumulus_collection_query.delete_executions(cumulus_collection_doc, self.__cumulus_lambda_prefix)
+                exec_delete_err, exec_delete_result = self.analyze_cumulus_result(executions_delete_result)
+                deletion_result['cumulus_executions_deletion'] = exec_delete_err if exec_delete_err is not None else exec_delete_result
+                sleep(10)
+                rule_deletion_result = self.__cumulus_collection_query.delete_sqs_rules(cumulus_collection_doc, self.__cumulus_lambda_prefix)
+                rule_delete_err, rule_delete_result = self.analyze_cumulus_result(rule_deletion_result)
+                deletion_result['cumulus_rule_deletion'] = rule_delete_err if rule_delete_err is not None else rule_delete_result
+                delete_result = self.__cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix, cumulus_collection_doc['name'], cumulus_collection_doc['version'])
+                delete_err, delete_result = self.analyze_cumulus_result(delete_result)
                 deletion_result['cumulus_collection_deletion'] = delete_err if delete_err is not None else delete_result
             else:
+                deletion_result['cumulus_executions_deletion'] = 'NA'
                 deletion_result['cumulus_rule_deletion'] = 'NA'
                 deletion_result['cumulus_collection_deletion'] = 'NA'
 
@@ -229,16 +185,24 @@ class CollectionDapaCreation:
             LOGGER.debug(f'__provider_id: {self.__provider_id}')
             creation_result = 'NA'
             if self.__include_cumulus:
-                creation_err, creation_result = self.__create_collection_cumulus(cumulus_collection_doc)
+                creation_cumulus_result = self.__cumulus_collection_query.create_collection(cumulus_collection_doc, self.__cumulus_lambda_prefix)
+                creation_err, creation_result = self.analyze_cumulus_result(creation_cumulus_result)
                 if creation_err is not None:
                     return creation_err
             uds_creation_result = self.__create_collection_uds(cumulus_collection_doc)
             if uds_creation_result is not None:
                 return uds_creation_result
             if self.__include_cumulus:
-                create_rule_result = self.__create_rules_cumulus(cumulus_collection_doc)
-                if create_rule_result is not None:
-                    return create_rule_result
+                rule_creation_result = self.__cumulus_collection_query.create_sqs_rules(
+                    cumulus_collection_doc,
+                    self.__cumulus_lambda_prefix,
+                    self.__ingest_sqs_url,
+                    self.__provider_id,
+                    self.__workflow_name,
+                )
+                create_rule_err, create_rule_result = self.analyze_cumulus_result(rule_creation_result)
+                if create_rule_err is not None:
+                    return create_rule_err
             # validation_result = pystac.Collection.from_dict(self.__request_body).validate()
             # cumulus_collection_query = CollectionsQuery('', '')
             #
