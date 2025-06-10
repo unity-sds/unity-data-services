@@ -194,9 +194,8 @@ class CollectionsQuery(CumulusBase):
 
     def delete_executions(self, new_collection: dict, private_api_prefix: str):
         # $ curl --request DELETE https://example.com/rules/repeat_test --header 'Authorization: Bearer ReplaceWithTheToken'
-        underscore_collection_name = re.sub(r'[^a-zA-Z0-9_]', '___', new_collection["name"])  # replace any character that's not alphanumeric or underscore with 3 underscores
         request_body = {
-            "collectionId": f'{underscore_collection_name}___{new_collection["version"]}',
+            "collectionId": new_collection["name"],
             "esBatchSize": 100000,
             "dbBatchSize": 50000
         }
