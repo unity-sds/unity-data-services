@@ -196,7 +196,7 @@ class CollectionsQuery(CumulusBase):
         # $ curl --request DELETE https://example.com/rules/repeat_test --header 'Authorization: Bearer ReplaceWithTheToken'
         request_body = {
             "collectionId": f'{new_collection["name"]}___{new_collection["version"]}',
-            "esBatchSize": 100000,
+            "esBatchSize": 10000,
             "dbBatchSize": 50000
         }
         payload = {
