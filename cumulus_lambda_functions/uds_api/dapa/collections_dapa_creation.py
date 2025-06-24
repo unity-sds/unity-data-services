@@ -179,12 +179,23 @@ class CollectionDapaCreation:
                 exec_delete_err, exec_delete_result = self.analyze_cumulus_result(executions_delete_result)
                 deletion_result['cumulus_executions_deletion'] = exec_delete_err if exec_delete_err is not None else exec_delete_result
                 sleep(10)
+                delete_result = self.__cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix, cumulus_collection_doc['name'], cumulus_collection_doc['version'])
+                delete_err, delete_result = self.analyze_cumulus_result(delete_result)
+                if delete_err is not None:
+                    executions_delete_result = self.__cumulus_collection_query.delete_executions(cumulus_collection_doc,
+                                                                                                 self.__cumulus_lambda_prefix)
+                    exec_delete_err, exec_delete_result = self.analyze_cumulus_result(executions_delete_result)
+                    deletion_result[
+                        'cumulus_executions_deletion'] = exec_delete_err if exec_delete_err is not None else exec_delete_result
+                    sleep(10)
+                    delete_result = self.__cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix,
+                                                                                      cumulus_collection_doc['name'],
+                                                                                      cumulus_collection_doc['version'])
+                    delete_err, delete_result = self.analyze_cumulus_result(delete_result)
+                deletion_result['cumulus_collection_deletion'] = delete_err if delete_err is not None else delete_result
                 rule_deletion_result = self.__cumulus_collection_query.delete_sqs_rules(cumulus_collection_doc, self.__cumulus_lambda_prefix)
                 rule_delete_err, rule_delete_result = self.analyze_cumulus_result(rule_deletion_result)
                 deletion_result['cumulus_rule_deletion'] = rule_delete_err if rule_delete_err is not None else rule_delete_result
-                delete_result = self.__cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix, cumulus_collection_doc['name'], cumulus_collection_doc['version'])
-                delete_err, delete_result = self.analyze_cumulus_result(delete_result)
-                deletion_result['cumulus_collection_deletion'] = delete_err if delete_err is not None else delete_result
             else:
                 deletion_result['cumulus_executions_deletion'] = 'NA'
                 deletion_result['cumulus_rule_deletion'] = 'NA'
