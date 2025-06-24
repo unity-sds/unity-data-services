@@ -139,12 +139,15 @@ class CollectionDapaCreation:
     def delete(self):
         deletion_result = {}
         try:
+
             cumulus_collection_doc = self.__collection_transformer.from_stac(self.__request_body)
             self.__provider_id = self.__provider_id if self.__collection_transformer.output_provider is None else self.__collection_transformer.output_provider
             LOGGER.debug(f'__provider_id: {self.__provider_id}')
             creation_result = 'NA'
 
             if self.__include_cumulus:
+                result = self.__cumulus_collection_query.delete_executions(cumulus_collection_doc, self.__cumulus_lambda_prefix)
+                print(f'execution list result: {result}')
                 self.__delete_collection_execution(cumulus_collection_doc, deletion_result)
                 self.__delete_collection_rule(cumulus_collection_doc, deletion_result)
                 delete_result = self.__cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix, cumulus_collection_doc['name'], cumulus_collection_doc['version'])
