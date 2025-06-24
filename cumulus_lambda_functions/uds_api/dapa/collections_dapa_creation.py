@@ -93,36 +93,6 @@ class CollectionDapaCreation:
             }, None
         return None, cumulus_request_result
 
-    def __delete_collection_uds(self):
-        try:
-            delete_collection_result = self.__uds_collection.delete_collection(
-                collection_id=self.__collection_transformer.get_collection_id()
-            )
-        except Exception as e:
-            LOGGER.exception(f'failed to add collection to Elasticsearch')
-            return {
-                'statusCode': 500,
-                'body': {
-                    'message': f'unable to delete collection to Elasticsearch: {str(e)}',
-                }
-            }
-        return None
-
-    def __delete_rules_cumulus(self, cumulus_collection_doc):
-        rule_deletion_result = self.__cumulus_collection_query.delete_sqs_rules(
-            cumulus_collection_doc,
-            self.__cumulus_lambda_prefix
-        )
-        if 'status' not in rule_deletion_result:
-            LOGGER.error(f'status not in rule_creation_result. deleting collection: {rule_deletion_result}')
-            return {
-                'statusCode': 500,
-                'body': {
-                    'message': rule_deletion_result,
-                    'details': f'collection deletion result: {rule_deletion_result}'
-                }
-            }
-        return None
 
     def __delete_collection_uds(self):
         try:
@@ -175,27 +145,17 @@ class CollectionDapaCreation:
             creation_result = 'NA'
 
             if self.__include_cumulus:
-                executions_delete_result = self.__cumulus_collection_query.delete_executions(cumulus_collection_doc, self.__cumulus_lambda_prefix)
-                exec_delete_err, exec_delete_result = self.analyze_cumulus_result(executions_delete_result)
-                deletion_result['cumulus_executions_deletion'] = exec_delete_err if exec_delete_err is not None else exec_delete_result
-                sleep(10)
+                self.__delete_collection_execution(cumulus_collection_doc, deletion_result)
+                self.__delete_collection_rule(cumulus_collection_doc, deletion_result)
                 delete_result = self.__cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix, cumulus_collection_doc['name'], cumulus_collection_doc['version'])
                 delete_err, delete_result = self.analyze_cumulus_result(delete_result)
                 if delete_err is not None:
-                    executions_delete_result = self.__cumulus_collection_query.delete_executions(cumulus_collection_doc,
-                                                                                                 self.__cumulus_lambda_prefix)
-                    exec_delete_err, exec_delete_result = self.analyze_cumulus_result(executions_delete_result)
-                    deletion_result[
-                        'cumulus_executions_deletion'] = exec_delete_err if exec_delete_err is not None else exec_delete_result
-                    sleep(10)
-                    delete_result = self.__cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix,
-                                                                                      cumulus_collection_doc['name'],
-                                                                                      cumulus_collection_doc['version'])
+                    LOGGER.error(f'deleting collection ends in error. Trying again. {delete_err}')
+                    self.__delete_collection_execution(cumulus_collection_doc, deletion_result)
+                    self.__delete_collection_rule(cumulus_collection_doc, deletion_result)
+                    delete_result = self.__cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix, cumulus_collection_doc['name'], cumulus_collection_doc['version'])
                     delete_err, delete_result = self.analyze_cumulus_result(delete_result)
                 deletion_result['cumulus_collection_deletion'] = delete_err if delete_err is not None else delete_result
-                rule_deletion_result = self.__cumulus_collection_query.delete_sqs_rules(cumulus_collection_doc, self.__cumulus_lambda_prefix)
-                rule_delete_err, rule_delete_result = self.analyze_cumulus_result(rule_deletion_result)
-                deletion_result['cumulus_rule_deletion'] = rule_delete_err if rule_delete_err is not None else rule_delete_result
             else:
                 deletion_result['cumulus_executions_deletion'] = 'NA'
                 deletion_result['cumulus_rule_deletion'] = 'NA'
@@ -220,6 +180,20 @@ class CollectionDapaCreation:
             }
         }
 
+    def __delete_collection_rule(self, cumulus_collection_doc, deletion_result):
+        if 'cumulus_rule_deletion' in deletion_result and 'statusCode' not in deletion_result['cumulus_rule_deletion']:
+            return
+        rule_deletion_result = self.__cumulus_collection_query.delete_sqs_rules(cumulus_collection_doc, self.__cumulus_lambda_prefix)
+        rule_delete_err, rule_delete_result = self.analyze_cumulus_result(rule_deletion_result)
+        deletion_result['cumulus_rule_deletion'] = rule_delete_err if rule_delete_err is not None else rule_delete_result
+        return
+
+    def __delete_collection_execution(self, cumulus_collection_doc, deletion_result):
+        executions_delete_result = self.__cumulus_collection_query.delete_executions(cumulus_collection_doc, self.__cumulus_lambda_prefix)
+        exec_delete_err, exec_delete_result = self.analyze_cumulus_result(executions_delete_result)
+        deletion_result['cumulus_executions_deletion'] = exec_delete_err if exec_delete_err is not None else exec_delete_result
+        sleep(10)
+        return
     def create(self):
         try:
             cumulus_collection_doc = self.__collection_transformer.from_stac(self.__request_body)
