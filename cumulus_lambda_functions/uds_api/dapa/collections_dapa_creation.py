@@ -146,15 +146,23 @@ class CollectionDapaCreation:
             creation_result = 'NA'
 
             if self.__include_cumulus:
-                result = self.__cumulus_collection_query.delete_executions(cumulus_collection_doc, self.__cumulus_lambda_prefix)
-                print(f'execution list result: {result}')
-                self.__delete_collection_execution(cumulus_collection_doc, deletion_result)
+                result = self.__cumulus_collection_query.list_executions(cumulus_collection_doc, self.__cumulus_lambda_prefix)
+                LOGGER.debug(f'execution list result: {result}')
+                if len(result['results']) > 0:
+                    self.__delete_collection_execution(cumulus_collection_doc, deletion_result)
+                    return {
+                        'statusCode': 409,
+                        'body': {
+                            'message': f'There are cumulus executions for this collection. Deleting them. Pls try again in a few minutes.',
+                        }
+                    }
+                # self.__delete_collection_execution(cumulus_collection_doc, deletion_result)
                 self.__delete_collection_rule(cumulus_collection_doc, deletion_result)
                 delete_result = self.__cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix, cumulus_collection_doc['name'], cumulus_collection_doc['version'])
                 delete_err, delete_result = self.analyze_cumulus_result(delete_result)
                 if delete_err is not None:
                     LOGGER.error(f'deleting collection ends in error. Trying again. {delete_err}')
-                    self.__delete_collection_execution(cumulus_collection_doc, deletion_result)
+                    # self.__delete_collection_execution(cumulus_collection_doc, deletion_result)
                     self.__delete_collection_rule(cumulus_collection_doc, deletion_result)
                     delete_result = self.__cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix, cumulus_collection_doc['name'], cumulus_collection_doc['version'])
                     delete_err, delete_result = self.analyze_cumulus_result(delete_result)

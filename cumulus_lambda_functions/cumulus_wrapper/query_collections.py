@@ -254,12 +254,12 @@ class CollectionsQuery(CumulusBase):
                 return {'client_error': query_result}
             query_result = json.loads(query_result['body'])
             LOGGER.debug(f'json query_result: {query_result}')
-            if 'id' not in query_result:
+            if 'results' not in query_result:
                 return {'server_error': f'invalid response: {query_result}'}
         except Exception as e:
             LOGGER.exception('error while invoking')
             return {'server_error': f'error while invoking:{str(e)}'}
-        return {'status': query_result}
+        return {'results': query_result['results']}
 
     def create_sqs_rules(self, new_collection: dict, private_api_prefix: str, sqs_url: str, provider_name: str = '', workflow_name: str = 'CatalogGranule', visibility_timeout: int = 1800):
         """
