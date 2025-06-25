@@ -12,6 +12,7 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 
 
 CollectionIdentifier = namedtuple('CollectionIdentifier', ['urn', 'nasa', 'project', 'tenant', 'venue', 'id'])
+GranuleIdentifier = namedtuple('CollectionIdentifier', ['urn', 'nasa', 'project', 'tenant', 'venue', 'id', 'granule'])
 
 
 class UdsCollections:
@@ -34,6 +35,14 @@ class UdsCollections:
         if len(collection_identifier_parts) < 6:
             raise ValueError(f'invalid collection: {collection_identifier_parts}')
         return CollectionIdentifier._make(collection_identifier_parts[0:6])
+
+    @staticmethod
+    def decode_granule_identifier(incoming_identifier: str) -> GranuleIdentifier:
+        collection_identifier_parts = incoming_identifier.split(':')
+        if len(collection_identifier_parts) < 7:
+            raise ValueError(f'invalid collection: {collection_identifier_parts}')
+        return GranuleIdentifier._make(collection_identifier_parts[0:6] + [':'.join(collection_identifier_parts[6:])])
+
 
     def __bbox_to_polygon(self, bbox: list):
         if len(bbox) != 4:

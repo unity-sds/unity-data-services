@@ -305,6 +305,17 @@ class GranulesDbIndex:
         # TODO validate custom metadata vs the latest index to filter extra items
         return
 
+    def get_size(self, tenant: str, tenant_venue: str, collection_id: str):
+        read_alias_name = f'{DBConstants.granules_read_alias_prefix}_{tenant}_{tenant_venue}'.lower().strip()
+        search_dsl = {
+            'query': {'bool': {'must': [{
+                'term': {'collection': collection_id}
+            }]}},
+            'size': 0
+        }
+        search_result = self.__es.query(search_dsl, querying_index=read_alias_name)
+        return self.__es.get_result_size(search_result)
+
     def dsl_search(self, tenant: str, tenant_venue: str, search_dsl: dict):
         read_alias_name = f'{DBConstants.granules_read_alias_prefix}_{tenant}_{tenant_venue}'.lower().strip()
         if 'sort' not in search_dsl:  # We cannot paginate w/o sort. So, max is 10k items:
