@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [9.15.1] - 2025-06-25
+### Fixed
+- [#597](https://github.com/unity-sds/unity-data-services/pull/597) fix: collection deletion - adding cumulus execution deletions
+
 ## [9.15.0] - 2025-06-03
 ### Changed
 - [#591](https://github.com/unity-sds/unity-data-services/pull/591) feat: empty collection delete
