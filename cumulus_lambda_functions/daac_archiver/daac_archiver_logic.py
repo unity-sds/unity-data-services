@@ -3,12 +3,14 @@ import os
 from time import sleep
 
 import requests
+from mdps_ds_lib.lib.cumulus_stac.item_transformer import ItemTransformer
 from mdps_ds_lib.lib.utils.file_utils import FileUtils
 
 from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 
 from mdps_ds_lib.lib.aws.aws_message_transformers import AwsMessageTransformers
 from mdps_ds_lib.lib.utils.json_validator import JsonValidator
+from pystac import Item
 
 from cumulus_lambda_functions.lib.uds_db.granules_db_index import GranulesDbIndex
 from mdps_ds_lib.lib.aws.aws_sns import AwsSns
@@ -145,6 +147,85 @@ class DaacArchiverLogic:
         uds_cnm_json = AwsMessageTransformers().sqs_sns(event)
         LOGGER.debug(f'sns_msg: {uds_cnm_json}')
         self.send_to_daac_internal(uds_cnm_json)
+        return
+
+    def __extract_files_maap(self, asset_dict, daac_config):
+        result_files = []
+        # https://github.com/podaac/cloud-notification-message-schema
+        for k, v in asset_dict.items():
+            # if v.roles[0]['type'] not in archiving_types:
+            #     continue
+            temp = {
+                'type': v.roles[0],
+                'uri': self.revert_to_s3_url(v.href),
+                'name': os.path.basename(v.href),
+                'checksumType': 'md5',
+                'checksum': v.extra_fields['file:checksum'],
+                'size': v.extra_fields['file:size']
+            }
+            result_files.append(temp)  # TODO remove missing md5?
+
+        if 'archiving_types' not in daac_config or len(daac_config['archiving_types']) < 1:
+            return result_files  # TODO remove missing md5?
+        archiving_types = {k['data_type']: [] if 'file_extension' not in k else k['file_extension'] for k in daac_config['archiving_types']}
+        result_files1 = []
+        for each_file in result_files:
+            if each_file['type'] not in archiving_types:
+                continue
+            file_extensions = archiving_types[each_file['type']]
+            if len(file_extensions) < 1:
+                result_files1.append(each_file)  # TODO remove missing md5?
+                continue
+            temp_filename = each_file['name'].upper().strip()
+            if any([temp_filename.endswith(k.upper()) for k in file_extensions]):
+                result_files1.append(each_file)  # TODO remove missing md5?
+        return result_files1
+
+    def send_to_daac_maap(self, granules_json):
+        daac_configs = self.__archive_index_logic.percolate_maap_document(granules_json)
+        if daac_configs is None or len(daac_configs) < 1:
+            LOGGER.debug(f'this granule is not configured for archival: {granules_json}')
+            return
+        granules_item = Item.from_dict(granules_json)
+        errors = []
+        for each_daac_config in daac_configs:
+            LOGGER.debug(f'working on {each_daac_config}')
+            result = JsonValidator(UdsArchiveConfigIndex.db_record_schema).validate(each_daac_config)
+            if result is not None:
+                errors.append(f'each_daac_config does not have valid schema. Pls re-add the daac config: {result} for {each_daac_config}')
+                continue
+            try:
+                self.__sns.set_topic_arn(each_daac_config['daac_sns_topic_arn'])
+                daac_cnm_message = {
+                    "collection": {
+                        'name': each_daac_config['daac_collection_name'],
+                        'version': each_daac_config['daac_data_version'],
+                    },
+                    "identifier": granules_item.id,
+                    "submissionTime": f'{TimeUtils.get_current_time()}Z',
+                    "provider": each_daac_config['daac_provider'],
+                    "version": "1.6.0",  # TODO this is hardcoded?
+                    "product": {
+                        "name": granules_item.id,
+                        # "dataVersion": daac_config['daac_data_version'],
+                        'files': self.__extract_files_maap(granules_item.assets, each_daac_config),
+                    }
+                }
+                LOGGER.debug(f'daac_cnm_message: {daac_cnm_message}')
+                self.__sns.set_external_role(each_daac_config['daac_role_arn'],
+                                             each_daac_config['daac_role_session_name']).publish_message(
+                    json.dumps(daac_cnm_message), True)
+                return {
+                    'archive_status': 'cnm_s_success',
+                    'archive_error_message': '',
+                    'archive_error_code': '',
+                }
+            except Exception as e:
+                LOGGER.exception(f'failed during archival process')
+                return {
+                    'archive_status': 'cnm_s_failed',
+                    'archive_error_message': str(e),
+                }
         return
 
     def receive_from_daac(self, event: dict):

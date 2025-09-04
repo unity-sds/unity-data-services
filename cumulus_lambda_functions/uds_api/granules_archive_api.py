@@ -1,6 +1,7 @@
 import json
 import os
 
+from cumulus_lambda_functions.daac_archiver.daac_archiver_logic import DaacArchiverLogic
 from cumulus_lambda_functions.uds_api.dapa.granules_dapa_query_es import GranulesDapaQueryEs
 from cumulus_lambda_functions.uds_api.dapa.pagination_links_generator import PaginationLinksGenerator
 
@@ -21,6 +22,7 @@ from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGen
 
 from fastapi import APIRouter, HTTPException, Request
 
+from cumulus_lambda_functions.uds_api.granules_api import StacGranuleModel
 from cumulus_lambda_functions.uds_api.web_service_constants import WebServiceConstants
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
@@ -142,6 +144,30 @@ async def dapa_archive_get_config(request: Request, collection_id: str):
     if add_result['statusCode'] == 200:
         return add_result['body']
     raise HTTPException(status_code=add_result['statusCode'], detail=add_result['body'])
+
+@router.post("/{collection_id}/archive/{granule_id}")
+@router.post("/{collection_id}/archive/{granule_id}/")
+async def archive_single_granule_dapa(request: Request, collection_id: str, granule_id: str, granule: StacGranuleModel):
+    authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
+        .get_instance(UDSAuthorizerFactory.cognito,
+                      es_url=os.getenv('ES_URL'),
+                      es_port=int(os.getenv('ES_PORT', '443'))
+                      )
+    auth_info = FastApiUtils.get_authorization_info(request)
+    collection_identifier = UdsCollections.decode_identifier(collection_id)
+    if not authorizer.is_authorized_for_collection(DBConstants.read, collection_id,
+                                                   auth_info['ldap_groups'],
+                                                   collection_identifier.tenant,
+                                                   collection_identifier.venue):
+        LOGGER.debug(f'user: {auth_info["username"]} is not authorized for {collection_id}')
+        raise HTTPException(status_code=403, detail=json.dumps({
+            'message': 'not authorized to execute this action'
+        }))
+    new_granule = granule.model_dump()
+    update_result = DaacArchiverLogic().send_to_daac_maap(new_granule)
+
+    return
+
 
 @router.put("/{collection_id}/archive/{granule_id}")
 @router.put("/{collection_id}/archive/{granule_id}/")

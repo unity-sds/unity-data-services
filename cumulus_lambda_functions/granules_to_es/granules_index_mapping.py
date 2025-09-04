@@ -1,4 +1,5 @@
 class GranulesIndexMapping:
+    daac_percolator_name = 'uds_maap_percolator'
     archiving_keys = [
         'archive_status', 'archive_error_message', 'archive_error_code'
     ]
