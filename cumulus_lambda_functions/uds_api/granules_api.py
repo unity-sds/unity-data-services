@@ -10,7 +10,7 @@ from cumulus_lambda_functions.cumulus_wrapper.query_granules import GranulesQuer
 
 from cumulus_lambda_functions.uds_api.dapa.granules_dapa_query_es import GranulesDapaQueryEs
 from cumulus_lambda_functions.lib.uds_db.granules_db_index import GranulesDbIndex
-from cumulus_lambda_functions.uds_api.fast_api_utils import FastApiUtils
+from cumulus_lambda_functions.uds_api.fast_api_utils import FastApiUtils, uds_api_authorize
 
 from cumulus_lambda_functions.lib.authorization.uds_authorizer_abstract import UDSAuthorizorAbstract
 
@@ -22,7 +22,7 @@ from cumulus_lambda_functions.lib.uds_db.uds_collections import UdsCollections
 
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 
-from fastapi import APIRouter, HTTPException, Request, Query, Path
+from fastapi import APIRouter, HTTPException, Request, Query, Path, Depends
 
 from cumulus_lambda_functions.uds_api.dapa.pagination_links_generator import PaginationLinksGenerator
 from cumulus_lambda_functions.uds_api.web_service_constants import WebServiceConstants
@@ -36,25 +36,10 @@ router = APIRouter(
 )
 
 # https://docs.ogc.org/per/20-025r1.html#_get_collectionscollectionidvariables
-@router.get("/{collection_id}/variables")
-@router.get("/{collection_id}/variables/")
+@router.get("/{collection_id}/variables", dependencies=[Depends(uds_api_authorize)])
+@router.get("/{collection_id}/variables/", dependencies=[Depends(uds_api_authorize)])
 async def get_granules_dapa(request: Request, collection_id: str):
-    authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
-        .get_instance(UDSAuthorizerFactory.cognito,
-                      es_url=os.getenv('ES_URL'),
-                      es_port=int(os.getenv('ES_PORT', '443'))
-                      )
-    auth_info = FastApiUtils.get_authorization_info(request)
     collection_identifier = UdsCollections.decode_identifier(collection_id)
-    if not authorizer.is_authorized_for_collection(DBConstants.read, collection_id,
-                                                   auth_info['ldap_groups'],
-                                                   collection_identifier.tenant,
-                                                   collection_identifier.venue):
-        LOGGER.debug(f'user: {auth_info["username"]} is not authorized for {collection_id}')
-        raise HTTPException(status_code=403, detail=json.dumps({
-            'message': 'not authorized to execute this action'
-        }))
-
     try:
         granules_db_index = GranulesDbIndex()
         granule_index_mapping = granules_db_index.get_latest_index(collection_identifier.tenant, collection_identifier.venue)
@@ -68,8 +53,8 @@ async def get_granules_dapa(request: Request, collection_id: str):
     return custom_metadata
 
 
-@router.get("/{collection_id}/items")
-@router.get("/{collection_id}/items/")
+@router.get("/{collection_id}/items", dependencies=[Depends(uds_api_authorize)])
+@router.get("/{collection_id}/items/", dependencies=[Depends(uds_api_authorize)])
 async def get_granules_dapa(request: Request, collection_id: str=Path(description="Collection ID. To query across different collections, use '*'. Example: 'URN:NASA:UNITY:MY_TENANT:DEV:\\*'"),
                             limit: Union[int, None] = Query(10, description='Number of items in each page.'),
                             offset: Union[str, None] = Query(None, description='Pagination Item from current page to get the next page'),
@@ -80,21 +65,6 @@ async def get_granules_dapa(request: Request, collection_id: str=Path(descriptio
                             ):
     # https://docs.ogc.org/DRAFTS/24-030.html#sortby-parameter
     # https://docs.ogc.org/DRAFTS/24-030.html#_declaring_default_sort_order
-    authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
-        .get_instance(UDSAuthorizerFactory.cognito,
-                      es_url=os.getenv('ES_URL'),
-                      es_port=int(os.getenv('ES_PORT', '443'))
-                      )
-    auth_info = FastApiUtils.get_authorization_info(request)
-    collection_identifier = UdsCollections.decode_identifier(collection_id)
-    if not authorizer.is_authorized_for_collection(DBConstants.read, collection_id,
-                                                   auth_info['ldap_groups'],
-                                                   collection_identifier.tenant,
-                                                   collection_identifier.venue):
-        LOGGER.debug(f'user: {auth_info["username"]} is not authorized for {collection_id}')
-        raise HTTPException(status_code=403, detail=json.dumps({
-            'message': 'not authorized to execute this action'
-        }))
 
     try:
         pagination_links = PaginationLinksGenerator(request)
@@ -110,24 +80,9 @@ async def get_granules_dapa(request: Request, collection_id: str=Path(descriptio
     raise HTTPException(status_code=granules_result['statusCode'], detail=granules_result['body'])
 
 
-@router.get("/{collection_id}/items/{granule_id}")
-@router.get("/{collection_id}/items/{granule_id}/")
+@router.get("/{collection_id}/items/{granule_id}", dependencies=[Depends(uds_api_authorize)])
+@router.get("/{collection_id}/items/{granule_id}/", dependencies=[Depends(uds_api_authorize)])
 async def get_single_granule_dapa(request: Request, collection_id: str, granule_id: str):
-    authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
-        .get_instance(UDSAuthorizerFactory.cognito,
-                      es_url=os.getenv('ES_URL'),
-                      es_port=int(os.getenv('ES_PORT', '443'))
-                      )
-    auth_info = FastApiUtils.get_authorization_info(request)
-    collection_identifier = UdsCollections.decode_identifier(collection_id)
-    if not authorizer.is_authorized_for_collection(DBConstants.read, collection_id,
-                                                   auth_info['ldap_groups'],
-                                                   collection_identifier.tenant,
-                                                   collection_identifier.venue):
-        LOGGER.debug(f'user: {auth_info["username"]} is not authorized for {collection_id}')
-        raise HTTPException(status_code=403, detail=json.dumps({
-            'message': 'not authorized to execute this action'
-        }))
     try:
         api_base_prefix = FastApiUtils.get_api_base_prefix()
         pg_link_generator = PaginationLinksGenerator(request)
@@ -140,24 +95,10 @@ async def get_single_granule_dapa(request: Request, collection_id: str, granule_
         raise HTTPException(status_code=404, detail={'message': f'no granule with id: {granule_id} in collection: {collection_id}'})
     return granules_result
 
-@router.delete("/{collection_id}/items/{granule_id}")
-@router.delete("/{collection_id}/items/{granule_id}/")
+@router.delete("/{collection_id}/items/{granule_id}", dependencies=[Depends(uds_api_authorize)])
+@router.delete("/{collection_id}/items/{granule_id}/", dependencies=[Depends(uds_api_authorize)])
 async def delete_single_granule_dapa_actual(request: Request, collection_id: str, granule_id: str):
-    authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
-        .get_instance(UDSAuthorizerFactory.cognito,
-                      es_url=os.getenv('ES_URL'),
-                      es_port=int(os.getenv('ES_PORT', '443'))
-                      )
-    auth_info = FastApiUtils.get_authorization_info(request)
     collection_identifier = UdsCollections.decode_identifier(collection_id)
-    if not authorizer.is_authorized_for_collection(DBConstants.delete, collection_id,
-                                                   auth_info['ldap_groups'],
-                                                   collection_identifier.tenant,
-                                                   collection_identifier.venue):
-        LOGGER.debug(f'user: {auth_info["username"]} is not authorized for {collection_id}')
-        raise HTTPException(status_code=403, detail=json.dumps({
-            'message': 'not authorized to execute this action'
-        }))
     try:
         LOGGER.debug(f'deleting granule: {granule_id}')
         include_cumulus = os.getenv('CUMULUS_INCLUSION', 'TRUE').upper().strip() == 'TRUE'
@@ -252,25 +193,10 @@ class StacGranuleModel(BaseModel):
     stac_version: str
     type: str
 
-@router.put("/{collection_id}/items/{granule_id}")
-@router.put("/{collection_id}/items/{granule_id}/")
+
+@router.put("/{collection_id}/items/{granule_id}", dependencies=[Depends(uds_api_authorize)])
+@router.put("/{collection_id}/items/{granule_id}/", dependencies=[Depends(uds_api_authorize)])
 async def add_single_granule_dapa(request: Request, collection_id: str, granule_id: str, new_granule: StacGranuleModel, response: Response):
-    authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
-        .get_instance(UDSAuthorizerFactory.cognito,
-                      es_url=os.getenv('ES_URL'),
-                      es_port=int(os.getenv('ES_PORT', '443')),
-                      use_ssl=os.getenv('ES_USE_SSL', 'TRUE').strip() is True,
-                      )
-    auth_info = FastApiUtils.get_authorization_info(request)
-    collection_identifier = UdsCollections.decode_identifier(collection_id)
-    if not authorizer.is_authorized_for_collection(DBConstants.create, collection_id,
-                                                   auth_info['ldap_groups'],
-                                                   collection_identifier.tenant,
-                                                   collection_identifier.venue):
-        LOGGER.debug(f'user: {auth_info["username"]} is not authorized for {collection_id}')
-        raise HTTPException(status_code=403, detail=json.dumps({
-            'message': 'not authorized to execute this action'
-        }))
     try:
         LOGGER.debug(f'adding granule: {granule_id}')
         new_granule = new_granule.model_dump()
@@ -297,24 +223,9 @@ async def add_single_granule_dapa(request: Request, collection_id: str, granule_
         raise HTTPException(status_code=500, detail=str(e))
     return {}
 
-# @router.delete("/{collection_id}/items/{granule_id}")
-# @router.delete("/{collection_id}/items/{granule_id}/")
+# @router.delete("/{collection_id}/items/{granule_id}", dependencies=[Depends(uds_api_authorize)])
+# @router.delete("/{collection_id}/items/{granule_id}/", dependencies=[Depends(uds_api_authorize)])
 # async def delete_single_granule_dapa_facade(request: Request, collection_id: str, granule_id: str, response: Response, response_class=JSONResponse):
-#     authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
-#         .get_instance(UDSAuthorizerFactory.cognito,
-#                       es_url=os.getenv('ES_URL'),
-#                       es_port=int(os.getenv('ES_PORT', '443'))
-#                       )
-#     auth_info = FastApiUtils.get_authorization_info(request)
-#     collection_identifier = UdsCollections.decode_identifier(collection_id)
-#     if not authorizer.is_authorized_for_collection(DBConstants.delete, collection_id,
-#                                                    auth_info['ldap_groups'],
-#                                                    collection_identifier.tenant,
-#                                                    collection_identifier.venue):
-#         LOGGER.debug(f'user: {auth_info["username"]} is not authorized for {collection_id}')
-#         raise HTTPException(status_code=403, detail=json.dumps({
-#             'message': 'not authorized to execute this action'
-#         }))
 #     try:
 #         LOGGER.debug(f'deleting granule: {granule_id}')
 #         granules_dapa_query = GranulesDapaQueryEs(collection_id, -1, -1, None, None, None, '')
