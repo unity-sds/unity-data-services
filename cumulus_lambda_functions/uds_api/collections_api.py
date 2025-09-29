@@ -10,7 +10,7 @@ from cumulus_lambda_functions.lib.uds_db.granules_db_index import GranulesDbInde
 
 from cumulus_lambda_functions.lib.uds_db.uds_collections import UdsCollections
 
-from cumulus_lambda_functions.uds_api.fast_api_utils import FastApiUtils, uds_api_authorize
+from cumulus_lambda_functions.uds_api.fast_api_utils import FastApiUtils, uds_api_authorize, api_authorized_collections
 
 from cumulus_lambda_functions.lib.authorization.uds_authorizer_factory import UDSAuthorizerFactory
 
@@ -141,36 +141,21 @@ async def get_single_collection(request: Request, collection_id: str, limit: Uni
 
 @router.get("")
 @router.get("/")
-async def query_collections(request: Request, collection_id: Union[str, None] = None, limit: Union[int, None] = 10, offset: Union[int, None] = 0, ):
+async def query_collections(request: Request, collection_id: Union[str, None] = None, limit: Union[int, None] = 10, offset: Union[int, None] = 0, authorized_collections = Depends(api_authorized_collections)):
     LOGGER.debug(f'starting query_collections: {collection_id}')
     LOGGER.debug(f'starting query_collections request: {request}')
-
-    authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
-        .get_instance(UDSAuthorizerFactory.cognito,
-                      es_url=os.getenv('ES_URL'),
-                      es_port=int(os.getenv('ES_PORT', '443'))
-                      )
-    auth_info = FastApiUtils.get_authorization_info(request)
     uds_collections = UdsCollections(es_url=os.getenv('ES_URL'),
                                      es_port=int(os.getenv('ES_PORT', '443')), es_type=os.getenv('ES_TYPE', 'AWS'))
     if collection_id is not None:
-        collection_identifier = uds_collections.decode_identifier(collection_id)
-        if not authorizer.is_authorized_for_collection(DBConstants.read, collection_id,
-                                                       auth_info['ldap_groups'],
-                                                       collection_identifier.tenant,
-                                                       collection_identifier.venue):
-            LOGGER.debug(f'user: {auth_info["username"]} is not authorized for {collection_id}')
-            raise HTTPException(status_code=403, detail=json.dumps({
-                'message': 'not authorized to execute this action'
-            }))
-    else:
-        collection_regexes = authorizer.get_authorized_collections(DBConstants.read, auth_info['ldap_groups'])
-        LOGGER.info(f'collection_regexes: {collection_regexes}')
-        authorized_collections = uds_collections.get_collections(collection_regexes)
-        LOGGER.info(f'authorized_collections: {authorized_collections}')
-        collection_id = [k[DBConstants.collection_id] for k in authorized_collections]
-        LOGGER.info(f'authorized_collection_ids: {collection_id}')
-        # NOTE: 2022-11-21: only pass collections. not versions
+        raise HTTPException(status_code=301, detail=f'Pls use collection_id as path parameter to retrieve a single collection.')
+
+    # collection_regexes = authorizer.get_authorized_collections(DBConstants.read, auth_info['ldap_groups'])
+    LOGGER.info(f'collection_regexes: {authorized_collections}')
+    authorized_collections = uds_collections.get_collections(collection_regexes)
+    LOGGER.info(f'authorized_collections: {authorized_collections}')
+    collection_id = [k[DBConstants.collection_id] for k in authorized_collections]
+    LOGGER.info(f'authorized_collection_ids: {collection_id}')
+    # NOTE: 2022-11-21: only pass collections. not versions
 
     try:
         custom_params = {}

@@ -97,6 +97,18 @@ class FastApiUtils:
         return stac_browser_prefix, temp_static_parent_dir
 
 
+async def api_authorized_collections(request: Request):
+    auth_info = FastApiUtils.get_authorization_info(request)  # TODO how to get different authorization info?
+
+    authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
+        .get_instance(os.getenv('AUTHORIZER_TYPE'),
+                      es_url=os.getenv('ES_URL'),
+                      es_port=int(os.getenv('ES_PORT', '443')),
+                      use_ssl=os.getenv('ES_USE_SSL', 'TRUE').strip() is True,
+                      )
+    collection_regexes = authorizer.get_authorized_collections(DBConstants.read, auth_info['ldap_groups'])
+    return collection_regexes
+
 async def uds_api_authorize(request: Request):
     db_constants_map = {
         'GET': DBConstants.read,
@@ -107,7 +119,7 @@ async def uds_api_authorize(request: Request):
     }
     authorization_type = db_constants_map[request.method]
     if request.method not in db_constants_map:
-        raise HTTPException(status_code=400, detail=json.dumps({
+        raise HTTPException(status_code=405, detail=json.dumps({
             'message': f'unknown HTTP method for authorization. Pls use these {db_constants_map}'
         }))
     if 'collection_id' not in request.path_params:
