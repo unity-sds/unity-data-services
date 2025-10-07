@@ -6,9 +6,13 @@ from mdps_ds_lib.lib.utils.file_utils import FileUtils
 
 from mdps_ds_lib.lib.constants import Constants
 
+from cumulus_lambda_functions.lib.authorization.uds_authorizer_abstract import UDSAuthorizorAbstract
+from cumulus_lambda_functions.lib.authorization.uds_authorizer_factory import UDSAuthorizerFactory
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from fastapi import APIRouter, HTTPException, Request, Response
 
+from cumulus_lambda_functions.lib.uds_db.db_constants import DBConstants
+from cumulus_lambda_functions.lib.uds_db.uds_collections import UdsCollections
 from cumulus_lambda_functions.uds_api.web_service_constants import WebServiceConstants
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
@@ -20,6 +24,7 @@ class FastApiUtils:
         """
         :return:
         """
+        # TODO this can be a factory method
         action = request.method
         resource = request.url.path
         bearer_token = request.headers.get('Authorization', '')
@@ -90,3 +95,53 @@ class FastApiUtils:
         FastApiUtils.replace_in_folder(temp_static_parent_dir, f'"{WebServiceConstants.SETTING_PLACEHOLDER}"', json.dumps(stac_browser_settings))
         FastApiUtils.replace_in_folder(temp_static_parent_dir, f"'{WebServiceConstants.SETTING_PLACEHOLDER}'", json.dumps(stac_browser_settings))
         return stac_browser_prefix, temp_static_parent_dir
+
+
+async def api_authorized_collections(request: Request):
+    auth_info = FastApiUtils.get_authorization_info(request)  # TODO how to get different authorization info?
+
+    authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
+        .get_instance(os.getenv('AUTHORIZER_TYPE'),
+                      es_url=os.getenv('ES_URL'),
+                      es_port=int(os.getenv('ES_PORT', '443')),
+                      use_ssl=os.getenv('ES_USE_SSL', 'TRUE').strip() is True,
+                      )
+    collection_regexes = authorizer.get_authorized_collections(DBConstants.read, auth_info['ldap_groups'])
+    return collection_regexes
+
+async def uds_api_authorize(request: Request):
+    db_constants_map = {
+        'GET': DBConstants.read,
+        'DELETE': DBConstants.delete,
+        'PUT': DBConstants.create,
+        'POST': DBConstants.create,
+        'PATCH': DBConstants.create,  # TODO Update?
+    }
+    authorization_type = db_constants_map[request.method]
+    if request.method not in db_constants_map:
+        raise HTTPException(status_code=405, detail=json.dumps({
+            'message': f'unknown HTTP method for authorization. Pls use these {db_constants_map}'
+        }))
+    if 'collection_id' not in request.path_params:
+        raise HTTPException(status_code=400, detail=json.dumps({
+            'message': 'collection_id is needed as path parameter for authorization.'
+        }))
+    collection_id = request.path_params['collection_id']
+    auth_info = FastApiUtils.get_authorization_info(request)  # TODO how to get different authorization info?
+
+    authorizer: UDSAuthorizorAbstract = UDSAuthorizerFactory() \
+        .get_instance(os.getenv('AUTHORIZER_TYPE'),
+                      es_url=os.getenv('ES_URL'),
+                      es_port=int(os.getenv('ES_PORT', '443')),
+                      use_ssl=os.getenv('ES_USE_SSL', 'TRUE').strip() is True,
+                      )
+    collection_identifier = UdsCollections.decode_identifier(collection_id)
+    if not authorizer.is_authorized_for_collection(authorization_type, collection_id,
+                                                   auth_info['ldap_groups'],
+                                                   collection_identifier.tenant,
+                                                   collection_identifier.venue):
+        LOGGER.debug(f'user: {auth_info["username"]} is not authorized for {collection_id}')
+        raise HTTPException(status_code=403, detail=json.dumps({
+            'message': 'not authorized to execute this action'
+        }))
+    return True
