@@ -1,3 +1,6 @@
+import httpx
+from fastapi import Response
+
 from fastapi.staticfiles import StaticFiles
 
 from cumulus_lambda_functions.uds_api.fast_api_utils import FastApiUtils
@@ -63,6 +66,40 @@ async def get_open_api(request: Request):
     for k in dropping_keys:
         default_open_api_doc['paths'].pop(k)
     return app.openapi()
+
+
+# NOTE: This is how you create a proxy in Fast API.
+
+# BACKEND_URL = 'http://localhost:8080/'  # TODO make sure it ends with '/'
+# @app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+# async def proxy(full_path: str, request: Request):
+#     # Construct full target URL
+#     fast_api_path = full_path.replace(f'{api_base_prefix}/', '')
+#     target_url = f"{BACKEND_URL}{fast_api_path}"
+#     print(f'full_path = {full_path}')
+#     print(f'target_url = {target_url}')
+#     # Prepare the request
+#     method = request.method
+#     headers = dict(request.headers)
+#     body = await request.body()
+#
+#     async with httpx.AsyncClient() as client:
+#         backend_response = await client.request(
+#             method,
+#             target_url,
+#             content=body,
+#             headers=headers,
+#             params=request.query_params
+#         )
+#
+#     # Return the response from the backend
+#     return Response(
+#         content=backend_response.content,
+#         status_code=backend_response.status_code,
+#         headers=dict(backend_response.headers),
+#     )
+#
+
 
 # to make it work with Amazon Lambda, we create a handler object
 handler = Mangum(app=app)

@@ -36,3 +36,25 @@ async def es_setup(request: Request, tenant: Union[str, None]=None, venue: Union
         LOGGER.exception(f'')
         raise HTTPException(status_code=500, detail=str(e))
     return {'message': 'successful'}
+
+
+@router.put("/maap_daac_config_setup")
+@router.put("/maap_daac_config_setup/")
+async def maap_daac_config_setup(request: Request, tenant: Union[str, None]=None, venue: Union[str, None]=None, group_names: Union[str, None]=None):
+    LOGGER.debug(f'started maap_daac_config_setup')
+    auth_info = FastApiUtils.get_authorization_info(request)
+    query_body = {
+        'tenant': tenant,
+        'venue': venue,
+        'ldap_group_names': group_names if group_names is None else [k.strip() for k in group_names.split(',')],
+    }
+    auth_crud = AuthCrud(auth_info, query_body)
+    is_admin_result = auth_crud.is_admin()
+    if is_admin_result['statusCode'] != 200:
+        raise HTTPException(status_code=is_admin_result['statusCode'], detail=is_admin_result['body'])
+    try:
+        SetupESIndexAlias().setup_maap_daac_index()
+    except Exception as e:
+        LOGGER.exception(f'')
+        raise HTTPException(status_code=500, detail=str(e))
+    return {'message': 'successful'}

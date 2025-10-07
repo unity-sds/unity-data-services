@@ -1,5 +1,6 @@
 from copy import deepcopy
 
+from cumulus_lambda_functions.granules_to_es.granules_index_mapping import GranulesIndexMapping
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 
 from mdps_ds_lib.lib.utils.json_validator import JsonValidator
@@ -55,6 +56,29 @@ class UdsArchiveConfigIndex:
                                                          use_ssl=use_ssl,
                                                          port=es_port)
         self.__tenant, self.__venue = '', ''
+
+    def percolate_maap_document(self, document):
+        dsl = {
+            'size': 9999,
+            # '_source': ['ss_name', 'ss_type', 'ss_username'],
+            'query': {
+                'percolate': {
+                    'field': 'ss_query',
+                    'document': document,
+                }
+            },
+            # 'sort': [{'ss_name': {'order': 'asc'}}]
+        }
+        try:
+            percolated_result = self.__es.query(dsl, querying_index=GranulesIndexMapping.daac_percolator_name)
+        except Exception as e:
+            if e.error == 'resource_not_found_exception':
+                LOGGER.debug(f'unable to find document: {document} on index: {GranulesIndexMapping.daac_percolator_name}')
+                return None
+            LOGGER.exception(f'error while percolating')
+            raise e
+        percolated_result = [k['_source'] for k in percolated_result['hits']['hits']]
+        return percolated_result
 
     def percolate_document(self, document_id):
         write_alias_name = f'{DBConstants.granules_write_alias_prefix}_{self.__tenant}_{self.__venue}'.lower().strip()

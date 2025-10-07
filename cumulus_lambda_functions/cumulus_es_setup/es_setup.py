@@ -1,5 +1,8 @@
 import os
 
+import requests
+
+from cumulus_lambda_functions.granules_to_es.granules_index_mapping import GranulesIndexMapping
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 
 from mdps_ds_lib.lib.aws.es_abstract import ESAbstract
@@ -22,6 +25,36 @@ class SetupESIndexAlias:
                                                          use_ssl=os.getenv('ES_USE_SSL', 'TRUE').strip() is True,
                                                          port=int(os.getenv('ES_PORT', '443'))
                                                          )
+
+    def setup_maap_daac_index(self):
+        stac_fast_version = '6.0.0'
+        url = f"https://raw.githubusercontent.com/stac-utils/stac-fastapi-elasticsearch-opensearch/refs/tags/v{stac_fast_version}/stac_fastapi/sfeos_helpers/stac_fastapi/sfeos_helpers/mappings.py"
+        resp = requests.get(url)
+        resp.raise_for_status()
+
+        code = resp.text
+        namespace = {}
+        exec(code, namespace)
+        es_items_mappings = namespace["ES_ITEMS_MAPPINGS"]
+        LOGGER.debug(f'stac fast API es_items_mappings: {es_items_mappings}')
+        es_items_mappings['properties'] = {
+            **GranulesIndexMapping.percolator_mappings,
+            **es_items_mappings['properties'],
+        }
+        index_mapping = {
+            "settings": {
+                "number_of_shards": 3,
+                "number_of_replicas": 2
+            },
+            "mappings": es_items_mappings
+        }
+        index_name = f'{GranulesIndexMapping.daac_percolator_name}--{stac_fast_version.replace(".", "-")}'
+        try:
+            self.__es.create_index(index_name, index_mapping)
+            self.__es.create_alias(index_name, GranulesIndexMapping.daac_percolator_name)
+        except:
+            LOGGER.exception(f'failed to create index / alias for: {GranulesIndexMapping.daac_percolator_name}')
+        return self
 
     def get_index_mapping(self, index_name: str):
         if not hasattr(es_mappings, index_name):
