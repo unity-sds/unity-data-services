@@ -15,7 +15,6 @@ from cumulus_lambda_functions.lib.authorization.uds_authorizer_abstract import U
 
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from fastapi import APIRouter, HTTPException, Request, Response
-from cumulus_lambda_functions.uds_api.dapa.collections_dapa_query import CollectionDapaQuery
 from cumulus_lambda_functions.uds_api.dapa.pagination_links_generator import PaginationLinksGenerator
 from cumulus_lambda_functions.uds_api.web_service_constants import WebServiceConstants
 
@@ -50,13 +49,7 @@ async def get_catalog(request: Request, limit: Union[int, None] = 10, offset: Un
     # NOTE: 2022-11-21: only pass collections. not versions
 
     try:
-        custom_params = {}
-        if limit > CollectionDapaQuery.max_limit:
-            LOGGER.debug(f'incoming limit > {CollectionDapaQuery.max_limit}. resetting to max. incoming limit: {limit}')
-            limit = CollectionDapaQuery.max_limit
-            custom_params['limit'] = limit
-        LOGGER.debug(f'new limit: {limit}')
-        pg_link_generator = PaginationLinksGenerator(request, custom_params)
+        pg_link_generator = PaginationLinksGenerator(request)
 
         catalog = Catalog(
             id='unity_ds',

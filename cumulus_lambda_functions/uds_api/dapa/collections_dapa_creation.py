@@ -1,24 +1,17 @@
 import json
 import os
-from time import sleep
 from typing import Optional
 
 import pystac
 from pydantic import BaseModel
-
 from mdps_ds_lib.lib.utils.time_utils import TimeUtils
-
 from cumulus_lambda_functions.lib.uds_db.uds_collections import UdsCollections
 from starlette.datastructures import URL
-
-from cumulus_lambda_functions.cumulus_wrapper.query_collections import CollectionsQuery
-
 from mdps_ds_lib.lib.cumulus_stac.collection_transformer import CollectionTransformer
-
 from mdps_ds_lib.lib.aws.aws_lambda import AwsLambda
-
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
+
 
 class SummariesModel(BaseModel):
     granuleId: list[str]
@@ -30,11 +23,13 @@ class ExtentModel(BaseModel):
     temporal: dict
     spatial: dict
 
+
 class CumulusLinkModel(BaseModel):
     rel: str
     href: str
     type: Optional[str] = ''
     title: Optional[str] = ''
+
 
 class CumulusCollectionModel(BaseModel):
     """
@@ -64,6 +59,7 @@ class CumulusCollectionModel(BaseModel):
     providers: list[dict]
     extent: ExtentModel
 
+
 class CollectionDapaCreation:
     def __init__(self, request_body):
         required_env = ['CUMULUS_LAMBDA_PREFIX', 'CUMULUS_WORKFLOW_SQS_URL']
@@ -80,7 +76,6 @@ class CollectionDapaCreation:
         self.__provider_id = os.getenv('UNITY_DEFAULT_PROVIDER', '')
         self.__collection_transformer = CollectionTransformer(self.__report_to_ems)
         self.__uds_collection = UdsCollections(es_url=os.getenv('ES_URL'), es_port=int(os.getenv('ES_PORT', '443')), es_type=os.getenv('ES_TYPE', 'AWS'), use_ssl=os.getenv('ES_USE_SSL', 'TRUE').strip() is True)
-        self.__cumulus_collection_query = CollectionsQuery('', '')
 
     def analyze_cumulus_result(self, cumulus_request_result):
         if 'status' not in cumulus_request_result:
@@ -92,7 +87,6 @@ class CollectionDapaCreation:
                 }
             }, None
         return None, cumulus_request_result
-
 
     def __delete_collection_uds(self):
         try:
@@ -110,7 +104,6 @@ class CollectionDapaCreation:
         return None
 
     def __create_collection_uds(self, cumulus_collection_doc):
-
         try:
             time_range = self.__collection_transformer.get_collection_time_range()
             self.__uds_collection.add_collection(
@@ -123,10 +116,6 @@ class CollectionDapaCreation:
         except Exception as e:
             LOGGER.exception(f'failed to add collection to Elasticsearch')
             delete_collection_result = 'NA'
-            if self.__include_cumulus:
-                delete_collection_result = self.__cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix,
-                                                                                  cumulus_collection_doc['name'],
-                                                                                  cumulus_collection_doc['version'])
             return {
                 'statusCode': 500,
                 'body': {
@@ -144,33 +133,9 @@ class CollectionDapaCreation:
             self.__provider_id = self.__provider_id if self.__collection_transformer.output_provider is None else self.__collection_transformer.output_provider
             LOGGER.debug(f'__provider_id: {self.__provider_id}')
             creation_result = 'NA'
-
-            if self.__include_cumulus:
-                result = self.__cumulus_collection_query.list_executions(cumulus_collection_doc, self.__cumulus_lambda_prefix)
-                LOGGER.debug(f'execution list result: {result}')
-                if len(result['results']) > 0:
-                    self.__delete_collection_execution(cumulus_collection_doc, deletion_result)
-                    return {
-                        'statusCode': 409,
-                        'body': {
-                            'message': f'There are cumulus executions for this collection. Deleting them. Pls try again in a few minutes.',
-                        }
-                    }
-                # self.__delete_collection_execution(cumulus_collection_doc, deletion_result)
-                self.__delete_collection_rule(cumulus_collection_doc, deletion_result)
-                delete_result = self.__cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix, cumulus_collection_doc['name'], cumulus_collection_doc['version'])
-                delete_err, delete_result = self.analyze_cumulus_result(delete_result)
-                if delete_err is not None:
-                    LOGGER.error(f'deleting collection ends in error. Trying again. {delete_err}')
-                    # self.__delete_collection_execution(cumulus_collection_doc, deletion_result)
-                    self.__delete_collection_rule(cumulus_collection_doc, deletion_result)
-                    delete_result = self.__cumulus_collection_query.delete_collection(self.__cumulus_lambda_prefix, cumulus_collection_doc['name'], cumulus_collection_doc['version'])
-                    delete_err, delete_result = self.analyze_cumulus_result(delete_result)
-                deletion_result['cumulus_collection_deletion'] = delete_err if delete_err is not None else delete_result
-            else:
-                deletion_result['cumulus_executions_deletion'] = 'NA'
-                deletion_result['cumulus_rule_deletion'] = 'NA'
-                deletion_result['cumulus_collection_deletion'] = 'NA'
+            deletion_result['cumulus_executions_deletion'] = 'NA'
+            deletion_result['cumulus_rule_deletion'] = 'NA'
+            deletion_result['cumulus_collection_deletion'] = 'NA'
 
             uds_deletion_result = self.__delete_collection_uds()
             deletion_result['uds_collection_deletion'] = uds_deletion_result if uds_deletion_result is not None else 'succeeded'
@@ -191,45 +156,16 @@ class CollectionDapaCreation:
             }
         }
 
-    def __delete_collection_rule(self, cumulus_collection_doc, deletion_result):
-        if 'cumulus_rule_deletion' in deletion_result and 'statusCode' not in deletion_result['cumulus_rule_deletion']:
-            return
-        rule_deletion_result = self.__cumulus_collection_query.delete_sqs_rules(cumulus_collection_doc, self.__cumulus_lambda_prefix)
-        rule_delete_err, rule_delete_result = self.analyze_cumulus_result(rule_deletion_result)
-        deletion_result['cumulus_rule_deletion'] = rule_delete_err if rule_delete_err is not None else rule_delete_result
-        return
-
-    def __delete_collection_execution(self, cumulus_collection_doc, deletion_result):
-        executions_delete_result = self.__cumulus_collection_query.delete_executions(cumulus_collection_doc, self.__cumulus_lambda_prefix)
-        exec_delete_err, exec_delete_result = self.analyze_cumulus_result(executions_delete_result)
-        deletion_result['cumulus_executions_deletion'] = exec_delete_err if exec_delete_err is not None else exec_delete_result
-        sleep(10)
-        return
     def create(self):
         try:
             cumulus_collection_doc = self.__collection_transformer.from_stac(self.__request_body)
             self.__provider_id = self.__provider_id if self.__collection_transformer.output_provider is None else self.__collection_transformer.output_provider
             LOGGER.debug(f'__provider_id: {self.__provider_id}')
             creation_result = 'NA'
-            if self.__include_cumulus:
-                creation_cumulus_result = self.__cumulus_collection_query.create_collection(cumulus_collection_doc, self.__cumulus_lambda_prefix)
-                creation_err, creation_result = self.analyze_cumulus_result(creation_cumulus_result)
-                if creation_err is not None:
-                    return creation_err
             uds_creation_result = self.__create_collection_uds(cumulus_collection_doc)
             if uds_creation_result is not None:
                 return uds_creation_result
-            if self.__include_cumulus:
-                rule_creation_result = self.__cumulus_collection_query.create_sqs_rules(
-                    cumulus_collection_doc,
-                    self.__cumulus_lambda_prefix,
-                    self.__ingest_sqs_url,
-                    self.__provider_id,
-                    self.__workflow_name,
-                )
-                create_rule_err, create_rule_result = self.analyze_cumulus_result(rule_creation_result)
-                if create_rule_err is not None:
-                    return create_rule_err
+
             # validation_result = pystac.Collection.from_dict(self.__request_body).validate()
             # cumulus_collection_query = CollectionsQuery('', '')
             #

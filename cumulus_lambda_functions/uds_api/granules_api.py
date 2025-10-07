@@ -5,9 +5,6 @@ from typing import Union, Optional
 
 from pydantic import BaseModel
 from starlette.responses import Response, JSONResponse
-
-from cumulus_lambda_functions.cumulus_wrapper.query_granules import GranulesQuery
-
 from cumulus_lambda_functions.uds_api.dapa.granules_dapa_query_es import GranulesDapaQueryEs
 from cumulus_lambda_functions.lib.uds_db.granules_db_index import GranulesDbIndex
 from cumulus_lambda_functions.uds_api.fast_api_utils import FastApiUtils
@@ -160,13 +157,6 @@ async def delete_single_granule_dapa_actual(request: Request, collection_id: str
         }))
     try:
         LOGGER.debug(f'deleting granule: {granule_id}')
-        include_cumulus = os.getenv('CUMULUS_INCLUSION', 'TRUE').upper().strip() == 'TRUE'
-        if include_cumulus:
-            cumulus_lambda_prefix = os.getenv('CUMULUS_LAMBDA_PREFIX')
-            cumulus = GranulesQuery('https://na/dev', 'NA')
-            cumulus.with_collection_id(collection_id)
-            cumulus_delete_result = cumulus.delete_entry(cumulus_lambda_prefix, granule_id)  # TODO not sure it is correct granule ID
-            LOGGER.debug(f'cumulus_delete_result: {cumulus_delete_result}')
         es_delete_result = GranulesDbIndex().delete_entry(collection_identifier.tenant,
                                                           collection_identifier.venue,
                                                           granule_id
@@ -274,14 +264,6 @@ async def add_single_granule_dapa(request: Request, collection_id: str, granule_
     try:
         LOGGER.debug(f'adding granule: {granule_id}')
         new_granule = new_granule.model_dump()
-        include_cumulus = os.getenv('CUMULUS_INCLUSION', 'TRUE').upper().strip() == 'TRUE'
-        if include_cumulus:
-            cumulus_lambda_prefix = os.getenv('CUMULUS_LAMBDA_PREFIX')
-            cumulus = GranulesQuery('https://na/dev', 'NA')
-            cumulus.with_collection_id(collection_id)
-            raise NotImplementedError(f'Please implement to convert stac into cumulus granule')
-            cumulus_add_result = cumulus.add_entry(cumulus_lambda_prefix, {})  # TODO not sure it is correct granule ID
-            LOGGER.debug(f'cumulus_add_result: {cumulus_add_result}')
         if 'bbox' in new_granule:
             new_granule['bbox'] = GranulesDbIndex.to_es_bbox(new_granule['bbox'])
         collection_identifier = UdsCollections.decode_identifier(collection_id)
