@@ -11,6 +11,7 @@ from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 from mdps_ds_lib.lib.aws.aws_message_transformers import AwsMessageTransformers
 from mdps_ds_lib.lib.utils.json_validator import JsonValidator
 from pystac import Item
+from mdps_ds_lib.stac_fast_api_client.sfa_client_factory import SFAClientFactory
 
 from cumulus_lambda_functions.lib.uds_db.granules_db_index import GranulesDbIndex
 from mdps_ds_lib.lib.aws.aws_sns import AwsSns
@@ -228,6 +229,65 @@ class DaacArchiverLogic:
                 }
         return
 
+    def update_stac(self, cnm_notification_msg):
+        update_type = os.getenv('ARCHIVAL_STATUS_MECHANISM', '')
+        if not any([k for k in ['UDS', 'FAST_STAC'] if k == update_type]):
+            raise ValueError(f"missing ARCHIVAL_STATUS_MECHANISM environment variable or value is not {['UDS', 'FAST_STAC']}")
+        if update_type == 'UDS':
+            return self.update_stac_uds(cnm_notification_msg)
+        return self.update_stac_fast_api(cnm_notification_msg)
+
+    def update_stac_fast_api(self, cnm_notification_msg):
+        sfa_client = SFAClientFactory().get_instance_from_env()
+        collection_id, granule_id = ':'.join(cnm_notification_msg['identifier'].split(':')[:-1]), cnm_notification_msg['identifier']
+        # TODO assuming granule ID is URN:NASA:VENUE:TENANT:VENUE:COLLECTION_ID:COLLECTION_ID
+        existing_item = sfa_client.get_item(collection_id, granule_id)
+        # TODO handle error when no existing_item. Currently, it is requests.HTTPError with 404
+        if cnm_notification_msg['response']['status'] == 'SUCCESS':
+            latest_daac_status = {
+                'archive_status': 'cnm_r_success',
+                'archive_error_message': '',
+                'archive_error_code': '',
+            }
+        else:
+            latest_daac_status = {
+                'archive_status': 'cnm_r_failed',
+                'archive_error_message': cnm_notification_msg['response']['errorMessage'] if 'errorMessage' in cnm_notification_msg['response'] else 'unknown',
+                'archive_error_code': cnm_notification_msg['response']['errorCode'] if 'errorCode' in cnm_notification_msg['response'] else 'unknown',
+            }
+        latest_daac_status['event_time'] = TimeUtils.get_current_time()
+        existing_item['properties']['archival_statuses'] = existing_item['properties']['archival_statuses'] + [latest_daac_status] if 'archival_statuses' in existing_item['properties'] else [latest_daac_status]
+        updated_item = sfa_client.update_item(collection_id, granule_id, existing_item, update_whole=True)  # TODO partial update via patch is not working at this moment.
+        return
+
+    def update_stac_uds(self, cnm_notification_msg):
+        granule_identifier = UdsCollections.decode_identifier(cnm_notification_msg['identifier'])  # This is normally meant to be for collection. Since our granule ID also has collection id prefix. we can use this.
+        try:
+            existing_granule_object = self.__granules_index.get_entry(granule_identifier.tenant,
+                                                                      granule_identifier.venue,
+                                                                      cnm_notification_msg['identifier'])
+        except Exception as e:
+            LOGGER.exception(
+                f"error while attempting to retrieve existing record: {cnm_notification_msg['identifier']}, not continuing")
+            return
+        LOGGER.debug(f'existing_granule_object: {existing_granule_object}')
+        if cnm_notification_msg['response']['status'] == 'SUCCESS':
+            self.__granules_index.update_entry(granule_identifier.tenant, granule_identifier.venue, {
+                'archive_status': 'cnm_r_success',
+                'archive_error_message': '',
+                'archive_error_code': '',
+            }, cnm_notification_msg['identifier'])
+            return
+        self.__granules_index.update_entry(granule_identifier.tenant, granule_identifier.venue, {
+            'archive_status': 'cnm_r_failed',
+            'archive_error_message': cnm_notification_msg['response']['errorMessage'] if 'errorMessage' in
+                                                                                         cnm_notification_msg[
+                                                                                             'response'] else 'unknown',
+            'archive_error_code': cnm_notification_msg['response']['errorCode'] if 'errorCode' in cnm_notification_msg[
+                'response'] else 'unknown',
+        }, cnm_notification_msg['identifier'])
+        return
+
     def receive_from_daac(self, event: dict):
         LOGGER.debug(f'receive_from_daac#event: {event}')
         sns_msg = AwsMessageTransformers().sqs_sns(event)
@@ -242,23 +302,5 @@ class DaacArchiverLogic:
             raise ValueError(f'input cnm event has cnm_msg_schema validation errors: {result}')
         if 'response' not in cnm_notification_msg:
             raise ValueError(f'missing response in {cnm_notification_msg}')
-        granule_identifier = UdsCollections.decode_identifier(cnm_notification_msg['identifier'])  # This is normally meant to be for collection. Since our granule ID also has collection id prefix. we can use this.
-        try:
-            existing_granule_object = self.__granules_index.get_entry(granule_identifier.tenant, granule_identifier.venue, cnm_notification_msg['identifier'])
-        except Exception as e:
-            LOGGER.exception(f"error while attempting to retrieve existing record: {cnm_notification_msg['identifier']}, not continuing")
-            return
-        LOGGER.debug(f'existing_granule_object: {existing_granule_object}')
-        if cnm_notification_msg['response']['status'] == 'SUCCESS':
-            self.__granules_index.update_entry(granule_identifier.tenant, granule_identifier.venue, {
-                'archive_status': 'cnm_r_success',
-                'archive_error_message': '',
-                'archive_error_code': '',
-            }, cnm_notification_msg['identifier'])
-            return
-        self.__granules_index.update_entry(granule_identifier.tenant, granule_identifier.venue, {
-            'archive_status': 'cnm_r_failed',
-            'archive_error_message': cnm_notification_msg['response']['errorMessage'] if 'errorMessage' in cnm_notification_msg['response'] else 'unknown',
-            'archive_error_code': cnm_notification_msg['response']['errorCode'] if 'errorCode' in cnm_notification_msg['response'] else 'unknown',
-        }, cnm_notification_msg['identifier'])
+        self.update_stac(cnm_notification_msg)
         return
