@@ -15,10 +15,7 @@ class TestGranulesCnmIngesterLogic(TestCase):
         os.environ['SNS_TOPIC_ARN'] = 'arn:aws:sns:us-west-2:237868187491:uds-sbx-cumulus-cnm-submission-sns'
         os.environ['COLLECTION_CREATION_LAMBDA_NAME'] = 'NA'
         os.environ['UNITY_DEFAULT_PROVIDER'] = 'unity'
-        os.environ['CUMULUS_WORKFLOW_NAME'] = 'CatalogGranule'
         os.environ['REPORT_TO_EMS'] = 'FALSE'
-        os.environ['CUMULUS_LAMBDA_PREFIX'] = 'uds-sbx-cumulus'
-        os.environ['CUMULUS_WORKFLOW_SQS_URL'] = 'https://sqs.us-west-2.amazonaws.com/237868187491/uds-sbx-cumulus-cnm-submission-queue'
         os.environ['ES_URL'] = 'vpc-uds-sbx-cumulus-es-qk73x5h47jwmela5nbwjte4yzq.us-west-2.es.amazonaws.com'
         os.environ['ES_PORT'] = '9200'
 

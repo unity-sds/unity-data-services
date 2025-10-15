@@ -38,6 +38,10 @@ class CollectionsDapaCnm:
     def start_facade(self, current_url: URL):
         LOGGER.debug(f'request body: {self.__request_body}')
 
+        if os.getenv('IS_API_IN_DOCKER', 'FALSE') == 'TRUE':
+            LOGGER.debug(f'In docker. No time limit to pause for creation')
+            return self.start()
+
         actual_path = current_url.path
         actual_path = actual_path if actual_path.endswith('/') else f'{actual_path}/'
         actual_path = f'{actual_path}actual'

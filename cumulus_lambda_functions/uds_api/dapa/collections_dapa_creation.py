@@ -62,17 +62,10 @@ class CumulusCollectionModel(BaseModel):
 
 class CollectionDapaCreation:
     def __init__(self, request_body):
-        required_env = ['CUMULUS_LAMBDA_PREFIX', 'CUMULUS_WORKFLOW_SQS_URL']
-        if not all([k in os.environ for k in required_env]):
-            raise EnvironmentError(f'one or more missing env: {required_env}')
-
         self.__request_body = request_body
         self.__collection_creation_lambda_name = os.environ.get('COLLECTION_CREATION_LAMBDA_NAME', '').strip()
-        self.__cumulus_lambda_prefix = os.getenv('CUMULUS_LAMBDA_PREFIX')
-        self.__include_cumulus = os.getenv('CUMULUS_INCLUSION', 'TRUE').upper().strip() == 'TRUE'
-        self.__ingest_sqs_url = os.getenv('CUMULUS_WORKFLOW_SQS_URL')
+        self.__include_cumulus = os.getenv('CUMULUS_INCLUSION', 'FALSE').upper().strip() == 'TRUE'
         self.__report_to_ems = os.getenv('REPORT_TO_EMS', 'TRUE').strip().upper() == 'TRUE'
-        self.__workflow_name = os.getenv('CUMULUS_WORKFLOW_NAME', 'CatalogGranule')
         self.__provider_id = os.getenv('UNITY_DEFAULT_PROVIDER', '')
         self.__collection_transformer = CollectionTransformer(self.__report_to_ems)
         self.__uds_collection = UdsCollections(es_url=os.getenv('ES_URL'), es_port=int(os.getenv('ES_PORT', '443')), es_type=os.getenv('ES_TYPE', 'AWS'), use_ssl=os.getenv('ES_USE_SSL', 'TRUE').strip() is True)
@@ -199,6 +192,11 @@ class CollectionDapaCreation:
                 'body': {'message': f'request body is not valid STAC Collection schema. check details',
                          'details': validation_result}
             }
+
+        if os.getenv('IS_API_IN_DOCKER', 'FALSE') == 'TRUE':
+            LOGGER.debug(f'In docker. No time limit to pause for creation')
+            return self.create()
+
         actual_path = current_url.path
         actual_path = actual_path if actual_path.endswith('/') else f'{actual_path}/'
         actual_path = f'{actual_path}actual'

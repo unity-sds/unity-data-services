@@ -22,10 +22,7 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 TODO
 
 UNITY_DEFAULT_PROVIDER
-CUMULUS_WORKFLOW_NAME
 REPORT_TO_EMS
-CUMULUS_WORKFLOW_SQS_URL  
-CUMULUS_LAMBDA_PREFIX
 ES_URL                
 ES_PORT              
 SNS_TOPIC_ARN

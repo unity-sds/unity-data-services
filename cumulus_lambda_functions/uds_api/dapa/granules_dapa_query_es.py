@@ -192,6 +192,11 @@ class GranulesDapaQueryEs:
         return each_granules_query_result_stripped
 
     def delete_facade(self, current_url: URL, bearer_token: str):
+        if os.getenv('IS_API_IN_DOCKER', 'FALSE') == 'TRUE':
+            LOGGER.debug(f'In docker. No time limit to pause for creation')
+            return self.start()
+
+
         actual_path = current_url.path
         actual_path = actual_path if actual_path.endswith('/') else f'{actual_path}/'
         actual_path = f'{actual_path}actual'
