@@ -9,6 +9,7 @@ from pystac import Item
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
 
+
 class DaacArchiverCatalia:
     archival_status_schema = {
       "type": "object",
@@ -55,7 +56,7 @@ class DaacArchiverCatalia:
         self.__staged_s3_bucket = 'TODO'  # TODO
         self.__sfa_client = SFAClientFactory().get_instance_from_env()
         self.__archiving_granules_stac = None
-        self.__archiving_status_extension_url = "https://stac-extensions.github.io/file/v2.1.0/schema.json"
+        self.__archiving_status_extension_url = "https://stac-extensions.github.io/archival_statuses/v1.0.0/schema.json"
         self.__daac_agreements = []
 
     def archive_granule(self, collection_id, granule_id):
@@ -148,30 +149,9 @@ class DaacArchiverCatalia:
         item_id = self.__archiving_granules_stac.id
 
         # Define staging directory path
-        staging_prefix = f"{collection_id}/{item_id}/"
+        staging_prefix = f"{collection_id}/{item_id}/{TimeUtils.get_current_time()}/"
         staging_s3_path = f"s3://{self.__staged_s3_bucket}/{staging_prefix}"
-
         LOGGER.info(f'Staging files to: {staging_s3_path}')
-
-        # Check if staging directory exists and has content
-        try:
-            existing_objects = list(self.__s3.get_child_s3_files(self.__staged_s3_bucket, staging_prefix))
-            if existing_objects:
-                LOGGER.warning(f'Staging directory {staging_s3_path} is not empty. Found {len(existing_objects)} objects. Cleaning up...')
-                # Empty the staging directory using delete_multiple in chunks
-                object_keys = [obj_key for obj_key, obj_size in existing_objects]  # Extract just the keys from (key, size) tuples
-
-                # Delete in chunks to avoid overwhelming S3 delete API
-                for chunk in StageInOutUtils.chunk_list(object_keys, 50):
-                    try:
-                        self.__s3.delete_multiple(s3_bucket=self.__staged_s3_bucket, s3_paths=chunk)
-                        LOGGER.debug(f'Removed {len(chunk)} objects from staging directory')
-                    except Exception as chunk_e:
-                        LOGGER.error(f'Failed to delete chunk of objects: {chunk_e}')
-                        raise
-                LOGGER.info(f'Successfully cleaned up {len(object_keys)} objects from staging directory')
-        except Exception as e:
-            LOGGER.debug(f'No existing objects found in staging directory or error checking: {e}')
 
         # Process each asset in the STAC item
         staged_assets = {}
@@ -209,44 +189,6 @@ class DaacArchiverCatalia:
                         LOGGER.warning(f'Invalid S3 URL format for asset {asset_key}: {source_href}')
                 else:
                     LOGGER.warning(f'Non-S3 asset {asset_key} not staged: {source_href}')
-
-        # Check if there's a STAC metadata file in assets and handle it
-        stac_metadata_key = None
-        for asset_key, asset in self.__archiving_granules_stac.assets.items():
-            if asset_key.lower() in ['metadata', 'stac', 'item'] or asset.href.endswith('.json'):
-                stac_metadata_key = asset_key
-                break
-
-        # Upload the updated STAC item to staging area
-        stac_filename = f"{item_id}.json"
-        stac_dest_key = f"{staging_prefix}{stac_filename}"
-        stac_dest_href = f"s3://{self.__staged_s3_bucket}/{stac_dest_key}"
-
-        try:
-            # Convert STAC item to JSON and upload
-            stac_json = self.__archiving_granules_stac.to_dict()
-            self.__s3.set_s3_url(f's3://{self.__staged_s3_bucket}/{stac_dest_key}').upload_bytes(
-                bytes(str(stac_json).encode('utf-8')),
-                content_type='application/json'
-            )
-            LOGGER.info(f'Uploaded updated STAC metadata to {stac_dest_href}')
-
-            # Update or add STAC metadata asset reference
-            if stac_metadata_key:
-                self.__archiving_granules_stac.assets[stac_metadata_key].href = stac_dest_href
-            else:
-                # Add new asset for STAC metadata
-                from pystac import Asset
-                self.__archiving_granules_stac.add_asset(
-                    'stac-metadata',
-                    Asset(href=stac_dest_href, media_type='application/json', title='STAC Metadata')
-                )
-
-        except Exception as e:
-            LOGGER.error(f'Failed to upload STAC metadata to {stac_dest_href}: {e}')
-            raise
-
-        LOGGER.info(f'Successfully staged {len(staged_assets)} assets for granule {item_id}')
         return self
 
     def update_status(self, archival_status: dict):
