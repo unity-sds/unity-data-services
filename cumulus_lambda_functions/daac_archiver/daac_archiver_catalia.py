@@ -260,34 +260,35 @@ class DaacArchiverCatalia:
             LOGGER.error(f'Failed to update STAC item {item_id} in collection {collection_id}: {e}')
             raise RuntimeError(f'Failed to update STAC item status: {e}') from e
 
-    def __extract_files(self, uds_cnm_json: dict, daac_config: dict):
+    def extract_files(self, daac_config: dict):
         """
+        Extract files from STAC assets and convert to CNM file format.
 
-        This method is copied from old source code.
-        It is expecting cnm_json which has the following structures for interested parts.
+        This method has been updated to work with STAC assets instead of CNM JSON.
+        It extracts files from self.__archiving_granules_stac.assets and converts them
+        to the CNM file format expected by DAAC.
+
+        Old CNM JSON structure:
         {
             "product: {
                 "files": [
                     {
                         "type": "data",
                         "name": "cc_file.pdf",
-                        "uri": "https://uds-distribution-placeholder/uds-dev-cumulus-unity-staging/URN:NASA:UNITY:UDS_DEV_DEMO:DEV:UDS_UNIT_COLLECTION___2408270830/URN:NASA:UNITY:UDS_DEV_DEMO:DEV:UDS_UNIT_COLLECTION___2408270830:cc_file/cc_file.pdf",
+                        "uri": "s3://bucket/path/cc_file.pdf",
                         "checksumType": "md5",
-                        "checksum": "unknown",
-                        "size": -1
+                        "checksum": "deb1087d3e614f31b7c9eb461edea93a",
+                        "size": 1579135
                     },
                 ]
             }
         }
 
-        In this new class, we will be getting the files from STAC granules object which is a dictionary under "assets".
-        I guess you can ignore the key under the assets and work with actual asset objects.
-        Example:
-
+        STAC assets structure:
         {
                 "assets": {
                     "cc_file.pdf": {
-                        "href": "/data/including_dir/daughter/cc_file.pdf",
+                        "href": "s3://bucket/path/cc_file.pdf",
                         "title": "cc_file.pdf",
                         "description": "size=1579135;checksumType=md5;checksum=deb1087d3e614f31b7c9eb461edea93a",
                         "file:size": 1579135,
@@ -298,27 +299,141 @@ class DaacArchiverCatalia:
                     },
                 }
         }
-        :param uds_cnm_json:
-        :param daac_config:
-        :return:
+
+        :param daac_config: DAAC configuration containing archiving_types
+        :return: List of files in CNM format
         """
-        granule_files = uds_cnm_json['product']['files']
+        if self.__archiving_granules_stac is None:
+            raise ValueError('NULL archiving granule. Cannot extract files.')
+
+        # Get assets from STAC item
+        stac_assets = self.__archiving_granules_stac.assets
+
+        # If no archiving types specified, include all assets
         if 'archiving_types' not in daac_config or len(daac_config['archiving_types']) < 1:
-            return granule_files  # TODO remove missing md5?
-        archiving_types = {k['data_type']: [] if 'file_extension' not in k else k['file_extension'] for k in daac_config['archiving_types']}
+            LOGGER.debug('No archiving types specified in DAAC config, including all assets')
+            return self._convert_all_assets_to_cnm_format(stac_assets)
+
+        # Build archiving types mapping: {data_type: [file_extensions]}
+        archiving_types = {}
+        for archiving_type in daac_config['archiving_types']:
+            data_type = archiving_type['data_type']
+            file_extensions = archiving_type.get('file_extension', [])
+            if not isinstance(file_extensions, list):
+                file_extensions = [file_extensions] if file_extensions else []
+            archiving_types[data_type] = file_extensions
+
+        LOGGER.debug(f'Archiving types configuration: {archiving_types}')
+
         result_files = []
-        for each_file in granule_files:
-            LOGGER.debug(f'each_file: {each_file}')
-            if each_file['type'] not in archiving_types:
+        for asset_key, asset in stac_assets.items():
+            LOGGER.debug(f'Processing asset: {asset_key}')
+
+            # Get asset type from roles (use first role as type, default to 'data')
+            asset_type = 'data'  # Default type
+            if hasattr(asset, 'roles') and asset.roles and len(asset.roles) > 0:
+                asset_type = asset.roles[0]
+
+            # Check if this asset type should be archived
+            if asset_type not in archiving_types:
+                LOGGER.debug(f'Asset {asset_key} type "{asset_type}" not in archiving types, skipping')
                 continue
-            file_extensions = archiving_types[each_file['type']]
-            each_file['uri'] = self.revert_to_s3_url(each_file['uri'])
-            if len(file_extensions) < 1:
-                result_files.append(each_file)  # TODO remove missing md5?
-            temp_filename = each_file['name'].upper().strip()
-            if any([temp_filename.endswith(k.upper()) for k in file_extensions]):
-                result_files.append(each_file)  # TODO remove missing md5?
+
+            # Get file extensions for this asset type
+            file_extensions = archiving_types[asset_type]
+
+            # Convert STAC asset to CNM file format
+            cnm_file = self._convert_stac_asset_to_cnm_file(asset_key, asset)
+
+            # If no file extensions specified for this type, include the file
+            if len(file_extensions) == 0:
+                LOGGER.debug(f'No file extensions specified for type "{asset_type}", including asset {asset_key}')
+                result_files.append(cnm_file)
+                continue
+
+            # Check if file matches any of the specified extensions
+            filename = cnm_file['name'].upper().strip()
+            if any(filename.endswith(ext.upper()) for ext in file_extensions):
+                LOGGER.debug(f'Asset {asset_key} matches extension filter, including')
+                result_files.append(cnm_file)
+            else:
+                LOGGER.debug(f'Asset {asset_key} does not match extension filter {file_extensions}, skipping')
+
+        LOGGER.info(f'Extracted {len(result_files)} files from {len(stac_assets)} STAC assets')
         return result_files
+
+    def _convert_all_assets_to_cnm_format(self, stac_assets: dict):
+        """Convert all STAC assets to CNM file format without filtering."""
+        result_files = []
+        for asset_key, asset in stac_assets.items():
+            cnm_file = self._convert_stac_asset_to_cnm_file(asset_key, asset)
+            result_files.append(cnm_file)
+        return result_files
+
+    def _convert_stac_asset_to_cnm_file(self, asset_key: str, asset):
+        """
+        Convert a single STAC asset to CNM file format.
+
+        :param asset_key: The key/name of the asset in STAC
+        :param asset: The STAC Asset object
+        :return: Dictionary in CNM file format
+        """
+        # Extract filename from href or use asset_key
+        filename = asset_key
+        if hasattr(asset, 'href') and asset.href:
+            filename = asset.href.split('/')[-1]
+
+        # Get asset type from roles (use first role, default to 'data')
+        asset_type = 'data'
+        if hasattr(asset, 'roles') and asset.roles and len(asset.roles) > 0:
+            asset_type = asset.roles[0]
+
+        # Get file size
+        file_size = -1
+        if hasattr(asset, 'extra_fields') and 'file:size' in asset.extra_fields:
+            file_size = asset.extra_fields['file:size']
+        elif hasattr(asset, 'extra_fields') and 'file_size' in asset.extra_fields:
+            file_size = asset.extra_fields['file_size']
+
+        # Get checksum information
+        checksum_type = 'md5'  # Default
+        checksum_value = 'unknown'  # Default
+
+        if hasattr(asset, 'extra_fields'):
+            if 'file:checksum' in asset.extra_fields:
+                checksum_value = asset.extra_fields['file:checksum']
+            elif 'file_checksum' in asset.extra_fields:
+                checksum_value = asset.extra_fields['file_checksum']
+
+        # Try to parse checksum info from description if available
+        if hasattr(asset, 'description') and asset.description:
+            desc = asset.description.lower()
+            if 'checksumtype=' in desc:
+                # Parse description like "size=1579135;checksumType=md5;checksum=deb1087d3e614f31b7c9eb461edea93a"
+                parts = desc.split(';')
+                for part in parts:
+                    if part.startswith('checksumtype='):
+                        checksum_type = part.split('=')[1]
+                    elif part.startswith('checksum='):
+                        checksum_value = part.split('=')[1]
+                    elif part.startswith('size=') and file_size == -1:
+                        try:
+                            file_size = int(part.split('=')[1])
+                        except ValueError:
+                            pass
+
+        # Build CNM file structure
+        cnm_file = {
+            "type": asset_type,
+            "name": filename,
+            "uri": asset.href if hasattr(asset, 'href') else '',
+            "checksumType": checksum_type,
+            "checksum": checksum_value,
+            "size": file_size
+        }
+
+        LOGGER.debug(f'Converted STAC asset {asset_key} to CNM file: {cnm_file}')
+        return cnm_file
     def send_daac_sns(self, daac_config):
         """
 
@@ -358,7 +473,7 @@ class DaacArchiverCatalia:
                 "product": {
                     "name": self.__archiving_granules_stac.id,  # NOTE: Original value = granule_identifier.granule. Should be the name of granule.
                     # "dataVersion": daac_config['daac_data_version'],
-                    'files': self.__extract_files(uds_cnm_json, daac_config),
+                    'files': self.extract_files(daac_config),
                 }
             }
             LOGGER.debug(f'daac_cnm_message: {daac_cnm_message}')
