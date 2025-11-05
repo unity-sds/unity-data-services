@@ -57,6 +57,7 @@ class DaacArchiverCatalia:
         self.__sfa_client = SFAClientFactory().get_instance_from_env()
         self.__archiving_granules_stac = None
         self.__archiving_status_extension_url = "https://stac-extensions.github.io/archival_statuses/v1.0.0/schema.json"
+        self.__cnm_msg_version = "1.6.0"
         self.__daac_agreements = []
 
     def archive_granule(self, collection_id, granule_id):
@@ -259,7 +260,90 @@ class DaacArchiverCatalia:
             LOGGER.error(f'Failed to update STAC item {item_id} in collection {collection_id}: {e}')
             raise RuntimeError(f'Failed to update STAC item status: {e}') from e
 
+    def __extract_files(self, uds_cnm_json: dict, daac_config: dict):
+        """
+
+        This method is copied from old source code.
+        It is expecting cnm_json which has the following structures for interested parts.
+        {
+            "product: {
+                "files": [
+                    {
+                        "type": "data",
+                        "name": "cc_file.pdf",
+                        "uri": "https://uds-distribution-placeholder/uds-dev-cumulus-unity-staging/URN:NASA:UNITY:UDS_DEV_DEMO:DEV:UDS_UNIT_COLLECTION___2408270830/URN:NASA:UNITY:UDS_DEV_DEMO:DEV:UDS_UNIT_COLLECTION___2408270830:cc_file/cc_file.pdf",
+                        "checksumType": "md5",
+                        "checksum": "unknown",
+                        "size": -1
+                    },
+                ]
+            }
+        }
+
+        In this new class, we will be getting the files from STAC granules object which is a dictionary under "assets".
+        I guess you can ignore the key under the assets and work with actual asset objects.
+        Example:
+
+        {
+                "assets": {
+                    "cc_file.pdf": {
+                        "href": "/data/including_dir/daughter/cc_file.pdf",
+                        "title": "cc_file.pdf",
+                        "description": "size=1579135;checksumType=md5;checksum=deb1087d3e614f31b7c9eb461edea93a",
+                        "file:size": 1579135,
+                        "file:checksum": "deb1087d3e614f31b7c9eb461edea93a",
+                        "roles": [
+                            "data"
+                        ]
+                    },
+                }
+        }
+        :param uds_cnm_json:
+        :param daac_config:
+        :return:
+        """
+        granule_files = uds_cnm_json['product']['files']
+        if 'archiving_types' not in daac_config or len(daac_config['archiving_types']) < 1:
+            return granule_files  # TODO remove missing md5?
+        archiving_types = {k['data_type']: [] if 'file_extension' not in k else k['file_extension'] for k in daac_config['archiving_types']}
+        result_files = []
+        for each_file in granule_files:
+            LOGGER.debug(f'each_file: {each_file}')
+            if each_file['type'] not in archiving_types:
+                continue
+            file_extensions = archiving_types[each_file['type']]
+            each_file['uri'] = self.revert_to_s3_url(each_file['uri'])
+            if len(file_extensions) < 1:
+                result_files.append(each_file)  # TODO remove missing md5?
+            temp_filename = each_file['name'].upper().strip()
+            if any([temp_filename.endswith(k.upper()) for k in file_extensions]):
+                result_files.append(each_file)  # TODO remove missing md5?
+        return result_files
     def send_daac_sns(self, daac_config):
+        """
+
+        {
+            "product": {
+              "files": [
+                {
+                    "name":"TROPESS_CrIS-JPSS1_L2_Standard_CH4_20250108_MUSES_R1p23_megacity_los_angeles_MGLOS_F2p5_J0.nc",
+                    "type":"data",
+                    "uri":"s3://unity-test-unity-storage/URN:NASA:UNITY:unity:test:TRPSDL2ALLCRS1MGLOS___2/URN:NASA:UNITY:unity:test:TRPSDL2ALLCRS1MGLOS___2:datum/TROPESS_Standard/TRPSDL2ALLCRS1MGLOS.2/2025/01/08/TROPESS_CrIS-JPSS1_L2_Standard_CH4_20250108_MUSES_R1p23_megacity_los_angeles_MGLOS_F2p5_J0/TROPESS_CrIS-JPSS1_L2_Standard_CH4_20250108_MUSES_R1p23_megacity_los_angeles_MGLOS_F2p5_J0.nc",
+                    "size":280595
+                 }
+              ],
+              "name": "TROPESS_CrIS-JPSS1_L2_Standard_CH4_20250108_MUSES_R1p23_megacity_los_angeles_MGLOS_F2p5_J0"
+            },
+            "identifier ":"testIdentifier123456",
+            "collection": {
+                "name": "TRPSDL2ALLCRS1MGLOS",
+                "version": "2"
+            },
+            "provider":"tropess_testing"
+        }
+        :param daac_config:
+        :return:
+        """
         try:
             self.__sns.set_topic_arn(daac_config['daac_sns_topic_arn'])
             daac_cnm_message = {
@@ -267,28 +351,25 @@ class DaacArchiverCatalia:
                     'name': daac_config['daac_collection_name'],
                     'version': daac_config['daac_data_version'],
                 },
-                "identifier": uds_cnm_json['identifier'],
+                "identifier": self.__archiving_granules_stac.id,  # Seems like it's the same granule IDuds_cnm_json['identifier'],
                 "submissionTime": f'{TimeUtils.get_current_time()}Z',
-                "provider": daac_config['daac_provider'] if 'daac_provider' in daac_config else granule_identifier.tenant,
-                "version": "1.6.0",  # TODO this is hardcoded?
+                "provider": daac_config['daac_provider'],  # NOTE: we can't use tenant as provider anymore coz we aren't sure tennt will be there in CATALIA. if 'daac_provider' in daac_config else granule_identifier.tenant
+                "version": self.__cnm_msg_version,
                 "product": {
-                    "name": granule_identifier.granule,
+                    "name": self.__archiving_granules_stac.id,  # NOTE: Original value = granule_identifier.granule. Should be the name of granule.
                     # "dataVersion": daac_config['daac_data_version'],
                     'files': self.__extract_files(uds_cnm_json, daac_config),
                 }
             }
             LOGGER.debug(f'daac_cnm_message: {daac_cnm_message}')
             self.__sns.set_external_role(daac_config['daac_role_arn'], daac_config['daac_role_session_name']).publish_message(json.dumps(daac_cnm_message), True)
-            self.__granules_index.update_entry(granule_identifier.tenant, granule_identifier.venue, {
-                'archive_status': 'cnm_s_success',
-                'archive_error_message': '',
-                'archive_error_code': '',
-            }, uds_cnm_json['identifier'])
+            self.update_status({
+                "status": "cnm-submit-success",
+            })
         except Exception as e:
             LOGGER.exception(f'failed during archival process')
-            self.__granules_index.update_entry(granule_identifier.tenant, granule_identifier.venue, {
-                'archive_status': 'cnm_s_failed',
-                'archive_error_message': str(e),
-            }, uds_cnm_json['identifier'])
-
+            self.update_status({
+                "status": "cnm-submit-failed",
+                "errorMessage": str(e),
+            })
         return
