@@ -802,3 +802,279 @@ class TestDaacArchiverCatalia(TestCase):
                 print(f"  - {cnm_file['name']} (type: {cnm_file['type']}, size: {cnm_file['size']})")
             print(f"📋 Filtering worked correctly: included expected files, excluded non-matching files")
 
+    def test_extract_files_02(self):
+        """
+        Test extract_files method with NO archiving_types in DAAC config:
+        1. Creates STAC item with various file types and extensions
+        2. Uses DAAC config WITHOUT archiving_types field
+        3. Verifies ALL files are extracted (no filtering)
+        4. Checks CNM format structure for all files
+        """
+        # Setup test data
+        collection_id = 'test-collection-no-filter'
+        item_id = f'test-item-no-filter-{uuid.uuid4().hex[:8]}'
+
+        # Create STAC Item with various assets
+        stac_item = Item(
+            id=item_id,
+            geometry={
+                "type": "Polygon",
+                "coordinates": [[[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]]]
+            },
+            bbox=[-180, -90, 180, 90],
+            datetime=datetime.now(),
+            properties={}
+        )
+        stac_item.collection_id = collection_id
+
+        # Add diverse set of assets - all should be included
+        # 1. NetCDF data file
+        stac_item.add_asset(
+            'science_data.nc',
+            Asset(
+                href='s3://test-bucket/data/science_data.nc',
+                media_type='application/netcdf',
+                title='Science Data NetCDF',
+                description='size=5242880;checksumType=md5;checksum=science123abc',
+                roles=['data'],
+                extra_fields={
+                    'file:size': 5242880,
+                    'file:checksum': 'science123abc'
+                }
+            )
+        )
+
+        # 2. XML metadata file
+        stac_item.add_asset(
+            'metadata.xml',
+            Asset(
+                href='s3://test-bucket/metadata/metadata.xml',
+                media_type='application/xml',
+                title='Granule Metadata',
+                description='size=8192;checksumType=sha1;checksum=meta456def',
+                roles=['metadata'],
+                extra_fields={
+                    'file:size': 8192,
+                    'file:checksum': 'meta456def'
+                }
+            )
+        )
+
+        # 3. Browse image
+        stac_item.add_asset(
+            'quicklook.jpg',
+            Asset(
+                href='s3://test-bucket/browse/quicklook.jpg',
+                media_type='image/jpeg',
+                title='Browse Image',
+                description='size=204800;checksumType=md5;checksum=browse789ghi',
+                roles=['browse'],
+                extra_fields={
+                    'file:size': 204800,
+                    'file:checksum': 'browse789ghi'
+                }
+            )
+        )
+
+        # 4. Documentation file
+        stac_item.add_asset(
+            'readme.txt',
+            Asset(
+                href='s3://test-bucket/docs/readme.txt',
+                media_type='text/plain',
+                title='Documentation',
+                description='size=2048;checksumType=sha256;checksum=docs123jkl',
+                roles=['documentation'],
+                extra_fields={
+                    'file:size': 2048,
+                    'file:checksum': 'docs123jkl'
+                }
+            )
+        )
+
+        # 5. Configuration JSON
+        stac_item.add_asset(
+            'processing_params.json',
+            Asset(
+                href='s3://test-bucket/config/processing_params.json',
+                media_type='application/json',
+                title='Processing Parameters',
+                description='size=1024;checksumType=md5;checksum=config456mno',
+                roles=['data'],
+                extra_fields={
+                    'file:size': 1024,
+                    'file:checksum': 'config456mno'
+                }
+            )
+        )
+
+        # 6. Binary data file with unusual extension
+        stac_item.add_asset(
+            'calibration.cal',
+            Asset(
+                href='s3://test-bucket/cal/calibration.cal',
+                media_type='application/octet-stream',
+                title='Calibration Data',
+                description='size=16384;checksumType=sha256;checksum=cal789pqr',
+                roles=['data'],
+                extra_fields={
+                    'file:size': 16384,
+                    'file:checksum': 'cal789pqr'
+                }
+            )
+        )
+
+        # Define DAAC config WITHOUT archiving_types field
+        daac_config = {
+            'daac_collection_name': 'TEST_COLLECTION_ALL',
+            'daac_data_version': '2.0',
+            'daac_provider': 'test_provider_all'
+            # NOTE: No 'archiving_types' field - should extract all files
+        }
+
+        # Mock dependencies
+        with patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsS3') as mock_s3_class, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsSns') as mock_sns_class, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.SFAClientFactory') as mock_sfa_factory:
+
+            # Setup mocks
+            mock_s3 = Mock()
+            mock_s3_class.return_value = mock_s3
+            mock_sns = Mock()
+            mock_sns_class.return_value = mock_sns
+            mock_sfa_client = Mock()
+            mock_sfa_factory.return_value.get_instance_from_env.return_value = mock_sfa_client
+
+            # Create archiver instance
+            archiver = DaacArchiverCatalia()
+
+            # Set the STAC item
+            archiver._DaacArchiverCatalia__archiving_granules_stac = stac_item
+
+            # Call extract_files method
+            extracted_files = archiver.extract_files(daac_config)
+
+            # Verify ALL files were extracted (no filtering)
+            expected_file_count = 6  # All 6 assets should be included
+            self.assertEqual(len(extracted_files), expected_file_count,
+                           f"Should extract ALL {expected_file_count} files when no archiving_types specified, got {len(extracted_files)}")
+
+            # Verify each extracted file has correct CNM format structure
+            for cnm_file in extracted_files:
+                # Check required CNM fields are present
+                self.assertIn('type', cnm_file, "CNM file should have 'type' field")
+                self.assertIn('name', cnm_file, "CNM file should have 'name' field")
+                self.assertIn('uri', cnm_file, "CNM file should have 'uri' field")
+                self.assertIn('checksumType', cnm_file, "CNM file should have 'checksumType' field")
+                self.assertIn('checksum', cnm_file, "CNM file should have 'checksum' field")
+                self.assertIn('size', cnm_file, "CNM file should have 'size' field")
+
+                # Check field types
+                self.assertIsInstance(cnm_file['type'], str, "'type' should be string")
+                self.assertIsInstance(cnm_file['name'], str, "'name' should be string")
+                self.assertIsInstance(cnm_file['uri'], str, "'uri' should be string")
+                self.assertIsInstance(cnm_file['checksumType'], str, "'checksumType' should be string")
+                self.assertIsInstance(cnm_file['checksum'], str, "'checksum' should be string")
+                self.assertIsInstance(cnm_file['size'], int, "'size' should be integer")
+
+            # Create a map of extracted files by name for easier verification
+            extracted_files_by_name = {cnm_file['name']: cnm_file for cnm_file in extracted_files}
+
+            # Verify ALL assets were included with correct values
+            expected_files = {
+                'science_data.nc', 'metadata.xml', 'quicklook.jpg',
+                'readme.txt', 'processing_params.json', 'calibration.cal'
+            }
+            actual_files = set(extracted_files_by_name.keys())
+            self.assertEqual(actual_files, expected_files,
+                           f"All files should be extracted. Expected: {expected_files}, Got: {actual_files}")
+
+            # Verify specific files with their expected properties
+            # 1. NetCDF file
+            nc_file = extracted_files_by_name['science_data.nc']
+            self.assertEqual(nc_file['type'], 'data')
+            self.assertEqual(nc_file['uri'], 's3://test-bucket/data/science_data.nc')
+            self.assertEqual(nc_file['size'], 5242880)
+            self.assertEqual(nc_file['checksum'], 'science123abc')
+            self.assertEqual(nc_file['checksumType'], 'md5')
+
+            # 2. XML metadata file
+            xml_file = extracted_files_by_name['metadata.xml']
+            self.assertEqual(xml_file['type'], 'metadata')
+            self.assertEqual(xml_file['uri'], 's3://test-bucket/metadata/metadata.xml')
+            self.assertEqual(xml_file['size'], 8192)
+            self.assertEqual(xml_file['checksum'], 'meta456def')
+            self.assertEqual(xml_file['checksumType'], 'sha1')
+
+            # 3. Browse image
+            browse_file = extracted_files_by_name['quicklook.jpg']
+            self.assertEqual(browse_file['type'], 'browse')
+            self.assertEqual(browse_file['uri'], 's3://test-bucket/browse/quicklook.jpg')
+            self.assertEqual(browse_file['size'], 204800)
+            self.assertEqual(browse_file['checksum'], 'browse789ghi')
+            self.assertEqual(browse_file['checksumType'], 'md5')
+
+            # 4. Documentation file
+            docs_file = extracted_files_by_name['readme.txt']
+            self.assertEqual(docs_file['type'], 'documentation')
+            self.assertEqual(docs_file['uri'], 's3://test-bucket/docs/readme.txt')
+            self.assertEqual(docs_file['size'], 2048)
+            self.assertEqual(docs_file['checksum'], 'docs123jkl')
+            self.assertEqual(docs_file['checksumType'], 'sha256')
+
+            # 5. JSON config file
+            json_file = extracted_files_by_name['processing_params.json']
+            self.assertEqual(json_file['type'], 'data')
+            self.assertEqual(json_file['uri'], 's3://test-bucket/config/processing_params.json')
+            self.assertEqual(json_file['size'], 1024)
+            self.assertEqual(json_file['checksum'], 'config456mno')
+            self.assertEqual(json_file['checksumType'], 'md5')
+
+            # 6. Binary calibration file
+            cal_file = extracted_files_by_name['calibration.cal']
+            self.assertEqual(cal_file['type'], 'data')
+            self.assertEqual(cal_file['uri'], 's3://test-bucket/cal/calibration.cal')
+            self.assertEqual(cal_file['size'], 16384)
+            self.assertEqual(cal_file['checksum'], 'cal789pqr')
+            self.assertEqual(cal_file['checksumType'], 'sha256')
+
+            # Verify variety of asset types were preserved
+            extracted_types = {cnm_file['type'] for cnm_file in extracted_files}
+            expected_types = {'data', 'metadata', 'browse', 'documentation'}
+            self.assertEqual(extracted_types, expected_types,
+                           f"Should preserve all asset types. Expected: {expected_types}, Got: {extracted_types}")
+
+            # Verify variety of checksum types were preserved
+            extracted_checksum_types = {cnm_file['checksumType'] for cnm_file in extracted_files}
+            expected_checksum_types = {'md5', 'sha1', 'sha256'}
+            self.assertEqual(extracted_checksum_types, expected_checksum_types,
+                           f"Should preserve all checksum types. Expected: {expected_checksum_types}, Got: {extracted_checksum_types}")
+
+            # Verify file extensions variety (no filtering applied)
+            extracted_extensions = {cnm_file['name'].split('.')[-1] for cnm_file in extracted_files}
+            expected_extensions = {'nc', 'xml', 'jpg', 'txt', 'json', 'cal'}
+            self.assertEqual(extracted_extensions, expected_extensions,
+                           f"Should include all file extensions. Expected: {expected_extensions}, Got: {extracted_extensions}")
+
+            # Verify URI format (should all be S3 URLs)
+            for cnm_file in extracted_files:
+                self.assertTrue(cnm_file['uri'].startswith('s3://'),
+                              f"URI should be S3 URL: {cnm_file['uri']}")
+
+            # Verify sizes are positive
+            for cnm_file in extracted_files:
+                self.assertGreater(cnm_file['size'], 0,
+                                 f"File size should be positive: {cnm_file['name']} has size {cnm_file['size']}")
+
+            # Verify no 'unknown' checksums (all extracted from STAC)
+            for cnm_file in extracted_files:
+                self.assertNotEqual(cnm_file['checksum'], 'unknown',
+                                  f"Checksum should be extracted from STAC for: {cnm_file['name']}")
+
+            print(f"✅ Test passed! Extracted ALL {len(extracted_files)} files (no filtering applied):")
+            for cnm_file in extracted_files:
+                print(f"  - {cnm_file['name']} (type: {cnm_file['type']}, size: {cnm_file['size']}, checksum: {cnm_file['checksumType']})")
+            print(f"📂 No archiving_types filter: All asset types and extensions included")
+            print(f"🎯 Asset types found: {sorted(extracted_types)}")
+            print(f"🔐 Checksum types found: {sorted(extracted_checksum_types)}")
+
