@@ -13,6 +13,18 @@ from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia import DaacArc
 class TestDaacArchiverCatalia(TestCase):
 
     def setUp(self):
+        return
+
+
+    def test_stage_files_01(self):
+        """
+        Test stage_files method with complete workflow:
+        1. Creates actual dummy data and metadata files in temp directories
+        2. Creates STAC item with assets pointing to source S3 locations
+        3. Calls stage_files method
+        4. Verifies files are copied to staging bucket with correct content
+        5. Verifies STAC metadata has updated asset URLs and correct content
+        """
         """Set up test fixtures before each test method."""
         self.s3_source_bucket = 'test-source-bucket'  # Fill this with actual bucket name later
         self.s3_staged_bucket = 'test-staged-bucket'  # Fill this with actual staged bucket name later
@@ -39,17 +51,6 @@ class TestDaacArchiverCatalia(TestCase):
         self.staged_data_key = f'{self.staging_prefix}{self.test_data_filename}'
         self.staged_metadata_key = f'{self.staging_prefix}{self.test_metadata_filename}'
         self.staged_stac_key = f'{self.staging_prefix}{self.item_id}.json'
-
-    def test_stage_files_01(self):
-        """
-        Test stage_files method with complete workflow:
-        1. Creates actual dummy data and metadata files in temp directories
-        2. Creates STAC item with assets pointing to source S3 locations
-        3. Calls stage_files method
-        4. Verifies files are copied to staging bucket with correct content
-        5. Verifies STAC metadata has updated asset URLs and correct content
-        """
-
         with tempfile.TemporaryDirectory() as temp_source_dir, \
              tempfile.TemporaryDirectory() as temp_staged_dir:
 
