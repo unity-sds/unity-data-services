@@ -55,7 +55,7 @@ class CataliaAuthDb:
         for result in results:
             source_pattern = result.get('sourceProject', '')
             try:
-                if re.match(source_pattern, catalia_collection):
+                if re.match(source_pattern, catalia_collection, re.IGNORECASE):
                     source_matches.append(result)
             except re.error:
                 if source_pattern == catalia_collection:

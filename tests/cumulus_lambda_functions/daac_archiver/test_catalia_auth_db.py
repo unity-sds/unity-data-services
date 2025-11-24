@@ -16,6 +16,6 @@ class TestCataliaAuthDb(TestCase):
         self.assertFalse(cad.authorize('A', 'X:Y:L0_V1', 'M:N:L0_V1'))
         self.assertFalse(cad.authorize('A', 'X:Y:L1_V1', 'M:N:L0_V1'))
         self.assertTrue(cad.authorize('A', 'X:Y:L1_V1', 'M:N:L1_V1'))
-        self.assertTrue(cad.authorize('A', 'X:Y:L0_V2', 'M:N:L0_V1'))
-        self.assertFalse(cad.authorize('A', 'X:Y:L0_V2', 'M:N:L1_V1'))
+        self.assertTrue(cad.authorize('A', 'x:y:L0_V2', 'M:N:L0_V1'))
+        self.assertFalse(cad.authorize('A', 'x:y:L0_V2', 'M:N:L1_V1'))
         return
