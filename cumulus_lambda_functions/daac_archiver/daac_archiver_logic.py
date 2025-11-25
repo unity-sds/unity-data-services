@@ -158,23 +158,23 @@ class DaacArchiverLogic:
 
     def update_stac_fast_api(self, cnm_notification_msg):
         sfa_client = SFAClientFactory().get_instance_from_env()
+        # TODO: update this part ? how to get collection and granule id?
         collection_id, granule_id = ':'.join(cnm_notification_msg['identifier'].split(':')[:-1]), cnm_notification_msg['identifier']
         # TODO assuming granule ID is URN:NASA:VENUE:TENANT:VENUE:COLLECTION_ID:COLLECTION_ID
         existing_item = sfa_client.get_item(collection_id, granule_id)
         # TODO handle error when no existing_item. Currently, it is requests.HTTPError with 404
         if cnm_notification_msg['response']['status'] == 'SUCCESS':
             latest_daac_status = {
-                'archive_status': 'cnm_r_success',
-                'archive_error_message': '',
-                'archive_error_code': '',
+                'status': 'cnm-receive-success',
             }
+            # TODO ask DAAC if they pass HREF?
         else:
             latest_daac_status = {
-                'archive_status': 'cnm_r_failed',
-                'archive_error_message': cnm_notification_msg['response']['errorMessage'] if 'errorMessage' in cnm_notification_msg['response'] else 'unknown',
-                'archive_error_code': cnm_notification_msg['response']['errorCode'] if 'errorCode' in cnm_notification_msg['response'] else 'unknown',
+                'status': 'cnm-receive-failed',
+                'errorMessage': cnm_notification_msg['response']['errorMessage'] if 'errorMessage' in cnm_notification_msg['response'] else 'unknown',
+                'errorCode': cnm_notification_msg['response']['errorCode'] if 'errorCode' in cnm_notification_msg['response'] else 'unknown',
             }
-        latest_daac_status['event_time'] = TimeUtils.get_current_time()
+        latest_daac_status['datetime'] = TimeUtils.get_current_time()
         existing_item['properties']['archival_statuses'] = existing_item['properties']['archival_statuses'] + [latest_daac_status] if 'archival_statuses' in existing_item['properties'] else [latest_daac_status]
         updated_item = sfa_client.update_item(collection_id, granule_id, existing_item, update_whole=True)  # TODO partial update via patch is not working at this moment.
         return

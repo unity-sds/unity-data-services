@@ -467,6 +467,7 @@ class DaacArchiverCatalia:
                     'version': daac_config['daac_data_version'],
                 },
                 "identifier": self.__archiving_granules_stac.id,  # Seems like it's the same granule IDuds_cnm_json['identifier'],
+                # From DAAC: Unique identifier for the message as a whole. It is the senders responsibility to ensure uniqueness. This identifier can be used in response messages to provide tracability.
                 "submissionTime": f'{TimeUtils.get_current_time()}Z',
                 "provider": daac_config['daac_provider'],  # NOTE: we can't use tenant as provider anymore coz we aren't sure tennt will be there in CATALIA. if 'daac_provider' in daac_config else granule_identifier.tenant
                 "version": self.__cnm_msg_version,
