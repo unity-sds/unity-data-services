@@ -104,6 +104,8 @@ resource "aws_subnet" "public" {
       Name = "${var.name_prefix}-Pub-Subnet-${count.index + 1}"
     }
   )
+
+  depends_on = [aws_vpc_ipv4_cidr_block_association.secondary]
 }
 
 # Private Subnets
@@ -120,6 +122,8 @@ resource "aws_subnet" "private" {
       Name = "${var.name_prefix}-Priv-Subnet-${count.index + 1}"
     }
   )
+
+  depends_on = [aws_vpc_ipv4_cidr_block_association.secondary]
 }
 
 # Route Table for NAT Gateway Subnet
