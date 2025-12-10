@@ -7,6 +7,8 @@ from mdps_ds_lib.stage_in_out.stage_in_out_utils import StageInOutUtils
 from pystac import Item
 
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
+from cumulus_lambda_functions.lib.uds_utils import backoff_wrapper
+
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
 
 
@@ -86,9 +88,17 @@ class DaacArchiverCatalia:
         self.__daac_agreements = val
         return
 
+    def archive_collection(self, collection_id):
+        # TODO
+        return self
+
+    def archive_granules(self, granule_jsons: list):
+        # TODO
+        return self
+
     def archive_granule(self, collection_id, granule_id):
         # TODO look up granule details
-        self.__archiving_granules_stac = self.__sfa_client.get_item(collection_id, item_id=granule_id)
+        self.__archiving_granules_stac = backoff_wrapper(self.__sfa_client.get_item, collection_id, item_id=granule_id)
         LOGGER.debug(f'retrieved stac_item from STAC Fast API: {self.__archiving_granules_stac}')
         self.archive_granule_json()
         return self
@@ -196,7 +206,7 @@ class DaacArchiverCatalia:
 
                         try:
                             # Copy file to staging bucket
-                            self.__s3.copy_artifact(source_bucket, source_key, self.__staged_s3_bucket, dest_key, copy_tags=False, delete_original=False)
+                            backoff_wrapper(self.__s3.copy_artifact, source_bucket, source_key, self.__staged_s3_bucket, dest_key, copy_tags=False, delete_original=False)
                             LOGGER.info(f'Copied {source_href} to {dest_href}')
 
                             # Update asset href to new location
@@ -265,7 +275,7 @@ class DaacArchiverCatalia:
             stac_item_dict = self.__archiving_granules_stac.to_dict()
 
             # Update the item using the STAC Fast API client
-            updated_item = self.__sfa_client.update_item(
+            updated_item = backoff_wrapper(self.__sfa_client.update_item,
                 collection_id=collection_id,
                 item_id=item_id,
                 item=stac_item_dict
