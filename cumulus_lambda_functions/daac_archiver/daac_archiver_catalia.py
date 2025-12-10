@@ -89,11 +89,155 @@ class DaacArchiverCatalia:
         return
 
     def archive_collection(self, collection_id):
-        # TODO
-        return self
+        """
+        Archive all granules in a collection by querying the STAC Fast API
+        and processing them in parallel.
 
-    def archive_granules(self, granule_jsons: list):
-        # TODO
+        :param collection_id: The collection ID to archive all granules from
+        :return: self
+        """
+        LOGGER.info(f'Starting collection archival for collection: {collection_id}')
+
+        try:
+            # Query all granules in the collection with pagination
+            all_granule_jsons = []
+            page = 1
+            limit = 100  # Reasonable batch size
+
+            while True:
+                LOGGER.debug(f'Fetching granules page {page} for collection {collection_id}')
+
+                # Use backoff wrapper for STAC API call
+                granules_response = backoff_wrapper(
+                    self.__sfa_client.get_items,
+                    collection_id=collection_id,
+                    limit=limit,
+                    offset=(page - 1) * limit
+                )
+
+                if not granules_response or 'features' not in granules_response:
+                    LOGGER.warning(f'No granules found in response for collection {collection_id}, page {page}')
+                    break
+
+                granules = granules_response['features']
+                if not granules:
+                    LOGGER.info(f'No more granules found for collection {collection_id}, stopping pagination')
+                    break
+
+                all_granule_jsons.extend(granules)
+                LOGGER.info(f'Fetched {len(granules)} granules from page {page}, total so far: {len(all_granule_jsons)}')
+
+                # If we got fewer than the limit, we're done
+                if len(granules) < limit:
+                    break
+
+                page += 1
+
+            LOGGER.info(f'Found {len(all_granule_jsons)} total granules in collection {collection_id}')
+
+            if not all_granule_jsons:
+                LOGGER.warning(f'No granules found in collection {collection_id}')
+                return self
+
+            # Process all granules in parallel
+            return self.archive_granules(all_granule_jsons)
+
+        except Exception as e:
+            LOGGER.error(f'Failed to archive collection {collection_id}: {e}')
+            raise RuntimeError(f'Collection archival failed: {e}') from e
+
+    def archive_granules(self, granule_jsons: list, max_workers=10):
+        """
+        Process multiple granules in parallel for archival.
+
+        :param granule_jsons: List of granule JSON objects from STAC Fast API
+        :param max_workers: Maximum number of parallel workers (default: 10)
+        :return: self
+        """
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        if not granule_jsons:
+            LOGGER.warning('No granules provided for archival')
+            return self
+
+        LOGGER.info(f'Starting parallel archival of {len(granule_jsons)} granules with {max_workers} workers')
+
+        # Track results
+        successful_granules = []
+        failed_granules = []
+
+        def archive_single_granule(granule_json):
+            """
+            Archive a single granule - wrapper function for parallel execution.
+
+            :param granule_json: Individual granule JSON object
+            :return: tuple (granule_id, success, error_message)
+            """
+            granule_id = granule_json.get('id', 'unknown')
+            collection_id = granule_json.get('collection', 'unknown')
+
+            try:
+                LOGGER.debug(f'Processing granule {granule_id} from collection {collection_id}')
+
+                # Create a new instance for thread safety
+                # Each worker gets its own archiver instance with same configuration
+                worker_archiver = DaacArchiverCatalia()
+                worker_archiver.staged_s3_bucket = self.__staged_s3_bucket
+                worker_archiver.daac_agreements = self.__daac_agreements
+
+                # Set the granule data directly instead of fetching again
+                worker_archiver._DaacArchiverCatalia__archiving_granules_stac = granule_json
+
+                # Process the granule
+                worker_archiver.archive_granule_json()
+
+                LOGGER.info(f'Successfully archived granule {granule_id}')
+                return granule_id, True, None
+
+            except Exception as e:
+                error_msg = f'Failed to archive granule {granule_id}: {str(e)}'
+                LOGGER.error(error_msg)
+                return granule_id, False, error_msg
+
+        # Execute parallel processing
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks
+            future_to_granule = {
+                executor.submit(archive_single_granule, granule_json): granule_json.get('id', 'unknown')
+                for granule_json in granule_jsons
+            }
+
+            # Process completed tasks
+            for future in as_completed(future_to_granule):
+                granule_id = future_to_granule[future]
+                try:
+                    result_granule_id, success, error_msg = future.result()
+
+                    if success:
+                        successful_granules.append(result_granule_id)
+                    else:
+                        failed_granules.append({'granule_id': result_granule_id, 'error': error_msg})
+
+                except Exception as e:
+                    error_msg = f'Unexpected error processing granule {granule_id}: {str(e)}'
+                    LOGGER.error(error_msg)
+                    failed_granules.append({'granule_id': granule_id, 'error': error_msg})
+
+        # Log final results
+        total_granules = len(granule_jsons)
+        success_count = len(successful_granules)
+        failed_count = len(failed_granules)
+
+        LOGGER.info(f'Parallel archival completed: {success_count}/{total_granules} successful, {failed_count} failed')
+
+        if failed_granules:
+            LOGGER.warning(f'Failed granules: {[f["granule_id"] for f in failed_granules]}')
+            for failure in failed_granules[:5]:  # Log first 5 failures in detail
+                LOGGER.error(f'Failure details - {failure["granule_id"]}: {failure["error"]}')
+
+        if successful_granules:
+            LOGGER.debug(f'Successfully archived granules: {successful_granules[:10]}...')  # Log first 10
+
         return self
 
     def archive_granule(self, collection_id, granule_id):
