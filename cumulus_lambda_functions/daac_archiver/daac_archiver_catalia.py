@@ -53,12 +53,38 @@ class DaacArchiverCatalia:
     def __init__(self):
         self.__sns = AwsSns()
         self.__s3 = AwsS3()
-        self.__staged_s3_bucket = 'TODO'  # TODO
+        self.__staged_s3_bucket = 'SET_ME_UP'  # TODO
+        self.__daac_agreements = []
         self.__sfa_client = SFAClientFactory().get_instance_from_env()
         self.__archiving_granules_stac = None
         self.__archiving_status_extension_url = "https://stac-extensions.github.io/archival_statuses/v1.0.0/schema.json"
         self.__cnm_msg_version = "1.6.0"
-        self.__daac_agreements = []
+
+    @property
+    def staged_s3_bucket(self):
+        return self.__staged_s3_bucket
+
+    @staged_s3_bucket.setter
+    def staged_s3_bucket(self, val):
+        """
+        :param val:
+        :return: None
+        """
+        self.__staged_s3_bucket = val
+        return
+
+    @property
+    def daac_agreements(self):
+        return self.__daac_agreements
+
+    @daac_agreements.setter
+    def daac_agreements(self, val):
+        """
+        :param val:
+        :return: None
+        """
+        self.__daac_agreements = val
+        return
 
     def archive_granule(self, collection_id, granule_id):
         # TODO look up granule details
@@ -80,7 +106,6 @@ class DaacArchiverCatalia:
         if self.__archiving_granules_stac is None:
             raise ValueError(f'NULL archiving granule. Pls retrieve it first.')
         self.add_archival_extension()
-        self.get_daac_configs()
         if len(self.__daac_agreements) < 1:
             LOGGER.debug(f'this collection does not have any daac. {self.__archiving_granules_stac}')
             return
@@ -122,11 +147,6 @@ class DaacArchiverCatalia:
             LOGGER.debug(f'Initialized archival:status property for STAC item')
         return self
 
-    def get_daac_configs(self):
-        # TODO
-        # update self.__daac_agreements
-        return
-
     def stage_files(self):
         """
         1. Check directory s3://<self.__staged_s3_bucket>/<collection-id>/<item-id>
@@ -142,7 +162,7 @@ class DaacArchiverCatalia:
         if self.__archiving_granules_stac is None:
             raise ValueError(f'NULL archiving granule. Cannot stage files.')
 
-        if self.__staged_s3_bucket == 'TODO':
+        if self.__staged_s3_bucket == 'SET_ME_UP':
             raise ValueError(f'Staged S3 bucket is not configured. Please set self.__staged_s3_bucket.')
 
         # Get collection and item IDs
@@ -434,6 +454,7 @@ class DaacArchiverCatalia:
 
         LOGGER.debug(f'Converted STAC asset {asset_key} to CNM file: {cnm_file}')
         return cnm_file
+
     def send_daac_sns(self, daac_config):
         """
 

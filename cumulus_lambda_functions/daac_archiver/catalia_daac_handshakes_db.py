@@ -35,6 +35,13 @@ class CataliaDaacHandshakesDb:
         self.__ddb.add(catalia_collection, daac_collection, item1, replace=True)
         return
 
+    def delete(self, catalia_collection, daac_collection):
+        self.__ddb.delete(catalia_collection, daac_collection)
+        return
+
+    def get_single (self, catalia_collection, daac_collection):
+        return self.__ddb.get(catalia_collection, daac_collection)
+
     def search(self, catalia_collection):
         results = self.__ddb.get(catalia_collection, secondary_key=None)
         return results

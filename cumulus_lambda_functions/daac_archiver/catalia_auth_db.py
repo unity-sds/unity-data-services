@@ -38,6 +38,11 @@ class CataliaAuthDb:
         self.__ddb.add(user_group, sk1, item1, replace=True)
         return
 
+    def delete(self, user_group, collection, daac_collection):
+        sk1 = f'{collection}->{daac_collection}'
+        self.__ddb.delete(user_group, sk1)
+        return
+
     def get_authorized_catalia(self, user_group: list[str], catalia_collection):
         results = []
         for group in user_group:
