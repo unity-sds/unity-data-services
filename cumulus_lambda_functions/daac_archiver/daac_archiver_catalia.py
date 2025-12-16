@@ -63,6 +63,19 @@ class DaacArchiverCatalia:
         self.__cnm_msg_version = "1.6.0"
 
     @property
+    def archiving_granules_stac(self):
+        return self.__archiving_granules_stac
+
+    @archiving_granules_stac.setter
+    def archiving_granules_stac(self, val):
+        """
+        :param val:
+        :return: None
+        """
+        self.__archiving_granules_stac = val
+        return
+
+    @property
     def staged_s3_bucket(self):
         return self.__staged_s3_bucket
 
@@ -186,7 +199,7 @@ class DaacArchiverCatalia:
                 worker_archiver.daac_agreements = self.__daac_agreements
 
                 # Set the granule data directly instead of fetching again
-                worker_archiver._DaacArchiverCatalia__archiving_granules_stac = granule_json
+                worker_archiver.archiving_granules_stac = granule_json
 
                 # Process the granule
                 worker_archiver.archive_granule_json()

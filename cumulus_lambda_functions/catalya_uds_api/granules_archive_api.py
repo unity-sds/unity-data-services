@@ -127,6 +127,6 @@ async def archive_entire_collection(request: Request, collection_id: str):
     dac = DaacArchiverCatalia()
     dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
     dac.daac_agreements = authorized_configured_daac_configs
-    dac.archive_granule(collection_id, granule_id)
+    dac.archive_collection(collection_id)  # TODO accept filtering mechanisms?
     return {'message': 'archive initiated'}
 

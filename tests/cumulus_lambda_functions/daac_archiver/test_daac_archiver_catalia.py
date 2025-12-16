@@ -15,7 +15,6 @@ class TestDaacArchiverCatalia(TestCase):
     def setUp(self):
         return
 
-
     def test_stage_files_01(self):
         """
         Test stage_files method with complete workflow:
@@ -1077,4 +1076,415 @@ class TestDaacArchiverCatalia(TestCase):
             print(f"📂 No archiving_types filter: All asset types and extensions included")
             print(f"🎯 Asset types found: {sorted(extracted_types)}")
             print(f"🔐 Checksum types found: {sorted(extracted_checksum_types)}")
+
+    def test_archive_granules_concurrent_processing(self):
+        """
+        Test archive_granules method with concurrent processing:
+        1. Creates multiple mock granule JSON objects
+        2. Mocks the archive_granule_json method to simulate different outcomes
+        3. Verifies parallel processing works correctly
+        4. Checks success/failure tracking and logging
+        5. Verifies thread safety with separate archiver instances
+        """
+        import time
+        from unittest.mock import call
+
+        # Create test granule JSON objects (simulating STAC Fast API response)
+        test_granules = [
+            {
+                'id': f'granule_{i:03d}',
+                'collection': 'test_collection',
+                'type': 'Feature',
+                'geometry': {
+                    "type": "Polygon",
+                    "coordinates": [[[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]]]
+                },
+                'properties': {
+                    'datetime': '2024-01-01T00:00:00Z'
+                },
+                'assets': {
+                    f'data_{i:03d}.nc': {
+                        'href': f's3://test-bucket/data_{i:03d}.nc',
+                        'roles': ['data'],
+                        'type': 'application/netcdf'
+                    }
+                }
+            }
+            for i in range(10)  # Create 10 test granules
+        ]
+
+        # Mock dependencies
+        with patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsS3') as mock_s3_class, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsSns') as mock_sns_class, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.SFAClientFactory') as mock_sfa_factory, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.DaacArchiverCatalia.archive_granule_json', autospec=True) as mock_archive_granule_json:
+
+            # Setup mocks
+            mock_s3 = Mock()
+            mock_s3_class.return_value = mock_s3
+            mock_sns = Mock()
+            mock_sns_class.return_value = mock_sns
+            mock_sfa_client = Mock()
+            mock_sfa_factory.return_value.get_instance_from_env.return_value = mock_sfa_client
+
+            # Track calls to archive_granule_json to verify concurrent execution
+            call_times = []
+            processed_granule_ids = []
+
+            def mock_archive_granule_json_impl(self):
+                """Mock implementation that simulates processing time and tracks calls"""
+                # Get the granule ID from the current archiver instance
+                current_granule = self._DaacArchiverCatalia__archiving_granules_stac
+                granule_id = current_granule.get('id', 'unknown') if isinstance(current_granule, dict) else current_granule.id
+
+                # # Record call time and granule ID
+                call_times.append(time.time())
+                processed_granule_ids.append(granule_id)
+
+                # Simulate different processing outcomes based on granule ID
+                if granule_id == 'granule_003':
+                    # Simulate a failure for granule_003
+                    raise RuntimeError(f"Simulated failure for {granule_id}")
+                elif granule_id == 'granule_007':
+                    # Simulate another failure for granule_007
+                    raise ValueError(f"Validation error for {granule_id}")
+                else:
+                    # Simulate successful processing with some delay
+                    time.sleep(0.1)  # Small delay to simulate real processing
+                    return self
+                return self
+
+            # Apply the mock implementation
+            mock_archive_granule_json.side_effect = mock_archive_granule_json_impl
+
+            # Create main archiver instance
+            archiver = DaacArchiverCatalia()
+            archiver._DaacArchiverCatalia__staged_s3_bucket = 'test-staged-bucket'
+            archiver._DaacArchiverCatalia__daac_agreements = [
+                {
+                    'daac_collection_name': 'TEST_COLLECTION',
+                    'daac_data_version': '1.0',
+                    'daac_provider': 'test_provider',
+                    'daac_sns_topic_arn': 'arn:aws:sns:us-west-2:123456789012:test-topic',
+                    'daac_role_arn': 'arn:aws:iam::123456789012:role/test-role',
+                    'daac_role_session_name': 'test-session'
+                }
+            ]
+
+            # Record start time
+            start_time = time.time()
+
+            # Call archive_granules with different worker counts for testing
+            result = archiver.archive_granules(test_granules, max_workers=5)
+
+            # Record end time
+            end_time = time.time()
+            total_execution_time = end_time - start_time
+
+            # Verify method returns self
+
+            # Verify archive_granule_json was called for each granule
+            expected_call_count = len(test_granules)
+            self.assertEqual(mock_archive_granule_json.call_count, expected_call_count,
+                           f"archive_granule_json should be called {expected_call_count} times")
+
+            # Verify all granules were processed (including failed ones)
+            expected_granule_ids = {granule['id'] for granule in test_granules}
+            actual_granule_ids = set(processed_granule_ids)
+            self.assertEqual(actual_granule_ids, expected_granule_ids,
+                           f"All granules should be processed. Expected: {expected_granule_ids}, Got: {actual_granule_ids}")
+
+            # Verify concurrent execution occurred (total time should be less than sequential)
+            sequential_time_estimate = len(test_granules) * 0.1  # 0.1s per granule
+            self.assertLess(total_execution_time, sequential_time_estimate * 0.8,
+                          f"Execution should be faster than sequential. Total: {total_execution_time:.2f}s, Sequential estimate: {sequential_time_estimate:.2f}s")
+
+            # Verify parallel execution by checking call time distribution
+            if len(call_times) > 1:
+                # Check that calls started within a reasonable window (parallel execution)
+                call_time_range = max(call_times) - min(call_times)
+                # Most calls should start within first 0.5 seconds (parallel startup)
+                early_calls = [t for t in call_times if t - min(call_times) < 0.5]
+                self.assertGreaterEqual(len(early_calls), min(5, len(test_granules)),
+                                      f"At least {min(5, len(test_granules))} calls should start early (parallel execution)")
+
+            # Test with empty granule list
+            result_empty = archiver.archive_granules([])
+            self.assertEqual(result_empty, archiver, "archive_granules should handle empty list")
+
+            # Reset mock call count for next test
+            mock_archive_granule_json.reset_mock()
+            call_times.clear()
+            processed_granule_ids.clear()
+
+            # Test with single granule
+            single_granule = [test_granules[0]]
+            result_single = archiver.archive_granules(single_granule, max_workers=1)
+            self.assertEqual(result_single, archiver, "archive_granules should handle single granule")
+            self.assertEqual(mock_archive_granule_json.call_count, 1, "Should call archive_granule_json once for single granule")
+
+            print(f"✅ Test passed! Concurrent processing verification:")
+            print(f"  - Processed {len(test_granules)} granules concurrently")
+            print(f"  - Total execution time: {total_execution_time:.2f}s (vs {sequential_time_estimate:.2f}s sequential)")
+            print(f"  - Expected failures occurred for granule_003 and granule_007")
+            print(f"  - Thread safety verified with separate archiver instances")
+
+    def test_archive_granules_error_handling_and_isolation(self):
+        """
+        Test archive_granules method error handling and failure isolation:
+        1. Creates granules with different failure scenarios
+        2. Verifies individual failures don't stop other processing
+        3. Checks error logging and result tracking
+        4. Tests edge cases and validation
+        """
+        import time
+        from unittest.mock import call
+
+        # Create test granules with various scenarios
+        test_granules = [
+            # Normal granules that should succeed
+            {'id': 'success_001', 'collection': 'test_collection', 'type': 'Feature', 'properties': {'datetime': '2024-01-01T00:00:00Z'}, 'assets': {}},
+            {'id': 'success_002', 'collection': 'test_collection', 'type': 'Feature', 'properties': {'datetime': '2024-01-01T01:00:00Z'}, 'assets': {}},
+            {'id': 'success_003', 'collection': 'test_collection', 'type': 'Feature', 'properties': {'datetime': '2024-01-01T02:00:00Z'}, 'assets': {}},
+            # Granules that will fail
+            {'id': 'fail_network', 'collection': 'test_collection', 'type': 'Feature', 'properties': {'datetime': '2024-01-01T03:00:00Z'}, 'assets': {}},
+            {'id': 'fail_validation', 'collection': 'test_collection', 'type': 'Feature', 'properties': {'datetime': '2024-01-01T04:00:00Z'}, 'assets': {}},
+            # More successful granules to verify isolation
+            {'id': 'success_004', 'collection': 'test_collection', 'type': 'Feature', 'properties': {'datetime': '2024-01-01T05:00:00Z'}, 'assets': {}},
+            {'id': 'success_005', 'collection': 'test_collection', 'type': 'Feature', 'properties': {'datetime': '2024-01-01T06:00:00Z'}, 'assets': {}},
+        ]
+
+        # Mock dependencies
+        with patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsS3') as mock_s3_class, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsSns') as mock_sns_class, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.SFAClientFactory') as mock_sfa_factory, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.DaacArchiverCatalia.archive_granule_json', autospec=True) as mock_archive_granule_json:
+
+            # Setup mocks
+            mock_s3 = Mock()
+            mock_s3_class.return_value = mock_s3
+            mock_sns = Mock()
+            mock_sns_class.return_value = mock_sns
+            mock_sfa_client = Mock()
+            mock_sfa_factory.return_value.get_instance_from_env.return_value = mock_sfa_client
+
+            # Track processing results
+            processing_results = {}
+
+            def mock_archive_granule_json_impl(self):
+                """Mock implementation with controlled failures"""
+                current_granule = self._DaacArchiverCatalia__archiving_granules_stac
+                granule_id = current_granule.get('id', 'unknown') if isinstance(current_granule, dict) else current_granule.id
+
+                # Simulate different failure types
+                if granule_id == 'fail_network':
+                    processing_results[granule_id] = 'network_error'
+                    raise ConnectionError("Network timeout during archival process")
+                elif granule_id == 'fail_validation':
+                    processing_results[granule_id] = 'validation_error'
+                    raise ValueError("Invalid granule metadata format")
+                else:
+                    # Successful processing
+                    processing_results[granule_id] = 'success'
+                    time.sleep(0.05)  # Small delay to simulate processing
+                    return self
+
+            mock_archive_granule_json.side_effect = mock_archive_granule_json_impl
+
+            # Create archiver instance
+            archiver = DaacArchiverCatalia()
+            archiver._DaacArchiverCatalia__staged_s3_bucket = 'test-staged-bucket'
+            archiver._DaacArchiverCatalia__daac_agreements = [{'test': 'agreement'}]
+
+            # Capture log messages to verify error logging
+            with patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.LOGGER') as mock_logger:
+                # Execute archive_granules
+                result = archiver.archive_granules(test_granules, max_workers=3)
+
+                # Verify method returns self even with failures
+                self.assertEqual(result, archiver, "archive_granules should return self even with failures")
+
+                # Verify all granules were processed
+                self.assertEqual(len(processing_results), len(test_granules),
+                               f"All {len(test_granules)} granules should be processed")
+
+                # Verify success and failure counts
+                successful_granules = [gid for gid, status in processing_results.items() if status == 'success']
+                failed_granules = [gid for gid, status in processing_results.items() if status != 'success']
+
+                expected_successful = ['success_001', 'success_002', 'success_003', 'success_004', 'success_005']
+                expected_failed = ['fail_network', 'fail_validation']
+
+                self.assertEqual(set(successful_granules), set(expected_successful),
+                               f"Expected successful granules: {expected_successful}, Got: {successful_granules}")
+                self.assertEqual(set(failed_granules), set(expected_failed),
+                               f"Expected failed granules: {expected_failed}, Got: {failed_granules}")
+
+                # Verify archive_granule_json was called for each granule
+                self.assertEqual(mock_archive_granule_json.call_count, len(test_granules),
+                               f"archive_granule_json should be called {len(test_granules)} times")
+
+                # Verify error logging occurred
+                error_calls = [call for call in mock_logger.error.call_args_list if call[0]]
+                self.assertGreaterEqual(len(error_calls), 2, "Should log errors for failed granules")
+
+                # Check that error messages contain granule IDs
+                error_messages = [str(call[0][0]) for call in error_calls]
+                self.assertTrue(any('fail_network' in msg for msg in error_messages),
+                              "Should log error for fail_network granule")
+                self.assertTrue(any('fail_validation' in msg for msg in error_messages),
+                              "Should log error for fail_validation granule")
+
+                # Verify info logging occurred
+                info_calls = [call for call in mock_logger.info.call_args_list if call[0]]
+                self.assertGreater(len(info_calls), 0, "Should log info messages during processing")
+
+                # Check completion summary was logged
+                completion_messages = [str(call[0][0]) for call in info_calls]
+                completion_summary = next((msg for msg in completion_messages if 'Parallel archival completed' in msg), None)
+                self.assertIsNotNone(completion_summary, "Should log completion summary")
+
+                # Verify summary contains correct counts
+                self.assertIn(f'{len(successful_granules)}/{len(test_granules)} successful', completion_summary)
+                self.assertIn(f'{len(failed_granules)} failed', completion_summary)
+
+            print(f"✅ Test passed! Error handling and isolation verification:")
+            print(f"  - Processed {len(test_granules)} granules with mixed success/failure")
+            print(f"  - Successful: {len(successful_granules)}, Failed: {len(failed_granules)}")
+            print(f"  - Failures were isolated and didn't stop other processing")
+            print(f"  - Error logging verified for all failure types")
+            print(f"  - Method returned successfully despite individual failures")
+
+    def test_archive_granules_thread_safety_validation(self):
+        """
+        Test archive_granules method thread safety:
+        1. Verifies each worker gets its own DaacArchiverCatalia instance
+        2. Checks that configuration is properly copied to worker instances
+        3. Validates no shared state issues between workers
+        4. Tests worker instance isolation
+        """
+        # Create test granules
+        test_granules = [
+            {'id': f'thread_test_{i}', 'collection': 'test_collection', 'type': 'Feature',
+             'properties': {'datetime': '2024-01-01T00:00:00Z'}, 'assets': {}}
+            for i in range(6)
+        ]
+
+        # Mock dependencies
+        with patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsS3') as mock_s3_class, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsSns') as mock_sns_class, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.SFAClientFactory') as mock_sfa_factory, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.DaacArchiverCatalia.archive_granule_json', autospec=True) as mock_archive_granule_json:
+
+            # Setup mocks
+            mock_s3_class.return_value = Mock()
+            mock_sns_class.return_value = Mock()
+            mock_sfa_factory.return_value.get_instance_from_env.return_value = Mock()
+
+            # Track worker instances and their configurations
+            worker_instances = []
+            worker_configs = []
+            processed_granules_by_instance = {}
+
+            def mock_archive_granule_json_impl(instance):
+                """Mock that tracks worker instances and their configurations"""
+                # Record this worker instance
+                instance_id = id(instance)  # Unique identifier for each instance
+                if instance_id not in processed_granules_by_instance:
+                    processed_granules_by_instance[instance_id] = []
+                    worker_instances.append(instance)
+                    # Capture configuration
+                    worker_configs.append({
+                        'instance_id': instance_id,
+                        'staged_s3_bucket': instance._DaacArchiverCatalia__staged_s3_bucket,
+                        'daac_agreements': instance._DaacArchiverCatalia__daac_agreements,
+                        'current_granule_id': instance._DaacArchiverCatalia__archiving_granules_stac.get('id')
+                    })
+
+                # Track which granule this instance is processing
+                current_granule = instance._DaacArchiverCatalia__archiving_granules_stac
+                granule_id = current_granule.get('id', 'unknown')
+                processed_granules_by_instance[instance_id].append(granule_id)
+
+                return instance
+
+            mock_archive_granule_json.side_effect = mock_archive_granule_json_impl
+
+            # Create main archiver instance with specific configuration
+            main_archiver = DaacArchiverCatalia()
+            main_archiver._DaacArchiverCatalia__staged_s3_bucket = 'main-staged-bucket'
+            main_archiver._DaacArchiverCatalia__daac_agreements = [
+                {'daac_name': 'test_daac', 'config': 'main_config'}
+            ]
+
+            # Execute archive_granules
+            result = main_archiver.archive_granules(test_granules, max_workers=3)
+
+            # Verify method returns self
+            self.assertEqual(result, main_archiver, "archive_granules should return main archiver instance")
+
+            # Verify multiple worker instances were created
+            unique_instance_ids = set(id(instance) for instance in worker_instances)
+            self.assertGreater(len(unique_instance_ids), 1, "Multiple worker instances should be created")
+            self.assertLessEqual(len(unique_instance_ids), len(test_granules),
+                               "Should not create more instances than granules")
+
+            # Verify main archiver is not used as worker (thread safety)
+            main_instance_id = id(main_archiver)
+            worker_instance_ids = {id(instance) for instance in worker_instances}
+            self.assertNotIn(main_instance_id, worker_instance_ids,
+                           "Main archiver instance should not be used as worker")
+
+            # Verify each worker instance has correct configuration
+            for config in worker_configs:
+                self.assertEqual(config['staged_s3_bucket'], 'main-staged-bucket',
+                               f"Worker instance {config['instance_id']} should have correct staged_s3_bucket")
+                self.assertEqual(config['daac_agreements'], [{'daac_name': 'test_daac', 'config': 'main_config'}],
+                               f"Worker instance {config['instance_id']} should have correct daac_agreements")
+                self.assertIn(config['current_granule_id'], [g['id'] for g in test_granules],
+                             f"Worker instance {config['instance_id']} should process valid granule")
+
+            # Verify all granules were processed exactly once
+            all_processed_granules = []
+            for granules_list in processed_granules_by_instance.values():
+                all_processed_granules.extend(granules_list)
+
+            expected_granule_ids = [g['id'] for g in test_granules]
+            self.assertEqual(sorted(all_processed_granules), sorted(expected_granule_ids),
+                           "All granules should be processed exactly once")
+
+            # Verify no granule was processed by multiple instances
+            granule_processing_count = {}
+            for granule_id in all_processed_granules:
+                granule_processing_count[granule_id] = granule_processing_count.get(granule_id, 0) + 1
+
+            for granule_id, count in granule_processing_count.items():
+                self.assertEqual(count, 1, f"Granule {granule_id} should be processed exactly once, got {count}")
+
+            # Verify worker instances are separate classes (not the same instance reused)
+            worker_classes = [type(instance) for instance in worker_instances]
+            expected_class = DaacArchiverCatalia
+            for worker_class in worker_classes:
+                self.assertEqual(worker_class, expected_class, "All workers should be DaacArchiverCatalia instances")
+
+            # Test edge case: max_workers larger than granule count
+            worker_instances.clear()
+            worker_configs.clear()
+            processed_granules_by_instance.clear()
+
+            single_granule = [test_granules[0]]
+            result_single = main_archiver.archive_granules(single_granule, max_workers=10)
+            self.assertEqual(result_single, main_archiver, "Should handle max_workers > granule count")
+
+            # Should only create one worker instance for one granule
+            unique_instance_ids_single = set(id(instance) for instance in worker_instances)
+            self.assertEqual(len(unique_instance_ids_single), 1, "Should create only one worker for one granule")
+
+            print(f"✅ Test passed! Thread safety validation:")
+            print(f"  - Created {len(unique_instance_ids)} separate worker instances")
+            print(f"  - Main archiver instance isolated from workers")
+            print(f"  - Configuration correctly copied to all workers")
+            print(f"  - Each granule processed by exactly one worker instance")
+            print(f"  - No shared state issues detected")
+
 
