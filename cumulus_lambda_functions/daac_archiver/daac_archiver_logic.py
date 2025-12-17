@@ -9,8 +9,8 @@ from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 
 from mdps_ds_lib.lib.aws.aws_message_transformers import AwsMessageTransformers
 from mdps_ds_lib.lib.utils.json_validator import JsonValidator
-from mdps_ds_lib.stac_fast_api_client.sfa_client_factory import SFAClientFactory
 
+from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia import DaacArchiverCatalia
 from cumulus_lambda_functions.lib.uds_db.granules_db_index import GranulesDbIndex
 from mdps_ds_lib.lib.aws.aws_sns import AwsSns
 from mdps_ds_lib.lib.utils.time_utils import TimeUtils
@@ -154,30 +154,8 @@ class DaacArchiverLogic:
             raise ValueError(f"missing ARCHIVAL_STATUS_MECHANISM environment variable or value is not {['UDS', 'FAST_STAC']}")
         if update_type == 'UDS':
             return self.update_stac_uds(cnm_notification_msg)
-        return self.update_stac_fast_api(cnm_notification_msg)
-
-    def update_stac_fast_api(self, cnm_notification_msg):
-        sfa_client = SFAClientFactory().get_instance_from_env()
-        # TODO: update this part ? how to get collection and granule id?
-        collection_id, granule_id = ':'.join(cnm_notification_msg['identifier'].split(':')[:-1]), cnm_notification_msg['identifier']
-        # TODO assuming granule ID is URN:NASA:VENUE:TENANT:VENUE:COLLECTION_ID:COLLECTION_ID
-        existing_item = sfa_client.get_item(collection_id, granule_id)
-        # TODO handle error when no existing_item. Currently, it is requests.HTTPError with 404
-        if cnm_notification_msg['response']['status'] == 'SUCCESS':
-            latest_daac_status = {
-                'status': 'cnm-receive-success',
-            }
-            # TODO ask DAAC if they pass HREF?
-        else:
-            latest_daac_status = {
-                'status': 'cnm-receive-failed',
-                'errorMessage': cnm_notification_msg['response']['errorMessage'] if 'errorMessage' in cnm_notification_msg['response'] else 'unknown',
-                'errorCode': cnm_notification_msg['response']['errorCode'] if 'errorCode' in cnm_notification_msg['response'] else 'unknown',
-            }
-        latest_daac_status['datetime'] = TimeUtils.get_current_time()
-        existing_item['properties']['archival_statuses'] = existing_item['properties']['archival_statuses'] + [latest_daac_status] if 'archival_statuses' in existing_item['properties'] else [latest_daac_status]
-        updated_item = sfa_client.update_item(collection_id, granule_id, existing_item, update_whole=True)  # TODO partial update via patch is not working at this moment.
-        return
+        dac = DaacArchiverCatalia()
+        return dac.update_status_wrapper(cnm_notification_msg)
 
     def update_stac_uds(self, cnm_notification_msg):
         granule_identifier = UdsCollections.decode_identifier(cnm_notification_msg['identifier'])  # This is normally meant to be for collection. Since our granule ID also has collection id prefix. we can use this.

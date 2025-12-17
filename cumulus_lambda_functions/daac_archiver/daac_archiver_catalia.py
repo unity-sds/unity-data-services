@@ -1,4 +1,7 @@
 import json
+import os
+from uuid import uuid4
+
 from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 from mdps_ds_lib.lib.aws.aws_sns import AwsSns
 from mdps_ds_lib.lib.utils.time_utils import TimeUtils
@@ -6,6 +9,7 @@ from mdps_ds_lib.stac_fast_api_client.sfa_client_factory import SFAClientFactory
 from mdps_ds_lib.stage_in_out.stage_in_out_utils import StageInOutUtils
 from pystac import Item
 
+from cumulus_lambda_functions.daac_archiver.catalia_status_db import CataliaStatusDb
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.lib.uds_utils import backoff_wrapper
 
@@ -42,7 +46,7 @@ class DaacArchiverCatalia:
           "type": "string",
           "format": "iri-reference"
         },
-          "datetime": {
+        "datetime": {
               "title": "Date and Time",
               "description": "timestamp of this update, in UTC (Formatted in RFC 3339) ",
               "type": "string",
@@ -56,6 +60,7 @@ class DaacArchiverCatalia:
         self.__sns = AwsSns()
         self.__s3 = AwsS3()
         self.__staged_s3_bucket = 'SET_ME_UP'  # TODO
+        self.__status_ddb = CataliaStatusDb(os.getenv('CATALYA_STATUS_DB', None))
         self.__daac_agreements = []
         self.__sfa_client = SFAClientFactory().get_instance_from_env()
         self.__archiving_granules_stac = None
@@ -253,9 +258,12 @@ class DaacArchiverCatalia:
 
         return self
 
+    def load_granule_from_client(self, collection_id, granule_id):
+        self.__archiving_granules_stac = backoff_wrapper(self.__sfa_client.get_item, collection_id, item_id=granule_id)
+        return self
     def archive_granule(self, collection_id, granule_id):
         # TODO look up granule details
-        self.__archiving_granules_stac = backoff_wrapper(self.__sfa_client.get_item, collection_id, item_id=granule_id)
+        self.load_granule_from_client(collection_id, granule_id)
         LOGGER.debug(f'retrieved stac_item from STAC Fast API: {self.__archiving_granules_stac}')
         self.archive_granule_json()
         return self
@@ -379,7 +387,28 @@ class DaacArchiverCatalia:
                     LOGGER.warning(f'Non-S3 asset {asset_key} not staged: {source_href}')
         return self
 
-    def update_status(self, archival_status: dict):
+    def update_status_wrapper(self, cnm_notification_msg: dict):
+        existing_statuses = self.__status_ddb.get(cnm_notification_msg['identifier'])
+        if len(existing_statuses) < 1:
+            raise ValueError(f'unknown collection & granule: {cnm_notification_msg}')
+        collection_id, granule_id = existing_statuses[0][CataliaStatusDb.collection], existing_statuses[0][CataliaStatusDb.name_str]
+        self.load_granule_from_client(collection_id, granule_id)
+        if cnm_notification_msg['response']['status'] == 'SUCCESS':
+            latest_daac_status = {
+                'status': 'cnm-receive-success',
+            }
+            # TODO ask DAAC if they pass HREF?
+        else:
+            latest_daac_status = {
+                'status': 'cnm-receive-failed',
+                'errorMessage': cnm_notification_msg['response']['errorMessage'] if 'errorMessage' in cnm_notification_msg['response'] else 'unknown',
+                'errorCode': cnm_notification_msg['response']['errorCode'] if 'errorCode' in cnm_notification_msg['response'] else 'unknown',
+            }
+        self.update_status(cnm_notification_msg['identifier'], latest_daac_status)
+
+        return self
+
+    def update_status(self, identifier: str, archival_status: dict):
         """
         1. validate archival_status from parameter against self.archival_status_schema
         2. Add archival_status to self.__archiving_granules_stac>properties>archival:status
@@ -427,6 +456,7 @@ class DaacArchiverCatalia:
         if not collection_id or not item_id:
             raise ValueError(f'Missing collection_id or item_id from STAC item. collection_id: {collection_id}, item_id: {item_id}')
 
+        errors = []
         try:
             # Convert STAC item to JSON dictionary
             stac_item_dict = self.__archiving_granules_stac.to_dict()
@@ -437,15 +467,26 @@ class DaacArchiverCatalia:
                 item_id=item_id,
                 item=stac_item_dict
             )
-
             LOGGER.info(f'Successfully updated STAC item {item_id} in collection {collection_id} with new archival status')
             LOGGER.debug(f'Updated item response: {updated_item}')
-
-            return self
-
         except Exception as e:
-            LOGGER.error(f'Failed to update STAC item {item_id} in collection {collection_id}: {e}')
-            raise RuntimeError(f'Failed to update STAC item status: {e}') from e
+            LOGGER.exception(f'Failed to update STAC item {item_id} in collection {collection_id}')
+            errors.append(e)
+        try:
+            self.__status_ddb.add(identifier, collection_id, item_id, archival_status['status'],
+                                  archival_status_with_timestamp['datetime'],
+                                  archival_status['errorCode'] if 'errorCode' in archival_status else None,
+                                  archival_status['errorMessage'] if 'errorMessage' in archival_status else None,
+                                  archival_status['href'] if 'href' in archival_status else None,
+                                  )
+        except Exception as e:
+            LOGGER.exception(f'Failed to store status in DDB {collection_id}')
+            errors.append(e)
+
+        if len(errors) > 0:
+            raise RuntimeError(f'Failed to update STAC item status: {errors}')
+
+        return
 
     def extract_files(self, daac_config: dict):
         """
@@ -654,7 +695,7 @@ class DaacArchiverCatalia:
                     'name': daac_config['daac_collection_name'],
                     'version': daac_config['daac_data_version'],
                 },
-                "identifier": self.__archiving_granules_stac.id,  # Seems like it's the same granule IDuds_cnm_json['identifier'],
+                'identifier': uuid4(),  # "identifier": self.__archiving_granules_stac.id,  # Seems like it's the same granule IDuds_cnm_json['identifier'],
                 # From DAAC: Unique identifier for the message as a whole. It is the senders responsibility to ensure uniqueness. This identifier can be used in response messages to provide tracability.
                 "submissionTime": f'{TimeUtils.get_current_time()}Z',
                 "provider": daac_config['daac_provider'],  # NOTE: we can't use tenant as provider anymore coz we aren't sure tennt will be there in CATALIA. if 'daac_provider' in daac_config else granule_identifier.tenant

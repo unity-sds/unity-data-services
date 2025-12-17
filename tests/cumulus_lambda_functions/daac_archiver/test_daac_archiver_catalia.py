@@ -361,7 +361,7 @@ class TestDaacArchiverCatalia(TestCase):
             # Apply status updates one by one and verify each
             for i, status_update in enumerate(status_updates):
                 # Call update_status with the current status
-                result = archiver.update_status(status_update)
+                result = archiver.update_status('sample', status_update)
 
                 # Verify method returns self
                 self.assertEqual(result, archiver, f"update_status should return self (iteration {i+1})")
