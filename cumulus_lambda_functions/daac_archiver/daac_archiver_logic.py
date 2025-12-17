@@ -150,7 +150,7 @@ class DaacArchiverLogic:
 
     def update_stac(self, cnm_notification_msg):
         update_type = os.getenv('ARCHIVAL_STATUS_MECHANISM', '')
-        if not any([k for k in ['UDS', 'FAST_STAC'] if k == update_type]):
+        if not any([k for k in ['UDS', 'CATALYA'] if k == update_type]):
             raise ValueError(f"missing ARCHIVAL_STATUS_MECHANISM environment variable or value is not {['UDS', 'FAST_STAC']}")
         if update_type == 'UDS':
             return self.update_stac_uds(cnm_notification_msg)

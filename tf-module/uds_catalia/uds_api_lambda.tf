@@ -10,6 +10,11 @@ resource "aws_lambda_function" "uds_api_1" {
   environment {
     variables = {
       LOG_LEVEL = var.log_level
+      CATALYA_STATUS_DB = aws_dynamodb_table.uds_ctla_daac_status.name
+      CATALYA_DB_NAME = aws_dynamodb_table.uds_ctla_auth_ddb.name
+      CATALYA_DAAC_AGREEMENT_DB_NAME = aws_dynamodb_table.uds_ctla_daac_handshake.name
+      ADMIN_COMMA_SEP_GROUPS = var.comma_separated_admin_groups
+      CATALYA_UDS_STAGING_BUCKET = var.uds_ctla_s3_staging_bucket
 #      UNITY_DEFAULT_PROVIDER = var.unity_default_provider
       COLLECTION_CREATION_LAMBDA_NAME = "arn:aws:lambda:${var.aws_region}:${local.account_id}:function:${var.prefix}-uds_api_1"
 #      SNS_TOPIC_ARN = var.cnm_sns_topic_arn
@@ -20,7 +25,6 @@ resource "aws_lambda_function" "uds_api_1" {
 #      ES_URL = aws_elasticsearch_domain.uds-es.endpoint
 #      ES_PORT = 443
 #      REPORT_TO_EMS = var.report_to_ems
-      ADMIN_COMMA_SEP_GROUPS = var.comma_separated_admin_groups
       DAPA_API_URL_BASE = "${var.uds_base_url}/${var.dapa_api_prefix}"
     }
   }

@@ -235,6 +235,10 @@ variable "granules_cnm_ingester__s3_glob" {
   default = "*unity*"
   description = "GLOB expression that has all s3 buckets connecting to SNS topic"
 }
+
+variable "uds_ctla_s3_staging_bucket" {
+  type = string
+}
 #variable "granules_cnm_ingester__is_deploying_bucket" {
 #  type = bool
 #  default = false

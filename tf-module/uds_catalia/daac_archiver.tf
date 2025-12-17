@@ -42,8 +42,9 @@ resource "aws_lambda_function" "uds_daac_archiver_response" {
   environment {
     variables = {
       LOG_LEVEL = var.log_level
-      ARCHIVAL_STATUS_MECHANISM = "UDS"  # UDS or FAST_STAC
+      ARCHIVAL_STATUS_MECHANISM = "CATALYA"  # UDS or FAST_STAC
       DS_URL = "TODO"
+      CATALYA_STATUS_DB = aws_dynamodb_table.uds_ctla_daac_status.name
       SFA_USERNAME = "TODO"
       SFA_PASSWORD = "TODO"
       SFA_AUTH_KEY = "TODO"
