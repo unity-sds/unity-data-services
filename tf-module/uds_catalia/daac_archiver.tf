@@ -43,13 +43,8 @@ resource "aws_lambda_function" "uds_daac_archiver_response" {
     variables = {
       LOG_LEVEL = var.log_level
       ARCHIVAL_STATUS_MECHANISM = "CATALYA"  # UDS or FAST_STAC
-      DS_URL = "TODO"
+      SFA_AUTH = aws_ssm_parameter.daac_archiver_credentials.id
       CATALYA_STATUS_DB = aws_dynamodb_table.uds_ctla_daac_status.name
-      SFA_USERNAME = "TODO"
-      SFA_PASSWORD = "TODO"
-      SFA_AUTH_KEY = "TODO"
-      SFA_AUTH_VALUE = "TODO"
-      SFA_BEARER_TOKEN = "TODO"
     }
   }
 
@@ -60,6 +55,20 @@ resource "aws_lambda_function" "uds_daac_archiver_response" {
   tags = var.tags
 }
 
+resource "aws_ssm_parameter" "daac_archiver_credentials" {
+  name  = "/${var.prefix}/daac-archiver/credentials"
+  type  = "SecureString"
+  value = jsonencode({
+    DS_URL           = "TODO"
+    SFA_USERNAME     = "TODO"
+    SFA_PASSWORD     = "TODO"
+    SFA_AUTH_KEY     = "TODO"
+    SFA_AUTH_VALUE   = "TODO"
+    SFA_BEARER_TOKEN = "TODO"
+  })
+  description = "Secure credentials and configuration for DAAC archiver service"
+  tags        = var.tags
+}
 
 resource "aws_sns_topic" "uds_daac_archiver_response" {
   name = "${var.prefix}-uds_daac_archiver_response"

@@ -2,6 +2,7 @@ import json
 import os
 from uuid import uuid4
 
+from mdps_ds_lib.lib.aws.aws_param_store import AwsParamStore
 from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 from mdps_ds_lib.lib.aws.aws_sns import AwsSns
 from mdps_ds_lib.lib.utils.time_utils import TimeUtils
@@ -62,7 +63,12 @@ class DaacArchiverCatalia:
         self.__staged_s3_bucket = 'SET_ME_UP'  # TODO
         self.__status_ddb = CataliaStatusDb(os.getenv('CATALYA_STATUS_DB', None))
         self.__daac_agreements = []
-        self.__sfa_client = SFAClientFactory().get_instance_from_env()
+        sfa_auth_ssm_key = os.getenv('SFA_AUTH', None)
+        LOGGER.debug(f'retrieving SSM details from {sfa_auth_ssm_key}')
+        sfa_auth_ssm_dict = AwsParamStore().get_param(sfa_auth_ssm_key)
+        if sfa_auth_ssm_dict is None:
+            raise ValueError(f'missing SSM detaails for SFA Auth: {sfa_auth_ssm_dict}')
+        self.__sfa_client = SFAClientFactory().get_instance_from_dict(json.loads(sfa_auth_ssm_dict))
         self.__archiving_granules_stac = None
         self.__archiving_status_extension_url = "https://stac-extensions.github.io/archival_statuses/v1.0.0/schema.json"
         self.__cnm_msg_version = "1.6.0"
