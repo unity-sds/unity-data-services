@@ -57,6 +57,7 @@ class DaacArchiverCatalia:
       },
       "additionalProperties": False
     }
+
     def __init__(self):
         self.__sns = AwsSns()
         self.__s3 = AwsS3()
