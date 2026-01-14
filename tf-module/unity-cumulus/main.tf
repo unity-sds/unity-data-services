@@ -185,12 +185,13 @@ resource "aws_ssm_parameter" "health_check_value" {
   type  = "String"
   tier = "Advanced"
   value = jsonencode({
-    healthCheckUrl    = "${var.uds_base_url}/${var.dapa_api_prefix}/collections",
-    landingPageUrl    = "${var.unity_ui_base_url}/data/stac_browser/",
-    componentCategory = "catalogs"
-    componentName     = "Data Catalog",
-    componentType     = "ui"
-    description       = "The STAC Browser to help you browse and search the data catalog for your outputs and other data ingested into the MDPS data system."
+    healthCheckUrl     = "${var.uds_base_url}/${var.dapa_api_prefix}/collections"
+    landingPageUrl     = "${var.unity_ui_base_url}/data/stac_browser/"
+    componentCategory  = "catalogs"
+    componentName      = "Data Catalog"
+    componentType      = "ui"
+    description        = "The STAC Browser to help you browse and search the data catalog for your outputs and other data ingested into the MDPS data system."
+    isPortalIntegrated = false
   })
   tags = var.tags
   overwrite = true
