@@ -246,3 +246,13 @@ variable "uds_ctla_s3_staging_bucket" {
 #  description = "flag to specify if deploying example bucket"
 #}
 //         <<  Variables for granules_cnm_ingester END   >>
+
+
+variable "uds_docker_name" {
+  type = string
+  default = "ghcr.io/unity-sds/unity-data-services"
+}
+
+variable "uds_docker_version" {
+  type = string
+}

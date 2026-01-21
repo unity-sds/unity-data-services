@@ -23,7 +23,7 @@ resource "aws_ecs_task_definition" "ds_cluster" {
   container_definitions = jsonencode([
     {
       name      = "app"
-      image     = "ghcr.io/my-org/my-image:latest"  # change this
+      image     = "${var.uds_docker_name}:${var.uds_docker_version}"  # change this
       essential = true
       logConfiguration = {
         logDriver = "awslogs"
