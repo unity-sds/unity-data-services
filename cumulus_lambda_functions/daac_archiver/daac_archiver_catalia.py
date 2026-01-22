@@ -61,7 +61,7 @@ class DaacArchiverCatalia:
     def __init__(self):
         self.__sns = AwsSns()
         self.__s3 = AwsS3()
-        self.__staged_s3_bucket = 'SET_ME_UP'  # TODO
+        self.__staged_s3_bucket = 'SET_ME_UP'  # DONE. There is validation to see if it's original value, it will throw an error.
         self.__status_ddb = CataliaStatusDb(os.getenv('CATALYA_STATUS_DB', None))
         self.__daac_agreements = []
         sfa_auth_ssm_key = os.getenv('SFA_AUTH', None)

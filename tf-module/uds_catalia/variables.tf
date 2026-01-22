@@ -238,6 +238,7 @@ variable "granules_cnm_ingester__s3_glob" {
 
 variable "uds_ctla_s3_staging_bucket" {
   type = string
+  description = "outputs of uds_catalia_bucket module. Example: catalya-ds-dev-unity-william-test-1"
 }
 
 #variable "granules_cnm_ingester__is_deploying_bucket" {
