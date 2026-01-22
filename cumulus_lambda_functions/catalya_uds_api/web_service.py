@@ -1,5 +1,7 @@
 from fastapi.staticfiles import StaticFiles
 
+from cumulus_lambda_functions.catalya_uds_api import auth_admin_api
+from cumulus_lambda_functions.catalya_uds_api import granules_archive_api
 from cumulus_lambda_functions.uds_api.fast_api_utils import FastApiUtils
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from dotenv import load_dotenv
@@ -7,13 +9,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 
 from mangum import Mangum
 from starlette.requests import Request
 
-from cumulus_lambda_functions.uds_api.routes_api import main_router
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
 
 api_base_prefix = FastApiUtils.get_api_base_prefix()
@@ -30,6 +31,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+main_router = APIRouter(redirect_slashes=False)
+main_router.include_router(auth_admin_api.router)
+main_router.include_router(granules_archive_api.router)
 app.include_router(main_router, prefix=f'/{api_base_prefix}')
 
 

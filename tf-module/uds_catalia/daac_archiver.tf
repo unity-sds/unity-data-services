@@ -59,12 +59,12 @@ resource "aws_ssm_parameter" "daac_archiver_credentials" {
   name  = "/${var.prefix}/daac-archiver/credentials"
   type  = "SecureString"
   value = jsonencode({
-    DS_URL           = "TODO"
-    SFA_USERNAME     = "TODO"
-    SFA_PASSWORD     = "TODO"
-    SFA_AUTH_KEY     = "TODO"
-    SFA_AUTH_VALUE   = "TODO"
-    SFA_BEARER_TOKEN = "TODO"
+    DS_URL           = "https://dps-stac.dit.maap-project.org/"
+#    SFA_USERNAME     = "TODO"
+#    SFA_PASSWORD     = "TODO"
+#    SFA_AUTH_KEY     = "TODO"
+#    SFA_AUTH_VALUE   = "TODO"
+#    SFA_BEARER_TOKEN = "TODO"
   })
   description = "Secure credentials and configuration for DAAC archiver service"
   tags        = var.tags

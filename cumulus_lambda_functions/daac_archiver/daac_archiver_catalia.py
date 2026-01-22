@@ -118,6 +118,7 @@ class DaacArchiverCatalia:
         Archive all granules in a collection by querying the STAC Fast API
         and processing them in parallel.
 
+        NOTE: TODO This will not work if there are too many granules..
         :param collection_id: The collection ID to archive all granules from
         :return: self
         """

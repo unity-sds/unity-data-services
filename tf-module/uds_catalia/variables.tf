@@ -256,3 +256,9 @@ variable "uds_docker_name" {
 variable "uds_docker_version" {
   type = string
 }
+
+variable "rest_api_stage" {
+  type        = string
+  description = "REST API Stage Name"
+  default     = "dev"
+}
