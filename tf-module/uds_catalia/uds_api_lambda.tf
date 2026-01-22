@@ -42,7 +42,7 @@ resource "aws_lambda_function" "uds_api_authorizer" {
   source_code_hash = filebase64sha256(local.lambda_file_name)
   function_name = "${var.prefix}-uds_api_authorizer"
   role          = local.lambda_role_arn
-  handler       = "cumulus_lambda_functions.catalya_uds_api.web_service.handler"
+  handler       = "cumulus_lambda_functions.keycloak_authorizer.lambda_function.lambda_handler"
   runtime       = "python3.9"
   timeout       = 300
   memory_size   = 512
