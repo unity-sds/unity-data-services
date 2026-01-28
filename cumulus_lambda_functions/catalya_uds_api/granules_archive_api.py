@@ -8,7 +8,7 @@ from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia import DaacArc
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.uds_api.web_service_constants import WebServiceConstants
 from cumulus_lambda_functions.uds_api.fast_api_utils import FastApiUtils
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 from mdps_ds_lib.lib.aws.aws_lambda import AwsLambda
 
@@ -105,8 +105,8 @@ async def get_daac_archive_config(request: Request, collection_id: str, daac_col
 
 @router.put("/{collection_id}/archive/{granule_id}")
 @router.put("/{collection_id}/archive/{granule_id}/")
-async def archive_single_granule(request: Request, collection_id: str, granule_id: str):
-    LOGGER.debug(f'started archive_single_granule.')
+async def archive_single_granule(request: Request, collection_id: str, granule_id: str, response: Response):
+    LOGGER.debug(f'started FAUX archive_single_granule.')
     i1 = InternalDDBConnector()
     authorized_daacs = i1.archive_methods_initiator(request, collection_id, None)
     # authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
@@ -153,13 +153,13 @@ async def archive_single_granule(request: Request, collection_id: str, granule_i
     }
 
     LOGGER.info(f'Invoking async lambda for archive: {archive_lambda_name}')
-    response = AwsLambda().invoke_function(
+    response_lambda = AwsLambda().invoke_function(
         function_name=archive_lambda_name,
         payload=actual_event,
     )
-    LOGGER.debug(f'Async archive function started: {response}')
-
-    return {'message': 'archive processing', 'statusCode': 202}
+    LOGGER.debug(f'Async archive function started: {response_lambda}')
+    response.status_code = 202
+    return {'message': 'archive processing'}
 
 
 @router.put("/{collection_id}/archive/{granule_id}/actual")

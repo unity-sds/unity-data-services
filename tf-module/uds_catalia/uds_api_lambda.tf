@@ -17,7 +17,7 @@ resource "aws_lambda_function" "uds_api_1" {
       CATALYA_UDS_STAGING_BUCKET = var.uds_ctla_s3_staging_bucket
       SFA_AUTH = aws_ssm_parameter.daac_archiver_credentials.id
 #      UNITY_DEFAULT_PROVIDER = var.unity_default_provider
-      COLLECTION_CREATION_LAMBDA_NAME = "arn:aws:lambda:${var.aws_region}:${local.account_id}:function:${var.prefix}-uds_api_1"
+      ARCHIVE_LAMBDA_NAME = "arn:aws:lambda:${var.aws_region}:${local.account_id}:function:${var.prefix}-uds_api_1"
 #      SNS_TOPIC_ARN = var.cnm_sns_topic_arn
       DAAC_SNS_TOPIC_ARN = aws_sns_topic.uds_daac_archiver_response.arn
       DAPA_API_PREIFX_KEY = var.dapa_api_prefix
