@@ -2,6 +2,7 @@ import json
 import os
 from typing import Optional
 import boto3
+from mdps_ds_lib.lib.aws.aws_param_store import AwsParamStore
 
 from cumulus_lambda_functions.daac_archiver.catalia_auth_db import CataliaAuthDb
 from cumulus_lambda_functions.daac_archiver.catalia_daac_handshakes_db import CataliaDaacHandshakesDb
@@ -194,23 +195,35 @@ async def archive_entire_collection(request: Request, collection_id: str, respon
         dac.archive_collection(collection_id)
         return {'message': 'archive completed'}
 
-    # Start Fargate task for long-running collection archiving
-    # TODO: Set ECS_CLUSTER_NAME environment variable
-    # TODO: Set ECS_TASK_DEFINITION environment variable (or ARN)
-    # TODO: Set ECS_SUBNET_IDS environment variable (comma-separated)
-    # TODO: Set ECS_SECURITY_GROUP_IDS environment variable (comma-separated)
-    # TODO: Set DOCKER_IMAGE_NAME environment variable
-    # TODO: Set DOCKER_IMAGE_TAG environment variable
+    # Read Fargate configuration from SSM Parameter Store
+    prefix = os.getenv('PREFIX', '')
+    if not prefix:
+        raise HTTPException(status_code=500, detail='PREFIX environment variable not set')
 
-    ecs_cluster = os.getenv('ECS_CLUSTER_NAME')  # TODO: Configure this
-    task_definition = os.getenv('ECS_TASK_DEFINITION')  # TODO: Configure this
-    subnet_ids = os.getenv('ECS_SUBNET_IDS', '').split(',')  # TODO: Configure this
-    security_group_ids = os.getenv('ECS_SECURITY_GROUP_IDS', '').split(',')  # TODO: Configure this
-
-    if not ecs_cluster or not task_definition or not subnet_ids[0] or not security_group_ids[0]:
+    ssm_parameter_name = os.getenv('FARGATE_CONFIG', 'MISSING-FARGATE_CONFIG-Pls-Provide')
+    try:
+        fargate_config = AwsParamStore().get_param(ssm_parameter_name)
+        fargate_config = json.loads(fargate_config)
+        LOGGER.debug(f'Retrieved Fargate config from SSM: {ssm_parameter_name}')
+    except Exception as e:
+        LOGGER.exception(f'Failed to retrieve Fargate config from SSM: {ssm_parameter_name}')
         raise HTTPException(
             status_code=500,
-            detail='Missing ECS configuration. Set ECS_CLUSTER_NAME, ECS_TASK_DEFINITION, ECS_SUBNET_IDS, ECS_SECURITY_GROUP_IDS'
+            detail=f'Failed to retrieve Fargate configuration from SSM: {str(e)}'
+        )
+
+    # Extract configuration from SSM
+    try:
+        ecs_cluster = fargate_config['CLUSTER_NAME']
+        task_definition = fargate_config['TASK_DEFINITION']
+        subnet_ids = fargate_config['SUBNET_IDs']
+        security_group_ids = fargate_config['SECURITY_GROUPS']
+        container_name = fargate_config['CONTAINER_NAME']
+    except KeyError as e:
+        LOGGER.error(f'Missing required key in Fargate config: {e}')
+        raise HTTPException(
+            status_code=500,
+            detail=f'Invalid Fargate configuration in SSM, missing key: {str(e)}'
         )
 
     # Prepare environment variables for the Fargate task
@@ -227,9 +240,6 @@ async def archive_entire_collection(request: Request, collection_id: str, respon
 
     try:
         ecs_client = boto3.client('ecs', region_name=os.getenv('AWS_REGION', 'us-west-2'))
-
-        # TODO: Set the container name to match your task definition
-        container_name = os.getenv('ECS_CONTAINER_NAME', 'catalya-archiver')  # TODO: Configure this
 
         response_ecs = ecs_client.run_task(
             cluster=ecs_cluster,

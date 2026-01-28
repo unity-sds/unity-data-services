@@ -13,7 +13,7 @@ resource "aws_cloudwatch_log_group" "ds_cluster" {
 }
 
 resource "aws_ecs_task_definition" "ds_cluster" {
-  family                   = "on-demand-task"
+  family                   = "${var.prefix}-ds_cluster"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = "256"
