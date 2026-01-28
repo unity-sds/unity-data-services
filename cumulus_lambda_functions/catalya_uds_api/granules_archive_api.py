@@ -1,6 +1,7 @@
 import json
 import os
 from typing import Optional
+import boto3
 
 from cumulus_lambda_functions.daac_archiver.catalia_auth_db import CataliaAuthDb
 from cumulus_lambda_functions.daac_archiver.catalia_daac_handshakes_db import CataliaDaacHandshakesDb
@@ -178,6 +179,94 @@ async def archive_single_granule(request: Request, collection_id: str, granule_i
 
 @router.put("/{collection_id}/archive")
 @router.put("/{collection_id}/archive/")
+async def archive_entire_collection(request: Request, collection_id: str, response: Response):
+    LOGGER.debug(f'started archive_entire_collection.')
+    i1 = InternalDDBConnector()
+    authorized_daacs = i1.archive_methods_initiator(request, collection_id, None)
+    # authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
+    authorized_configured_daac_configs = [k for k in i1.configured_daac_configs if k[i1.cdhsd.target_project] in authorized_daacs]
+
+    if os.getenv('IS_API_IN_DOCKER', 'FALSE') == 'TRUE':
+        LOGGER.debug(f'In docker. No time limit for archiving collection')
+        dac = DaacArchiverCatalia()
+        dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
+        dac.daac_agreements = authorized_configured_daac_configs
+        dac.archive_collection(collection_id)
+        return {'message': 'archive completed'}
+
+    # Start Fargate task for long-running collection archiving
+    # TODO: Set ECS_CLUSTER_NAME environment variable
+    # TODO: Set ECS_TASK_DEFINITION environment variable (or ARN)
+    # TODO: Set ECS_SUBNET_IDS environment variable (comma-separated)
+    # TODO: Set ECS_SECURITY_GROUP_IDS environment variable (comma-separated)
+    # TODO: Set DOCKER_IMAGE_NAME environment variable
+    # TODO: Set DOCKER_IMAGE_TAG environment variable
+
+    ecs_cluster = os.getenv('ECS_CLUSTER_NAME')  # TODO: Configure this
+    task_definition = os.getenv('ECS_TASK_DEFINITION')  # TODO: Configure this
+    subnet_ids = os.getenv('ECS_SUBNET_IDS', '').split(',')  # TODO: Configure this
+    security_group_ids = os.getenv('ECS_SECURITY_GROUP_IDS', '').split(',')  # TODO: Configure this
+
+    if not ecs_cluster or not task_definition or not subnet_ids[0] or not security_group_ids[0]:
+        raise HTTPException(
+            status_code=500,
+            detail='Missing ECS configuration. Set ECS_CLUSTER_NAME, ECS_TASK_DEFINITION, ECS_SUBNET_IDS, ECS_SECURITY_GROUP_IDS'
+        )
+
+    # Prepare environment variables for the Fargate task
+    # These match what docker_entrypoint/__main__.py expects for CATALYA_COLLECTION_ARCHIVE
+    container_overrides = {
+        'environment': [
+            {'name': 'CATALYA_UDS_STAGING_BUCKET', 'value': os.getenv('CATALYA_UDS_STAGING_BUCKET', '')},
+            {'name': 'CATALYA_DAAC_CONFIGS', 'value': json.dumps(authorized_configured_daac_configs)},
+            {'name': 'CATALYA_COLLECTION_ID', 'value': collection_id},
+            {'name': 'LOG_LEVEL', 'value': os.getenv('LOG_LEVEL', '20')},
+        ],
+        'command': ['CATALYA_COLLECTION_ARCHIVE']  # This is passed as argv[1] to docker_entrypoint/__main__.py
+    }
+
+    try:
+        ecs_client = boto3.client('ecs', region_name=os.getenv('AWS_REGION', 'us-west-2'))
+
+        # TODO: Set the container name to match your task definition
+        container_name = os.getenv('ECS_CONTAINER_NAME', 'catalya-archiver')  # TODO: Configure this
+
+        response_ecs = ecs_client.run_task(
+            cluster=ecs_cluster,
+            taskDefinition=task_definition,
+            launchType='FARGATE',
+            networkConfiguration={
+                'awsvpcConfiguration': {
+                    'subnets': subnet_ids,
+                    'securityGroups': security_group_ids,
+                    'assignPublicIp': 'ENABLED'  # May need to adjust based on your VPC setup
+                }
+            },
+            overrides={
+                'containerOverrides': [
+                    {
+                        'name': container_name,
+                        **container_overrides
+                    }
+                ]
+            }
+        )
+
+        task_arn = response_ecs['tasks'][0]['taskArn'] if response_ecs.get('tasks') else 'unknown'
+        LOGGER.info(f'Started Fargate task for collection archiving: {task_arn}')
+
+        response.status_code = 202
+        return {
+            'message': 'collection archive processing started',
+            'task_arn': task_arn,
+            'collection_id': collection_id
+        }
+    except Exception as e:
+        LOGGER.exception(f'Failed to start Fargate task for collection archiving')
+        raise HTTPException(status_code=500, detail=f'Failed to start Fargate task: {str(e)}')
+
+@router.put("/{collection_id}/archive/actual")
+@router.put("/{collection_id}/archive/actual/")
 async def archive_entire_collection(request: Request, collection_id: str):
     LOGGER.debug(f'started archive_entire_collection.')
     i1 = InternalDDBConnector()
@@ -189,4 +278,3 @@ async def archive_entire_collection(request: Request, collection_id: str):
     dac.daac_agreements = authorized_configured_daac_configs
     dac.archive_collection(collection_id)  # TODO accept filtering mechanisms?
     return {'message': 'archive initiated'}
-

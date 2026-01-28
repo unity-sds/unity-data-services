@@ -23,10 +23,8 @@ resource "aws_lambda_function" "uds_api_1" {
       DAPA_API_PREIFX_KEY = var.dapa_api_prefix
       CORS_ORIGINS = var.cors_origins
       UDS_BASE_URL = var.uds_base_url
-#      ES_URL = aws_elasticsearch_domain.uds-es.endpoint
-#      ES_PORT = 443
-#      REPORT_TO_EMS = var.report_to_ems
       DAPA_API_URL_BASE = "${var.uds_base_url}/${var.dapa_api_prefix}"
+      FARGATE_CONFIG = aws_ssm_parameter.daac_archiver_fargate_config.id
     }
   }
 

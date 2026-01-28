@@ -31,6 +31,7 @@
 #########################################
 
 resource "aws_lambda_function" "uds_daac_archiver_response" {
+  # TODO: Add buffer and retries Also store a copy in S3 ?
   filename      = local.lambda_file_name
   source_code_hash = filebase64sha256(local.lambda_file_name)
   function_name = "${var.prefix}-uds_daac_archiver_response"
@@ -54,6 +55,21 @@ resource "aws_lambda_function" "uds_daac_archiver_response" {
   }
   tags = var.tags
 }
+
+resource "aws_ssm_parameter" "daac_archiver_fargate_config" {
+  name  = "/${var.prefix}/daac-archiver/daac_archiver_fargate_config"
+  type  = "String"
+  value = jsonencode({
+    CLUSTER_NAME = aws_ecs_cluster.ds_cluster.name
+    TASK_DEFINITION = aws_ecs_task_definition.ds_cluster.arn
+    SUBNET_IDs = var.cumulus_lambda_subnet_ids
+    SECURITY_GROUPS = local.security_group_ids_set ? var.security_group_ids : [data.aws_security_group.uds_lambda_sg_no_ingress_all_egress.id]  # TODO. Not sure it will work.
+    CONTAINER_NAME = "${var.uds_docker_name}:${var.uds_docker_version}"
+  })
+  description = "Secure credentials and configuration for DAAC archiver service"
+  tags        = var.tags
+}
+
 
 resource "aws_ssm_parameter" "daac_archiver_credentials" {
   name  = "/${var.prefix}/daac-archiver/credentials"
