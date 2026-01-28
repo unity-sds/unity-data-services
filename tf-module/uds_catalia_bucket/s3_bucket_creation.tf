@@ -40,3 +40,16 @@ resource "aws_s3_bucket_policy" "datastore_bucket" {
     cumulus_lambda_processing_role_name: "${var.prefix}-lambda-processing",
   })
 }
+
+resource "aws_s3_bucket_lifecycle_configuration" "datastore_bucket" {
+  bucket = aws_s3_bucket.datastore_bucket.id
+
+  rule {
+    id     = "delete-old-objects"
+    status = "Enabled"
+
+    expiration {
+      days = var.lifecycle_expiration_days
+    }
+  }
+}

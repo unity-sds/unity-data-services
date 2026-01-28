@@ -58,3 +58,9 @@ variable "cumulus_sf_lambda_role_name_postfix" {
   description = "name of the Lambda role by Cumulus SF after `prefix`"
 }
 
+variable "lifecycle_expiration_days" {
+  type = number
+  default = 10
+  description = "Number of days after which objects in the bucket will be automatically deleted"
+}
+
