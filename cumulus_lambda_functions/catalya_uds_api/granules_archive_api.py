@@ -10,6 +10,7 @@ from cumulus_lambda_functions.uds_api.web_service_constants import WebServiceCon
 from cumulus_lambda_functions.uds_api.fast_api_utils import FastApiUtils
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
+from mdps_ds_lib.lib.aws.aws_lambda import AwsLambda
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
 
@@ -104,6 +105,65 @@ async def get_daac_archive_config(request: Request, collection_id: str, daac_col
 
 @router.put("/{collection_id}/archive/{granule_id}")
 @router.put("/{collection_id}/archive/{granule_id}/")
+async def archive_single_granule(request: Request, collection_id: str, granule_id: str):
+    LOGGER.debug(f'started archive_single_granule.')
+    i1 = InternalDDBConnector()
+    authorized_daacs = i1.archive_methods_initiator(request, collection_id, None)
+    # authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
+    authorized_configured_daac_configs = [k for k in i1.configured_daac_configs if k[i1.cdhsd.target_project] in authorized_daacs]
+
+    if os.getenv('IS_API_IN_DOCKER', 'FALSE') == 'TRUE':
+        LOGGER.debug(f'In docker. No time limit for archiving')
+        dac = DaacArchiverCatalia()
+        dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
+        dac.daac_agreements = authorized_configured_daac_configs
+        dac.archive_granule(collection_id, granule_id)
+        return {'message': 'archive initiated'}
+
+    # Async invocation for API Gateway to avoid timeout
+    archive_lambda_name = os.environ.get('ARCHIVE_LAMBDA_NAME', '').strip()
+    if not archive_lambda_name:
+        raise HTTPException(status_code=500, detail='ARCHIVE_LAMBDA_NAME environment variable not set')
+
+    bearer_token = request.headers.get('authorization', '')
+    actual_path = f'{request.url.path}/actual' if not request.url.path.endswith('/') else f'{request.url.path}actual'
+
+    actual_event = {
+        'resource': actual_path,
+        'path': actual_path,
+        'httpMethod': 'PUT',
+        'headers': {
+            'Authorization': bearer_token,
+            'Accept': '*/*',
+            'Host': request.url.hostname,
+        },
+        'pathParameters': {
+            'collection_id': collection_id,
+            'granule_id': granule_id
+        },
+        'requestContext': {
+            'resourcePath': actual_path,
+            'httpMethod': 'PUT',
+            'domainName': request.url.hostname,
+        },
+        'body': json.dumps({
+            'authorized_configured_daac_configs': authorized_configured_daac_configs
+        }),
+        'isBase64Encoded': False
+    }
+
+    LOGGER.info(f'Invoking async lambda for archive: {archive_lambda_name}')
+    response = AwsLambda().invoke_function(
+        function_name=archive_lambda_name,
+        payload=actual_event,
+    )
+    LOGGER.debug(f'Async archive function started: {response}')
+
+    return {'message': 'archive processing', 'statusCode': 202}
+
+
+@router.put("/{collection_id}/archive/{granule_id}/actual")
+@router.put("/{collection_id}/archive/{granule_id}/actual/")
 async def archive_single_granule(request: Request, collection_id: str, granule_id: str):
     LOGGER.debug(f'started archive_single_granule.')
     i1 = InternalDDBConnector()
