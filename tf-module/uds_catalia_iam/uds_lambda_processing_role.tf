@@ -133,6 +133,14 @@ data "aws_iam_policy_document" "lambda_processing_policy" {
     resources = ["arn:aws:sqs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:*"]
   }
 
+  statement {
+    actions = [
+      "ssm:GetParameter",
+      "ssm:GetParameters",
+    ]
+    resources = ["arn:aws:ssm:${var.aws_region}:${var.account_id}:parameter/${var.prefix}/*"]
+  }
+
 #  statement {
 #    actions   = ["kms:Decrypt"]
 #    resources = [module.archive.provider_kms_key_arn]

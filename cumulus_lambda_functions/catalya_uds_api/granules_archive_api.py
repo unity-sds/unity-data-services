@@ -23,14 +23,14 @@ class ArchivingTypesModel(BaseModel):
     data_type: str
     file_extension: Optional[list[str]] = []
 
+
 class DaacUpdateModel(BaseModel):
-    daac_collection_id: str
     api_key: str
-    daac_provider: Optional[str] = None
-    daac_data_version: Optional[str] = None
-    daac_sns_topic_arn: Optional[str] = None
-    daac_role_arn: Optional[str] = None
-    daac_role_session_name: Optional[str] = None
+    daac_provider: str
+    daac_data_version: str
+    daac_sns_topic_arn: str
+    daac_role_arn: str
+    daac_role_session_name: str
     archiving_types: Optional[list[ArchivingTypesModel]] = None
 
 class InternalDDBConnector:
@@ -65,12 +65,12 @@ async def add_daac_archive_config(request: Request, collection_id: str, daac_col
     LOGGER.debug(f'started add_daac_archive_config. {new_body.model_dump()}')
     i1 = InternalDDBConnector()
     authorized_daacs = i1.archive_methods_initiator(request, collection_id, daac_collection_id)
-    authorized_ldaps = [k['userGroup'] for k in authorized_daacs]
+    # authorized_ldaps = [k['userGroup'] for k in authorized_daacs]
     b1 = new_body.model_dump()
     try:
         # def add(self, catalia_collection, daac_collection, api_key, provider, data_version, sns_topic_arn, role_arn, role_session_name, archiving_types, user, user_group):
         i1.cdhsd.add(collection_id, daac_collection_id, b1['api_key'], b1['daac_provider'], b1['daac_data_version'],
-                     b1['daac_sns_topic_arn'], b1['daac_role_arn'], b1['daac_role_session_name'], b1['archiving_types'], i1.auth_info['username'], authorized_ldaps)
+                     b1['daac_sns_topic_arn'], b1['daac_role_arn'], b1['daac_role_session_name'], b1['archiving_types'], i1.auth_info['username'], i1.auth_info.get('ldap_groups'))
     except Exception as e:
         LOGGER.exception(f'error while add_daac_archive_config: {b1}')
         raise HTTPException(status_code=500, detail=e)
@@ -108,8 +108,8 @@ async def archive_single_granule(request: Request, collection_id: str, granule_i
     LOGGER.debug(f'started archive_single_granule.')
     i1 = InternalDDBConnector()
     authorized_daacs = i1.archive_methods_initiator(request, collection_id, None)
-    authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
-    authorized_configured_daac_configs = [k for k in i1.configured_daac_configs if k[i1.cdhsd.target_project] in authorized_ldaps]
+    # authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
+    authorized_configured_daac_configs = [k for k in i1.configured_daac_configs if k[i1.cdhsd.target_project] in authorized_daacs]
     dac = DaacArchiverCatalia()
     dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
     dac.daac_agreements = authorized_configured_daac_configs
@@ -122,8 +122,8 @@ async def archive_entire_collection(request: Request, collection_id: str):
     LOGGER.debug(f'started archive_entire_collection.')
     i1 = InternalDDBConnector()
     authorized_daacs = i1.archive_methods_initiator(request, collection_id, None)
-    authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
-    authorized_configured_daac_configs = [k for k in i1.configured_daac_configs if k[i1.cdhsd.target_project] in authorized_ldaps]
+    # authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
+    authorized_configured_daac_configs = [k for k in i1.configured_daac_configs if k[i1.cdhsd.target_project] in authorized_daacs]
     dac = DaacArchiverCatalia()
     dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
     dac.daac_agreements = authorized_configured_daac_configs

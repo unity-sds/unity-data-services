@@ -39,7 +39,7 @@ data "aws_iam_policy_document" "mock_daac_lambda_assume_role_policy" {
 # IAM Role for Lambda Function
 resource "aws_iam_role" "mock_daac_lambda_role" {
   name = "${var.prefix}-mock_daac_lambda_role"
-  permissions_boundary = "arn:aws:iam::${local.account_id}:policy/mcp-tenantOperator-AMI-APIG"
+  permissions_boundary = "arn:aws:iam::${local.account_id}:policy/zsmce-tenantOperator-AMI-APIG"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
