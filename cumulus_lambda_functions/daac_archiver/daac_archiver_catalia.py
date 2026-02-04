@@ -269,10 +269,18 @@ class DaacArchiverCatalia:
     def load_granule_from_client(self, collection_id, granule_id):
         self.__archiving_granules_stac = backoff_wrapper(self.__sfa_client.get_item, collection_id, item_id=granule_id)
         return self
+
     def archive_granule(self, collection_id, granule_id):
         # TODO look up granule details
         self.load_granule_from_client(collection_id, granule_id)
         LOGGER.debug(f'retrieved stac_item from STAC Fast API: {self.__archiving_granules_stac}')
+        self.archive_granule_json()
+        return self
+
+    def verbose_archive_granule(self, collection_id, granule_id, item_json: dict):
+        # TODO validate item.json is valid or just ask for STAC Item object
+        # TODO update collection and granule id in item.json if different. Needed ??
+        self.__archiving_granules_stac = item_json
         self.archive_granule_json()
         return self
 
