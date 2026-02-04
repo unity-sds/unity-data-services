@@ -148,9 +148,7 @@ async def archive_single_granule(request: Request, collection_id: str, granule_i
             'httpMethod': 'PUT',
             'domainName': request.url.hostname,
         },
-        'body': json.dumps({
-            'authorized_configured_daac_configs': authorized_configured_daac_configs
-        }),
+        'body': json.dumps({}),
         'isBase64Encoded': False
     }
 
@@ -167,6 +165,13 @@ async def archive_single_granule(request: Request, collection_id: str, granule_i
 @router.put("/{collection_id}/verbose_archive/{granule_id}/")
 async def verbose_archive_single_granule(request: Request, collection_id: str, granule_id: str, item_s3_url: str, stac_item: dict, response: Response):
     LOGGER.debug(f'started verbose_archive_single_granule with item_s3_url: {item_s3_url}')
+
+    # Validate item_s3_url
+    if not item_s3_url:
+        raise HTTPException(status_code=400, detail='item_s3_url parameter is required')
+
+    if not item_s3_url.startswith('s3://') or len(item_s3_url.split('/')) < 4:
+        raise HTTPException(status_code=400, detail='item_s3_url must be in the format s3://<bucket>/<path>')
 
     # Convert STAC item to JSON
     item_json = stac_item
@@ -206,25 +211,28 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
             'collection_id': collection_id,
             'granule_id': granule_id
         },
+        'queryStringParameters': {
+            'item_s3_url': item_s3_url
+        },
         'requestContext': {
             'resourcePath': actual_path,
             'httpMethod': 'PUT',
             'domainName': request.url.hostname,
         },
         'body': json.dumps({
-            'authorized_configured_daac_configs': authorized_configured_daac_configs
+            'stac_item': stac_item
         }),
         'isBase64Encoded': False
     }
 
-    LOGGER.info(f'Invoking async lambda for archive: {archive_lambda_name}')
+    LOGGER.info(f'Invoking async lambda for verbose archive: {archive_lambda_name}')
     response_lambda = AwsLambda().invoke_function(
         function_name=archive_lambda_name,
         payload=actual_event,
     )
-    LOGGER.debug(f'Async archive function started: {response_lambda}')
+    LOGGER.debug(f'Async verbose archive function started: {response_lambda}')
     response.status_code = 202
-    return {'message': 'archive processing'}
+    return {'message': 'verbose archive processing'}
 
 @router.put("/{collection_id}/verbose_archive/{granule_id}/actual")
 @router.put("/{collection_id}/verbose_archive/{granule_id}/actual/")
@@ -354,7 +362,7 @@ async def archive_entire_collection(request: Request, collection_id: str, respon
 
 @router.put("/{collection_id}/archive/actual")
 @router.put("/{collection_id}/archive/actual/")
-async def archive_entire_collection(request: Request, collection_id: str):
+async def archive_entire_collection_actual(request: Request, collection_id: str):
     LOGGER.debug(f'started archive_entire_collection.')
     i1 = InternalDDBConnector()
     authorized_daacs = i1.archive_methods_initiator(request, collection_id, None)
