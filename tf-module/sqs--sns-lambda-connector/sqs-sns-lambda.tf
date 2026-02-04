@@ -4,7 +4,7 @@ resource "aws_sqs_queue" "dlq" {  // https://registry.terraform.io/providers/has
   name                      = "${var.prefix}-dlq-${var.name}"
   delay_seconds             = 0
   max_message_size          = 262144
-  message_retention_seconds = 345600
+  message_retention_seconds = var.message_retention_seconds
   visibility_timeout_seconds = 300
   receive_wait_time_seconds = 0
   policy = templatefile("${path.module}/sqs_policy.json", {
@@ -26,7 +26,7 @@ resource "aws_sqs_queue" "main_sqs" {  // https://registry.terraform.io/provider
   name                      = "${var.prefix}-${var.name}"
   delay_seconds             = 0
   max_message_size          = 262144
-  message_retention_seconds = 345600
+  message_retention_seconds = var.message_retention_seconds
   visibility_timeout_seconds = var.cool_off  // Used as cool off time in seconds. It will wait for 5 min if it fails
   receive_wait_time_seconds = 0
   policy = templatefile("${path.module}/sqs_policy.json", {

@@ -23,6 +23,11 @@ variable "cool_off" {
   default = 300
   description = "visibility time out for sqs. in seconds"
 }
+variable "message_retention_seconds" {
+  type = number
+  default = 1209600
+  description = "message retention period for sqs. in seconds. Max is 14 days (1209600 seconds)"
+}
 variable "aws_region" {
   type    = string
   default = "us-west-2"
