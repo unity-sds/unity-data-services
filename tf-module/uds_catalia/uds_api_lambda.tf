@@ -4,7 +4,7 @@ resource "aws_lambda_function" "uds_api_1" {
   function_name = "${var.prefix}-uds_api_1"
   role          = local.lambda_role_arn
   handler       = "cumulus_lambda_functions.catalya_uds_api.web_service.handler"
-  runtime       = "python3.9"
+  runtime       = local.lambda_python_runtime
   timeout       = 300
   memory_size   = 512
   environment {
@@ -41,7 +41,7 @@ resource "aws_lambda_function" "uds_api_authorizer" {
   function_name = "${var.prefix}-uds_api_authorizer"
   role          = local.lambda_role_arn
   handler       = "cumulus_lambda_functions.keycloak_authorizer.lambda_function.lambda_handler"
-  runtime       = "python3.9"
+  runtime       = local.lambda_python_runtime
   timeout       = 300
   memory_size   = 512
   environment {

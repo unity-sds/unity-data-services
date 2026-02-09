@@ -11,6 +11,7 @@ locals {
   lambda_file_name = "${path.module}/build/cumulus_lambda_functions_deployment.zip"
   security_group_ids_set = var.security_group_ids != null
   lambda_role_arn = data.aws_iam_role.lambda_processing.arn
+  lambda_python_runtime = "python3.9"
 }
 
 variable "buckets" {

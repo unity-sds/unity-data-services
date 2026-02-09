@@ -8,7 +8,7 @@
 # --- MANUALLY EDIT THIS SECTION ---
 #
 # The name of the AWS profile you configured for SSO login.
-SSO_PROFILE_NAME="saml-pub"
+SSO_PROFILE_NAME="saml-pub-smce"
 #
 # The name of the new, separate profile that will be created/updated
 # with the temporary ASSUMED ROLE credentials.

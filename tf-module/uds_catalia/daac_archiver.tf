@@ -37,7 +37,7 @@ resource "aws_lambda_function" "uds_daac_archiver_response" {
   function_name = "${var.prefix}-uds_daac_archiver_response"
   role          = local.lambda_role_arn
   handler       = "cumulus_lambda_functions.daac_archiver.lambda_function.lambda_handler_response"
-  runtime       = "python3.9"
+  runtime       = local.lambda_python_runtime
   timeout       = 300
   memory_size   = 256
   environment {
@@ -110,4 +110,57 @@ module "daac_archiver_response" {
   name                       = "daac_archiver_response"
   prefix                     = var.prefix
   sns_arn                    = aws_sns_topic.uds_daac_archiver_response.arn
+}
+
+resource "aws_lambda_function" "catalya_archiver_trigger" {
+  filename      = local.lambda_file_name
+  source_code_hash = filebase64sha256(local.lambda_file_name)
+  function_name = "${var.prefix}-catalya_archiver_trigger"
+  role          = local.lambda_role_arn
+  handler       = "cumulus_lambda_functions.catalya_archive_trigger.lambda_function.lambda_handler"
+  runtime       = local.lambda_python_runtime
+  timeout       = 900
+  memory_size   = 10240
+  environment {
+    variables = {
+      LOG_LEVEL = var.log_level
+      ARCHIVAL_STATUS_MECHANISM = "CATALYA"  # UDS or FAST_STAC
+      SFA_AUTH = aws_ssm_parameter.daac_archiver_credentials.id
+      CATALYA_STATUS_DB = aws_dynamodb_table.uds_ctla_daac_status.name
+    }
+  }
+
+  vpc_config {
+    subnet_ids         = var.cumulus_lambda_subnet_ids
+    security_group_ids = local.security_group_ids_set ? var.security_group_ids : [data.aws_security_group.uds_lambda_sg_no_ingress_all_egress.id]
+  }
+  tags = var.tags
+}
+
+
+resource "aws_sns_topic" "catalya_archiver_trigger" {
+  name = "${var.prefix}-catalya_archiver_trigger"
+  tags = var.tags
+  // TODO add access policy to be pushed from all MAAP S3 buckets
+}
+
+resource "aws_sns_topic_policy" "catalya_archiver_trigger" {
+  arn = aws_sns_topic.catalya_archiver_trigger.arn
+  policy = templatefile("${path.module}/daac_archiver_sns_policy.json", {
+    region: var.aws_region,
+    accountId: local.account_id,
+    snsName: "${var.prefix}-catalya_archiver_trigger",
+  })
+}
+
+module "catalya_archiver_trigger" {
+  source = "../sqs--sns-lambda-connector"
+
+  account_id                 = local.account_id
+  lambda_arn                 = aws_lambda_function.catalya_archiver_trigger.arn
+  lambda_processing_role_arn          = local.lambda_role_arn
+  name                       = "catalya_archiver_trigger"
+  prefix                     = var.prefix
+  sns_arn                    = aws_sns_topic.catalya_archiver_trigger.arn
+  cool_off = aws_lambda_function.catalya_archiver_trigger.timeout
 }
