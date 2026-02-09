@@ -73,6 +73,70 @@ class CatalyaArchiveTrigger:
         return list(set(item_links))
 
 
+    def retrieve_items(self, item_urls: list):
+        """
+        Process a list of STAC item S3 URLs by downloading, parsing, and updating asset URLs.
+
+        :param item_urls: List of S3 URLs (as strings or link objects with .target attribute) pointing to STAC item JSON files
+        :return: Dictionary mapping S3 URL to processed STAC item dictionary
+        """
+        processed_items = {}
+
+        for item_url_obj in item_urls:
+            # Handle both string URLs and link objects
+            item_s3_url = item_url_obj.target if hasattr(item_url_obj, 'target') else item_url_obj
+
+            try:
+                LOGGER.info(f'Processing STAC item: {item_s3_url}')
+
+                # Download and parse STAC item
+                item_content = self.__s3.set_s3_url(item_s3_url).read_small_txt_file()
+                item_dict = json.loads(item_content)
+
+                # Convert to pystac Item object
+                stac_item = Item.from_dict(item_dict)
+                if stac_item.collection_id is None or stac_item.collection_id == '':
+                    LOGGER.warning(f'Missing collection_id for {item_s3_url}, skipping')
+                    continue
+
+                granule_id = stac_item.id
+                LOGGER.debug(f'Downloaded STAC item: {granule_id}')
+
+                # Convert relative asset URLs to absolute S3 URLs and verify they exist
+                parsed_item_url = urlparse(item_s3_url)
+                item_bucket = parsed_item_url.netloc
+                item_path_parts = parsed_item_url.path.rsplit('/', 1)
+                item_base_path = item_path_parts[0] if len(item_path_parts) > 1 else ''
+
+                for asset_key, asset in stac_item.assets.items():
+                    asset_href = asset.href
+
+                    # If href is relative, convert to absolute S3 URL
+                    if not asset_href.startswith('s3://') and not asset_href.startswith('http'):
+                        # Remove leading ./ or /
+                        asset_href = asset_href.lstrip('./')
+                        absolute_s3_url = f's3://{item_bucket}{item_base_path}/{asset_href}'
+                        LOGGER.debug(f'Converted relative URL {asset.href} to absolute: {absolute_s3_url}')
+                        asset.href = absolute_s3_url
+
+                    # Verify the S3 URL exists
+                    if asset.href.startswith('s3://'):
+                        bucket, path = self.__s3.split_s3_url(asset.href)
+                        if not self.__s3.exists(bucket, path):
+                            raise FileNotFoundError(f'Asset does not exist at S3 URL: {asset.href}')
+                        LOGGER.debug(f'Verified asset exists: {asset.href}')
+
+                # Store the updated item dictionary
+                processed_items[item_s3_url] = stac_item.to_dict()
+                LOGGER.info(f'Successfully processed STAC item: {granule_id}')
+
+            except Exception as e:
+                LOGGER.exception(f'Error processing STAC item {item_s3_url}: {str(e)}')
+                raise
+
+        LOGGER.info(f'Processed {len(processed_items)} STAC items')
+        return processed_items
+
     def start(self, catalog_s3_url):
         """
         Steps:
@@ -112,8 +176,13 @@ class CatalyaArchiveTrigger:
 
         # Step 3: Retrieve all STAC items
         LOGGER.info('Retrieving all STAC items from catalog')
-        item_s3_urls = self.retrieve_all_stac_items(catalog_dict)
+        item_s3_urls = self.retrieve_all_stac_items(catalog_dict, catalog_s3_url)
         LOGGER.info(f'Found {len(item_s3_urls)} STAC items to process')
+
+        # Step 4-6: Process all items (download, parse, update assets)
+        LOGGER.info('Processing and validating all STAC items')
+        processed_items = self.retrieve_items(item_s3_urls)
+        LOGGER.info(f'Successfully processed {len(processed_items)} STAC items')
 
         # Step 7: Retrieve UDS API credentials from SSM (do this once before loop)
         LOGGER.info(f'Retrieving UDS API credentials from SSM: {self.__uds_api_creds_key}')
@@ -132,53 +201,20 @@ class CatalyaArchiveTrigger:
 
         LOGGER.info(f'API base URL: {api_base_url}')
 
-        # Step 5-8: Process each STAC item
-        for item_s3_url in item_s3_urls:
+        # Step 8: Trigger archive API requests one by one
+        LOGGER.info('Triggering archive requests for all processed items')
+        for item_s3_url, item_dict in processed_items.items():
             try:
-                LOGGER.info(f'Processing STAC item: {item_s3_url}')
+                collection_id = item_dict.get('collection')
+                granule_id = item_dict.get('id')
 
-                # Step 5: Download and parse STAC item
-                item_content = self.__s3.set_s3_url(item_s3_url).read_small_txt_file()
-                item_dict = json.loads(item_content)
+                if not collection_id or not granule_id:
+                    LOGGER.error(f'Missing collection_id or granule_id in item: {item_s3_url}')
+                    raise ValueError(f'Invalid STAC item missing collection or id: {item_s3_url}')
 
-                # Convert to pystac Item object
-                stac_item = Item.from_dict(item_dict)
-                if stac_item.collection_id is None or stac_item.collection_id == '':
-                    raise ValueError(f'missing collection_id for {item_s3_url}')
-                    # TODO just skip, don't quit?
-                collection_id = stac_item.collection_id
-                granule_id = stac_item.id
+                LOGGER.info(f'Triggering archive for granule: {granule_id} from collection: {collection_id}')
 
-                LOGGER.info(f'Processing granule: {granule_id} from collection: {collection_id}')
-
-                # Step 6: Convert relative asset URLs to absolute S3 URLs and verify they exist
-                parsed_item_url = urlparse(item_s3_url)
-                item_bucket = parsed_item_url.netloc
-                item_path_parts = parsed_item_url.path.rsplit('/', 1)
-                item_base_path = item_path_parts[0] if len(item_path_parts) > 1 else ''
-
-                for asset_key, asset in stac_item.assets.items():
-                    asset_href = asset.href
-
-                    # If href is relative, convert to absolute S3 URL
-                    if not asset_href.startswith('s3://') and not asset_href.startswith('http'):
-                        # Remove leading ./ or /
-                        asset_href = asset_href.lstrip('./')
-                        absolute_s3_url = f's3://{item_bucket}{item_base_path}/{asset_href}'
-                        LOGGER.debug(f'Converted relative URL {asset.href} to absolute: {absolute_s3_url}')
-                        asset.href = absolute_s3_url
-
-                    # Verify the S3 URL exists
-                    if asset.href.startswith('s3://'):
-                        bucket, path = self.__s3.split_s3_url(asset.href)
-                        if not self.__s3.exists(bucket, path):
-                            raise FileNotFoundError(f'Asset does not exist at S3 URL: {asset.href}')
-                        LOGGER.debug(f'Verified asset exists: {asset.href}')
-
-                # Update the item_dict with converted URLs
-                item_dict = stac_item.to_dict()
-
-                # Step 8: Call the UDS API verbose_archive endpoint
+                # Call the UDS API verbose_archive endpoint
                 api_url = f'{api_base_url}/collections/{collection_id}/verbose_archive/{granule_id}'
                 headers = {
                     'Authorization': bearer_token,
@@ -187,6 +223,7 @@ class CatalyaArchiveTrigger:
                 params = {
                     'item_s3_url': item_s3_url
                 }
+
                 LOGGER.info(f'Calling archive API: PUT {api_url}')
                 response = requests.put(api_url, headers=headers, params=params, json=item_dict, timeout=30)
                 response.raise_for_status()
@@ -194,8 +231,8 @@ class CatalyaArchiveTrigger:
                 LOGGER.info(f'Successfully triggered archive for granule {granule_id}: {response.json()}')
 
             except Exception as e:
-                LOGGER.exception(f'Error processing STAC item {item_s3_url}: {str(e)}')
+                LOGGER.exception(f'Error triggering archive for item {item_s3_url}: {str(e)}')
                 raise
 
-        LOGGER.info(f'Completed processing all {len(item_s3_urls)} STAC items')
+        LOGGER.info(f'Completed triggering archive for all {len(processed_items)} STAC items')
         return
