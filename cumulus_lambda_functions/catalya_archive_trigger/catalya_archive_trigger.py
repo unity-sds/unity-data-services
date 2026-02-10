@@ -1,6 +1,7 @@
 import os
 import json
 from urllib.parse import urlparse
+import posixpath
 import requests
 from mdps_ds_lib.lib.aws.aws_message_transformers import AwsMessageTransformers
 from pystac import Item, Catalog, Collection
@@ -13,6 +14,36 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 
 
 class CatalyaArchiveTrigger:
+    @staticmethod
+    def join_s3_url(base_url: str, relative_path: str) -> str:
+        """
+        Join a base S3 URL with a relative path, properly handling '.', '..', and multiple levels.
+
+        Examples:
+            join_s3_url('s3://bucket/a/b/c/d', '../../data/abc.json') -> 's3://bucket/a/b/data/abc.json'
+            join_s3_url('s3://bucket/a/b/c/d', './file.json') -> 's3://bucket/a/b/c/file.json'
+            join_s3_url('s3://bucket/a/b/c/d', '../../../file.json') -> 's3://bucket/a/file.json'
+
+        :param base_url: Base S3 URL (e.g., 's3://bucket/path/to/dir') or local path
+        :param relative_path: Relative path to join (e.g., '../../data/file.json', './file.json')
+        :return: Joined and normalized S3 URL or local path
+        """
+        if base_url.startswith('s3://'):
+            # Parse the S3 URL
+            parsed = urlparse(base_url)
+            bucket = parsed.netloc
+            path = parsed.path
+
+            # Use posixpath.join to combine paths, then normpath to resolve .. and .
+            joined_path = posixpath.join(path, relative_path)
+            normalized_path = posixpath.normpath(joined_path)
+
+            # Reconstruct the S3 URL
+            return f's3://{bucket}{normalized_path}'
+        else:
+            # For local paths, use os.path
+            joined_path = os.path.join(base_url, relative_path)
+            return os.path.normpath(joined_path)
     def __init__(self):
         self.__s3 = AwsS3()
         self.__ssm = AwsParamStore()
@@ -34,7 +65,7 @@ class CatalyaArchiveTrigger:
         for each in all_links:
             if os.path.isabs(each.target):
                 continue
-            each.target = os.path.join(catalog_dir, each.target)
+            each.target = self.join_s3_url(catalog_dir, each.target)
 
         for link in all_links:
             # Check if link exists locally
@@ -59,9 +90,9 @@ class CatalyaArchiveTrigger:
                                        k.rel in ['item'] and not k.target.startswith('http')]
                     for each in temp_item_links:
                         if os.path.isabs(each):
-                            continue
-                        each.target = os.path.join(collection_folder, each)
-                    item_links.extend(temp_item_links)
+                            item_links.append(each)
+                        else:
+                            item_links.append(self.join_s3_url(collection_folder, each))
                     LOGGER.info(
                         f"Found collection '{collection.id}' with {len(collection_item_links)} items: {link.target}")
                 except Exception as e:

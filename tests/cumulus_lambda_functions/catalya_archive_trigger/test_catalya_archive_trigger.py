@@ -10,6 +10,29 @@ from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 
 
 class TestCatalyaArchiveTrigger(TestCase):
+    def test_01_join_s3_url(self):
+        """
+join_s3_url('s3://bucket/a/b/c/d', '../../data/abc.json') -> 's3://bucket/a/b/data/abc.json'
+join_s3_url('s3://bucket/a/b/c/d', './file.json') -> 's3://bucket/a/b/c/file.json'
+join_s3_url('s3://bucket/a/b/c/d', '../../../file.json') -> 's3://bucket/a/file.json'
+
+        :return:
+        """
+        base_path = 's3://bucket/a/b/c/d'
+        self.assertEqual(CatalyaArchiveTrigger.join_s3_url(base_path, '../../data/abc.json'),
+                         's3://bucket/a/b/data/abc.json')
+        self.assertEqual(CatalyaArchiveTrigger.join_s3_url(base_path, './file/abc.json'),
+                         's3://bucket/a/b/c/d/file/abc.json')
+        self.assertEqual(CatalyaArchiveTrigger.join_s3_url(base_path, './file.json'),
+                         's3://bucket/a/b/c/d/file.json')
+        self.assertEqual(CatalyaArchiveTrigger.join_s3_url(base_path, 'file.json'),
+                         's3://bucket/a/b/c/d/file.json')
+        self.assertEqual(CatalyaArchiveTrigger.join_s3_url(base_path, '../../../file.json'),
+                         's3://bucket/a/file.json')
+        self.assertEqual(CatalyaArchiveTrigger.join_s3_url(base_path, '../.././fake/../../file.json'),
+                         's3://bucket/a/file.json')
+        return
+
     def test_01(self):
         """
         1. Create a temp directory using tempfile.
