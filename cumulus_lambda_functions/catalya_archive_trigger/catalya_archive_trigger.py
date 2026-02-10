@@ -2,11 +2,11 @@ import os
 import json
 from urllib.parse import urlparse
 import requests
+from mdps_ds_lib.lib.aws.aws_message_transformers import AwsMessageTransformers
 from pystac import Item, Catalog, Collection
 
 from mdps_ds_lib.lib.aws.aws_param_store import AwsParamStore
 from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
-from mdps_ds_lib.lib.aws.aws_sns import AwsSns
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
@@ -14,7 +14,6 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 
 class CatalyaArchiveTrigger:
     def __init__(self):
-        self.__sns = AwsSns()
         self.__s3 = AwsS3()
         self.__ssm = AwsParamStore()
         self.__uds_api_creds_key = os.getenv('UDS_API_CREDS', '')
@@ -39,7 +38,8 @@ class CatalyaArchiveTrigger:
 
         for link in all_links:
             # Check if link exists locally
-            if not os.path.exists(link.target):
+            b, p = self.__s3.split_s3_url(link.target)
+            if not self.__s3.exists(b, p):
                 LOGGER.warning(f"Local link file not found: {link.target}")
                 continue
 
@@ -136,6 +136,11 @@ class CatalyaArchiveTrigger:
 
         LOGGER.info(f'Processed {len(processed_items)} STAC items')
         return processed_items
+
+    def start_with_event(self, event: dict):
+        result = AwsMessageTransformers().sqs_sns(event)
+        result1 = AwsMessageTransformers().get_s3_from_sns(result)
+        return self.start(f's3://{result1["bucket"]}/{result1["key"]}')
 
     def start(self, catalog_s3_url):
         """
