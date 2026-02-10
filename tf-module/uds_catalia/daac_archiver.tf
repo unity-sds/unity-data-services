@@ -72,7 +72,7 @@ resource "aws_ssm_parameter" "daac_archiver_fargate_config" {
 
 
 resource "aws_ssm_parameter" "daac_archiver_credentials" {
-  name  = "/${var.prefix}/daac-archiver/credentials"
+  name  = "/${var.prefix}/daac-archiver/daac_archiver_credentials"
   type  = "SecureString"
   value = jsonencode({
     DS_URL           = "https://dps-stac.dit.maap-project.org/"
@@ -85,6 +85,19 @@ resource "aws_ssm_parameter" "daac_archiver_credentials" {
   description = "Secure credentials and configuration for DAAC archiver service"
   tags        = var.tags
 }
+
+
+resource "aws_ssm_parameter" "uds_api_credentials" {
+  name  = "/${var.prefix}/daac-archiver/uds_api_credentials"
+  type  = "SecureString"
+  value = jsonencode({
+    API_BASE_URL = var.UDS_API_BASE_URL
+    BEARER_TOKEN = var.UDS_BEARER_TOKEN
+  })
+  description = "Secure credentials and configuration for DAAC archiver service"
+  tags        = var.tags
+}
+
 
 resource "aws_sns_topic" "uds_daac_archiver_response" {
   name = "${var.prefix}-uds_daac_archiver_response"
@@ -126,6 +139,7 @@ resource "aws_lambda_function" "catalya_archiver_trigger" {
       LOG_LEVEL = var.log_level
       ARCHIVAL_STATUS_MECHANISM = "CATALYA"  # UDS or FAST_STAC
       SFA_AUTH = aws_ssm_parameter.daac_archiver_credentials.id
+      UDS_API_CREDS = aws_ssm_parameter.uds_api_credentials.id
       CATALYA_STATUS_DB = aws_dynamodb_table.uds_ctla_daac_status.name
     }
   }

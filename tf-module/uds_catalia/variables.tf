@@ -263,3 +263,10 @@ variable "rest_api_stage" {
   description = "REST API Stage Name"
   default     = "dev"
 }
+
+variable "UDS_API_BASE_URL" {
+  type = string
+}
+variable "UDS_BEARER_TOKEN" {
+  type = string
+}

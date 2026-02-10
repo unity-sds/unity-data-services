@@ -230,8 +230,8 @@ class CatalyaArchiveTrigger:
         uds_api_creds = json.loads(uds_api_creds_str)
 
         # Extract API base URL and bearer token
-        api_base_url = uds_api_creds.get('api_base_url', '').rstrip('/')
-        bearer_token = uds_api_creds.get('bearer_token', '')
+        api_base_url = uds_api_creds.get('API_BASE_URL', '').rstrip('/')
+        bearer_token = uds_api_creds.get('BEARER_TOKEN', '')
 
         if not api_base_url or not bearer_token:
             raise ValueError('UDS API credentials must contain api_base_url and bearer_token')
