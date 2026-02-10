@@ -44,6 +44,7 @@ class CatalyaArchiveTrigger:
             # For local paths, use os.path
             joined_path = os.path.join(base_url, relative_path)
             return os.path.normpath(joined_path)
+
     def __init__(self):
         self.__s3 = AwsS3()
         self.__ssm = AwsParamStore()
@@ -139,14 +140,14 @@ class CatalyaArchiveTrigger:
                 item_path_parts = parsed_item_url.path.rsplit('/', 1)
                 item_base_path = item_path_parts[0] if len(item_path_parts) > 1 else ''
 
+                s3_base_path = f's3://{item_bucket}{item_base_path}'
                 for asset_key, asset in stac_item.assets.items():
                     asset_href = asset.href
 
                     # If href is relative, convert to absolute S3 URL
                     if not asset_href.startswith('s3://') and not asset_href.startswith('http'):
                         # Remove leading ./ or /
-                        asset_href = asset_href.lstrip('./')
-                        absolute_s3_url = f's3://{item_bucket}{item_base_path}/{asset_href}'
+                        absolute_s3_url = self.join_s3_url(s3_base_path, asset_href)
                         LOGGER.debug(f'Converted relative URL {asset.href} to absolute: {absolute_s3_url}')
                         asset.href = absolute_s3_url
 
