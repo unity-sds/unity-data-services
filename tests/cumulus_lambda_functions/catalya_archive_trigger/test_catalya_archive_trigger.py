@@ -113,18 +113,11 @@ class TestCatalyaArchiveTrigger(TestCase):
                 # Assertions
                 self.assertIsNotNone(item_links, "retrieve_all_stac_items should return a list")
                 self.assertIsInstance(item_links, list, "Result should be a list")
-                self.assertGreater(len(item_links), 0, "Should find at least one item")
+                self.assertEqual(len(item_links), 1, "Should find exactly 1 item")
 
-                # Verify that we found the expected item(s)
-                # The catalog has 1 direct item link and 1 collection with 1 item
-                # Expected: 2 items total (1 direct + 1 from collection)
-                print(f"Found {len(item_links)} STAC items")
-                for link in item_links:
-                    print(f"  - {link.target}")
-                    # Verify the link targets are properly formed
-                    self.assertTrue(link.target.startswith(s3_base_url),
-                                    f"Link target should start with {s3_base_url}")
-
-                # Expected to find at least the item from the collection
-                self.assertEqual(len(item_links), 1,
-                                 "Should find 1 unique item link (direct item is same as collection item)")
+                # Verify that item_links contains S3 URLs (strings), not link objects
+                for item_url in item_links:
+                    self.assertIsInstance(item_url, str, "Item link should be a string (S3 URL)")
+                    self.assertTrue(item_url.startswith(s3_base_url),
+                                    f"Item URL should start with {s3_base_url}")
+                    print(f"Found STAC item: {item_url}")

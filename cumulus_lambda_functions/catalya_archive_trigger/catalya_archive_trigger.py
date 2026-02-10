@@ -46,7 +46,7 @@ class CatalyaArchiveTrigger:
             # Handle different link types
             if link.rel == 'item':
                 # Direct item link
-                item_links.append(link)
+                item_links.append(link.target)
                 LOGGER.info(f"Found item link: {link.target}")
             elif link.rel == 'child' or link.rel == 'collection':
                 # Collection link - read collection and extract items
@@ -55,12 +55,12 @@ class CatalyaArchiveTrigger:
                     collection = Collection.from_dict(collection)
                     collection_item_links = list(collection.get_item_links())
                     collection_folder = os.path.dirname(link.target)
-                    temp_item_links = [k for k in collection.get_links() if
+                    temp_item_links = [k.target for k in collection.get_links() if
                                        k.rel in ['item'] and not k.target.startswith('http')]
                     for each in temp_item_links:
-                        if os.path.isabs(each.target):
+                        if os.path.isabs(each):
                             continue
-                        each.target = os.path.join(collection_folder, each.target)
+                        each.target = os.path.join(collection_folder, each)
                     item_links.extend(temp_item_links)
                     LOGGER.info(
                         f"Found collection '{collection.id}' with {len(collection_item_links)} items: {link.target}")
