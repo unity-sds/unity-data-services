@@ -51,10 +51,11 @@ class InternalDDBConnector:
         self.auth_info = FastApiUtils.get_authorization_info(request)
         if daac_collection_id is None:
             self.configured_daac_configs = self.cdhsd.search(collection_id)
-            configured_daac_ids = [k[self.cdhsd.target_project] for k in self.configured_daac_configs]
+            configured_daac_ids = [] if len(self.configured_daac_configs) < 1 else [k[self.cdhsd.target_project] for k in self.configured_daac_configs]
         else:
             configured_daac_ids = [daac_collection_id]
-        authorized_daacs = self.cad.get_authorized_daac_full(self.auth_info.get('ldap_groups'), collection_id, configured_daac_ids)
+
+        authorized_daacs = [] if len(configured_daac_ids) < 1 else self.cad.get_authorized_daac_full(self.auth_info.get('ldap_groups'), collection_id, configured_daac_ids)
         if len(authorized_daacs) < 1:
             LOGGER.debug(f'user: {self.auth_info["username"]} is not authorized for {collection_id}')
             raise HTTPException(status_code=403, detail=json.dumps({
