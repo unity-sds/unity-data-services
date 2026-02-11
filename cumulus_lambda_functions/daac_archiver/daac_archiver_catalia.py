@@ -7,11 +7,11 @@ from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 from mdps_ds_lib.lib.aws.aws_sns import AwsSns
 from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 from mdps_ds_lib.stac_fast_api_client.sfa_client_factory import SFAClientFactory
-from mdps_ds_lib.stage_in_out.stage_in_out_utils import StageInOutUtils
 from pystac import Item
 
 from cumulus_lambda_functions.daac_archiver.catalia_archiving_traces import CataliaArchivingTraces
 from cumulus_lambda_functions.daac_archiver.catalia_status_db import CataliaStatusDb
+from cumulus_lambda_functions.daac_archiver.services.staging_svc import StagingSvc
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.lib.uds_utils import backoff_wrapper
 
@@ -60,6 +60,7 @@ class DaacArchiverCatalia:
     }
 
     def __init__(self):
+        self.__staging_service = StagingSvc()
         self.__sns = AwsSns()
         self.__s3 = AwsS3()
         self.__staged_s3_bucket = 'SET_ME_UP'  # DONE. There is validation to see if it's original value, it will throw an error.
@@ -93,7 +94,7 @@ class DaacArchiverCatalia:
 
     @property
     def staged_s3_bucket(self):
-        return self.__staged_s3_bucket
+        return self.__staging_service.staged_s3_bucket
 
     @staged_s3_bucket.setter
     def staged_s3_bucket(self, val):
@@ -101,7 +102,7 @@ class DaacArchiverCatalia:
         :param val:
         :return: None
         """
-        self.__staged_s3_bucket = val
+        self.__staging_service.__staged_s3_bucket = val
         return
 
     @property
@@ -306,7 +307,7 @@ class DaacArchiverCatalia:
         if len(self.__daac_agreements) < 1:
             LOGGER.debug(f'this collection does not have any daac. {self.__archiving_granules_stac}')
             return
-        self.stage_files()
+        self.__staging_service.stage_files(self.archiving_granules_stac)
         for each_agreement in self.__daac_agreements:
             LOGGER.debug(f'working on {each_agreement}')
             self.send_daac_sns(each_agreement)
@@ -342,71 +343,6 @@ class DaacArchiverCatalia:
         if 'archival:status' not in self.__archiving_granules_stac.properties:
             self.__archiving_granules_stac.properties['archival:status'] = []
             LOGGER.debug(f'Initialized archival:status property for STAC item')
-        return self
-
-    def stage_files(self):
-        """
-        1. Check directory s3://<self.__staged_s3_bucket>/<collection-id>/<item-id>
-        2. If not empty. log a warning message.
-        3. Empty S3 directory
-        4. Get file locations for each asset in self.__archiving_granules_stac which should be a pystac object.
-        5. Copy them from source S3 to destination S3 from Step 1.
-        6. After each copy, update the href of each asset to new location.
-        7. If pystac is part of the assets, change its href to new location as well and upload it.
-        8. How do I know if pystac is part of assets?
-        :return:
-        """
-        if self.__archiving_granules_stac is None:
-            raise ValueError(f'NULL archiving granule. Cannot stage files.')
-
-        if self.__staged_s3_bucket == 'SET_ME_UP':
-            raise ValueError(f'Staged S3 bucket is not configured. Please set self.__staged_s3_bucket.')
-
-        # Get collection and item IDs
-        collection_id = self.__archiving_granules_stac.collection_id
-        item_id = self.__archiving_granules_stac.id
-
-        # Define staging directory path
-        staging_prefix = f"{collection_id}/{item_id}/{TimeUtils.get_current_time()}/"
-        staging_s3_path = f"s3://{self.__staged_s3_bucket}/{staging_prefix}"
-        LOGGER.info(f'Staging files to: {staging_s3_path}')
-
-        # Process each asset in the STAC item
-        staged_assets = {}
-        for asset_key, asset in self.__archiving_granules_stac.assets.items():
-            if hasattr(asset, 'href') and asset.href:
-                source_href = asset.href
-                LOGGER.debug(f'Processing asset {asset_key} from {source_href}')
-
-                # Parse S3 URL to get bucket and key
-                if source_href.startswith('s3://'):
-                    # Remove s3:// prefix and split
-                    s3_path = source_href[5:]
-                    bucket_key_parts = s3_path.split('/', 1)
-                    if len(bucket_key_parts) == 2:
-                        source_bucket, source_key = bucket_key_parts
-
-                        # Define destination key (preserve original filename)
-                        filename = source_key.split('/')[-1]
-                        dest_key = f"{staging_prefix}{filename}"
-                        dest_href = f"s3://{self.__staged_s3_bucket}/{dest_key}"
-
-                        try:
-                            # Copy file to staging bucket
-                            backoff_wrapper(self.__s3.copy_artifact, source_bucket, source_key, self.__staged_s3_bucket, dest_key, copy_tags=False, delete_original=False)
-                            LOGGER.info(f'Copied {source_href} to {dest_href}')
-
-                            # Update asset href to new location
-                            asset.href = dest_href
-                            staged_assets[asset_key] = dest_href
-
-                        except Exception as e:
-                            LOGGER.error(f'Failed to copy asset {asset_key} from {source_href} to {dest_href}: {e}')
-                            raise
-                    else:
-                        LOGGER.warning(f'Invalid S3 URL format for asset {asset_key}: {source_href}')
-                else:
-                    LOGGER.warning(f'Non-S3 asset {asset_key} not staged: {source_href}')
         return self
 
     def update_status_wrapper(self, cnm_notification_msg: dict):
