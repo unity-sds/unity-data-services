@@ -90,7 +90,7 @@ resource "aws_iam_policy" "mock_daac_lambda_policy" {
         Action = [
           "sns:Publish"
         ],
-        Resource = "arn:aws:sns:${var.uds_region}:${var.uds_account}:${var.uds_prefix}-daac_archiver_response"
+        Resource = "arn:aws:sns:${var.uds_region}:${var.uds_account}:${var.uds_prefix}-uds_daac_archiver_response"
       }
     ]
   })
@@ -117,7 +117,7 @@ resource "aws_lambda_function" "mock_daac_lambda" {
       NO_RESPONSE_PERC = var.no_response_perc
       FAIL_PERC = var.no_response_perc
       FAIL_PERC = var.fail_perc
-      UDS_ARCHIVE_SNS_TOPIC_ARN = "arn:aws:sns:${var.uds_region}:${var.uds_account}:${var.uds_prefix}-daac_archiver_response"
+      UDS_ARCHIVE_SNS_TOPIC_ARN = "arn:aws:sns:${var.uds_region}:${var.uds_account}:${var.uds_prefix}-uds_daac_archiver_response"
     }
   }
 
