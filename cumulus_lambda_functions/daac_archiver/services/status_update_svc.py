@@ -1,5 +1,7 @@
-
+import json
 import os
+
+from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 from cumulus_lambda_functions.daac_archiver.catalia_archiving_traces import CataliaArchivingTraces
 from cumulus_lambda_functions.daac_archiver.services.sfa_client_mw import SfaClientMw
@@ -115,6 +117,27 @@ class StatusUpdateSvc:
             LOGGER.exception(f'Failed to store status in DDB {self.__collection}')
             raise e
 
+    def update_s3_url_from_traces_tbl(self, archival_status_with_timestamp):
+        if archival_status_with_timestamp['status'] != 'cnm-receive-success':
+            LOGGER.debug(f'NOT cnm-receive-success. skipping S3 Write for {self.__identifier}-{self.__collection}-{self.__granule}')
+            return self
+        traces_result = self.__uds_ctla_archiving_traces.get(self.__identifier)
+        if traces_result is None or len(traces_result) < 1:
+            LOGGER.debug(f'missing entry in TRACES table for {self.__identifier}-{self.__collection}-{self.__granule}')
+            return self
+        if len(traces_result) > 1:
+            LOGGER.warning(f'found duplicated identifiers: {traces_result}')
+        s3_url = traces_result[0][CataliaArchivingTraces.s3_url]
+        s3_url_result = f'{s3_url}.cnm_r.{archival_status_with_timestamp["datetime"]}'
+        archive_status = archival_status_with_timestamp.copy()
+        archive_status['identifier'] = self.__identifier
+        archive_status['collection'] = self.__collection
+        archive_status['id'] = self.__granule
+        s3 = AwsS3()
+        LOGGER.debug(f'writing to {s3_url_result}')
+        s3.set_s3_url(s3_url_result).upload_bytes(json.dumps(archive_status).encode('utf-8'))
+        return self
+
     def update_status(self, archival_status: dict):
         """
         1. validate archival_status from parameter against self.archival_status_schema
@@ -142,8 +165,7 @@ class StatusUpdateSvc:
             SfaClientMw().load_manually(self.__collection, self.__granule).update_sfa_item_status(archival_status_with_timestamp)
         except Exception as e:
             errors.append(e)
-
-        # TODO update TRACE if success and write to S3 original file adjacent
+        self.update_s3_url_from_traces_tbl(archival_status_with_timestamp)
         if len(errors) > 0:
             raise RuntimeError(f'Failed to update STAC item status: {errors}')
         return
