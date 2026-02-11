@@ -41,5 +41,5 @@ class CataliaArchivingTraces:
             self.datetime_str: datetime_str,
         }
         item1 = {k: v for k, v in item1.items() if v is not None}
-        self.__ddb.add(identifier, item1, replace=False)
+        self.__ddb.add(identifier, None, item1, replace=False)
         return

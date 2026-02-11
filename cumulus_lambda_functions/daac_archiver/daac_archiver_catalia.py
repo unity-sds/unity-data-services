@@ -45,7 +45,7 @@ class DaacArchiverCatalia:
 
     @property
     def staged_s3_bucket(self):
-        return self.staged_s3_bucket
+        return self.__staged_s3_bucket
 
     @staged_s3_bucket.setter
     def staged_s3_bucket(self, val):
@@ -471,7 +471,7 @@ class DaacArchiverCatalia:
             # TODO store details to new DB.
             if self.__tracing_s3_url is not None:
                 self.__uds_ctla_archiving_traces.add(sending_uuid, self.__tracing_s3_url, 'TODO', ['TODO'],
-                                                     self.__archiving_granules_stac.collection_id, self.__archiving_granules_stac.id, TimeUtils.get_current_unix_milli())
+                                                     self.__archiving_granules_stac.collection_id, self.__archiving_granules_stac.id, TimeUtils().get_datetime_str())
             daac_cnm_message = {
                 "collection": {
                     'name': daac_config['targetProject'],
