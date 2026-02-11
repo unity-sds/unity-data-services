@@ -20,7 +20,7 @@ class CataliaArchivingTraces:
         ddb_props = NoSqlProps()
         ddb_props.table = table_name
         ddb_props.primary_key = self.identifier
-        # ddb_props.secondary_key = self.datetime_str
+        ddb_props.secondary_key = self.datetime_str
 
         param = ddb_props.to_json()
         param['file_repo'] = 'AWS_DDB'

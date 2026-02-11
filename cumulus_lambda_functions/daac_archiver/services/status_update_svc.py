@@ -127,7 +127,7 @@ class StatusUpdateSvc:
         if len(traces_result) > 1:
             LOGGER.warning(f'found duplicated identifiers: {traces_result}')
         s3_url = traces_result[0][CataliaArchivingTraces.s3_url]
-        s3_url_result = f'{s3_url}.cnm_r.{archival_status_with_timestamp["datetime"]}'
+        s3_url_result = f'{s3_url}.cnm_r.{archival_status_with_timestamp["datetime"]}.json'
         archive_status = archival_status_with_timestamp.copy()
         archive_status['identifier'] = self.__identifier
         archive_status['collection'] = self.__collection
