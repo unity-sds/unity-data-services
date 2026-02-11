@@ -11,6 +11,7 @@ resource "aws_lambda_function" "uds_api_1" {
     variables = {
       LOG_LEVEL = var.log_level
       CATALYA_STATUS_DB = aws_dynamodb_table.uds_ctla_daac_status.name
+      CATALYA_TRACING_DB = aws_dynamodb_table.uds_ctla_archiving_traces.name
       CATALYA_DB_NAME = aws_dynamodb_table.uds_ctla_auth_ddb.name
       CATALYA_DAAC_AGREEMENT_DB_NAME = aws_dynamodb_table.uds_ctla_daac_handshake.name
       ADMIN_COMMA_SEP_GROUPS = var.comma_separated_admin_groups

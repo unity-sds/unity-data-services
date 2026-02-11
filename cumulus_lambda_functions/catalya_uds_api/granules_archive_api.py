@@ -245,7 +245,7 @@ async def verbose_archive_single_granule_actual(request: Request, collection_id:
     dac = DaacArchiverCatalia()
     dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
     dac.daac_agreements = authorized_configured_daac_configs
-    dac.verbose_archive_granule(collection_id, granule_id, stac_item)
+    dac.verbose_archive_granule(collection_id, granule_id, item_s3_url, stac_item)
     return {'message': 'archive initiated'}
 
 @router.put("/{collection_id}/archive/{granule_id}/actual")

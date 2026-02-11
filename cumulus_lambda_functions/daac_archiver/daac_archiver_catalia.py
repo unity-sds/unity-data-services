@@ -10,6 +10,7 @@ from mdps_ds_lib.stac_fast_api_client.sfa_client_factory import SFAClientFactory
 from mdps_ds_lib.stage_in_out.stage_in_out_utils import StageInOutUtils
 from pystac import Item
 
+from cumulus_lambda_functions.daac_archiver.catalia_archiving_traces import CataliaArchivingTraces
 from cumulus_lambda_functions.daac_archiver.catalia_status_db import CataliaStatusDb
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.lib.uds_utils import backoff_wrapper
@@ -63,6 +64,7 @@ class DaacArchiverCatalia:
         self.__s3 = AwsS3()
         self.__staged_s3_bucket = 'SET_ME_UP'  # DONE. There is validation to see if it's original value, it will throw an error.
         self.__status_ddb = CataliaStatusDb(os.getenv('CATALYA_STATUS_DB', None))
+        self.__uds_ctla_archiving_traces = CataliaArchivingTraces(os.getenv('CATALYA_TRACING_DB', None))
         self.__daac_agreements = []
         sfa_auth_ssm_key = os.getenv('SFA_AUTH', None)
         LOGGER.debug(f'retrieving SSM details from {sfa_auth_ssm_key}')
@@ -70,9 +72,11 @@ class DaacArchiverCatalia:
         if sfa_auth_ssm_dict is None:
             raise ValueError(f'missing SSM detaails for SFA Auth: {sfa_auth_ssm_dict}')
         self.__sfa_client = SFAClientFactory().get_instance_from_dict(json.loads(sfa_auth_ssm_dict))
+        self.__update_status_to_sfa = os.getenv('UPDATE_STATUS_TO_SFA', 'FALSE').strip().upper() == 'TRUE'
         self.__archiving_granules_stac = None
         self.__archiving_status_extension_url = "https://stac-extensions.github.io/archival_statuses/v1.0.0/schema.json"
         self.__cnm_msg_version = "1.6.0"
+        self.__tracing_s3_url = None
 
     @property
     def archiving_granules_stac(self):
@@ -277,10 +281,11 @@ class DaacArchiverCatalia:
         self.archive_granule_json()
         return self
 
-    def verbose_archive_granule(self, collection_id, granule_id, item_json: dict):
+    def verbose_archive_granule(self, collection_id, granule_id, tracing_s3_url, item_json: dict):
         # TODO validate item.json is valid or just ask for STAC Item object
         # TODO update collection and granule id in item.json if different. Needed ??
         LOGGER.debug(f'verbose_archive_granule input item_json: {item_json}')
+        self.__tracing_s3_url = tracing_s3_url
         self.__archiving_granules_stac = item_json
         self.archive_granule_json()
         return self
@@ -477,21 +482,22 @@ class DaacArchiverCatalia:
             raise ValueError(f'Missing collection_id or item_id from STAC item. collection_id: {collection_id}, item_id: {item_id}')
 
         errors = []
-        try:
-            # Convert STAC item to JSON dictionary
-            stac_item_dict = self.__archiving_granules_stac.to_dict()
+        if self.__update_status_to_sfa:
+            try:
+                # Convert STAC item to JSON dictionary
+                stac_item_dict = self.__archiving_granules_stac.to_dict()
 
-            # Update the item using the STAC Fast API client
-            updated_item = backoff_wrapper(self.__sfa_client.update_item,
-                collection_id=collection_id,
-                item_id=item_id,
-                item=stac_item_dict
-            )
-            LOGGER.info(f'Successfully updated STAC item {item_id} in collection {collection_id} with new archival status')
-            LOGGER.debug(f'Updated item response: {updated_item}')
-        except Exception as e:
-            LOGGER.exception(f'Failed to update STAC item {item_id} in collection {collection_id}')
-            errors.append(e)
+                # Update the item using the STAC Fast API client
+                updated_item = backoff_wrapper(self.__sfa_client.update_item,
+                    collection_id=collection_id,
+                    item_id=item_id,
+                    item=stac_item_dict
+                )
+                LOGGER.info(f'Successfully updated STAC item {item_id} in collection {collection_id} with new archival status')
+                LOGGER.debug(f'Updated item response: {updated_item}')
+            except Exception as e:
+                LOGGER.exception(f'Failed to update STAC item {item_id} in collection {collection_id}')
+                errors.append(e)
         try:
             self.__status_ddb.add(identifier, collection_id, item_id, archival_status['status'],
                                   archival_status_with_timestamp['datetime'],
@@ -503,9 +509,9 @@ class DaacArchiverCatalia:
             LOGGER.exception(f'Failed to store status in DDB {collection_id}')
             errors.append(e)
 
+        # TODO update TRACE if succeess and write to S3 original file adjacent
         if len(errors) > 0:
             raise RuntimeError(f'Failed to update STAC item status: {errors}')
-
         return
 
     def extract_files(self, daac_config: dict):
@@ -713,6 +719,9 @@ class DaacArchiverCatalia:
             LOGGER.debug(f'send_daac_sns daac_config: {daac_config}')
             self.__sns.set_topic_arn(daac_config['sns_topic_arn'])
             # TODO store details to new DB.
+            if self.__tracing_s3_url is not None:
+                self.__uds_ctla_archiving_traces.add(sending_uuid, self.__tracing_s3_url, 'TODO', ['TODO'],
+                                                     self.__archiving_granules_stac.collection_id, self.__archiving_granules_stac.id, TimeUtils.get_current_unix_milli())
             daac_cnm_message = {
                 "collection": {
                     'name': daac_config['targetProject'],

@@ -91,3 +91,33 @@ resource "aws_dynamodb_table" "uds_ctla_daac_status" {
 #    projection_type = "KEYS_ONLY"
 #  }
 }
+
+resource "aws_dynamodb_table" "uds_ctla_archiving_traces" {
+  name         = "${var.prefix}-uds_ctla_archiving_traces"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "identifier"
+  range_key    = "datetime"
+
+  attribute {
+    name = "identifier"
+    type = "S"
+  }
+
+  attribute {
+    name = "datetime"
+    type = "S"
+  }
+
+#  global_secondary_index {
+#    name               = "${var.prefix}-uds_auth_ddb_gsi_"
+#    hash_key           = "userGroup"
+#    projection_type    = "KEYS_ONLY"
+#  }
+#
+#  global_secondary_index {
+#    name            = "GSI2_Project_Venue"
+#    hash_key        = "Project"
+#    range_key       = "Venue"
+#    projection_type = "KEYS_ONLY"
+#  }
+}

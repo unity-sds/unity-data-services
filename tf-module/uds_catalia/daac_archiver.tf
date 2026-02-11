@@ -46,6 +46,7 @@ resource "aws_lambda_function" "uds_daac_archiver_response" {
       ARCHIVAL_STATUS_MECHANISM = "CATALYA"  # UDS or FAST_STAC
       SFA_AUTH = aws_ssm_parameter.daac_archiver_credentials.id
       CATALYA_STATUS_DB = aws_dynamodb_table.uds_ctla_daac_status.name
+      CATALYA_TRACING_DB = aws_dynamodb_table.uds_ctla_archiving_traces.name
     }
   }
 
