@@ -435,6 +435,9 @@ class DaacArchiverCatalia:
         :param archival_status:
         :return:
         """
+        # TODO optional updating DEVSEED. configurable
+        # TODO store status to DDB?
+        # TODO if final status, write back to S3
         import jsonschema
         from datetime import datetime
 
@@ -705,17 +708,20 @@ class DaacArchiverCatalia:
         :param daac_config:
         :return:
         """
+        sending_uuid = str(uuid4())
         try:
-            self.__sns.set_topic_arn(daac_config['daac_sns_topic_arn'])
+            LOGGER.debug(f'send_daac_sns daac_config: {daac_config}')
+            self.__sns.set_topic_arn(daac_config['sns_topic_arn'])
+            # TODO store details to new DB.
             daac_cnm_message = {
                 "collection": {
-                    'name': daac_config['daac_collection_name'],
-                    'version': daac_config['daac_data_version'],
+                    'name': daac_config['targetProject'],
+                    'version': daac_config['data_version'],
                 },
-                'identifier': uuid4(),  # "identifier": self.__archiving_granules_stac.id,  # Seems like it's the same granule IDuds_cnm_json['identifier'],
+                'identifier': sending_uuid,  # "identifier": self.__archiving_granules_stac.id,  # Seems like it's the same granule IDuds_cnm_json['identifier'],
                 # From DAAC: Unique identifier for the message as a whole. It is the senders responsibility to ensure uniqueness. This identifier can be used in response messages to provide tracability.
                 "submissionTime": f'{TimeUtils.get_current_time()}Z',
-                "provider": daac_config['daac_provider'],  # NOTE: we can't use tenant as provider anymore coz we aren't sure tennt will be there in CATALIA. if 'daac_provider' in daac_config else granule_identifier.tenant
+                "provider": daac_config['provider'],  # NOTE: we can't use tenant as provider anymore coz we aren't sure tennt will be there in CATALIA. if 'daac_provider' in daac_config else granule_identifier.tenant
                 "version": self.__cnm_msg_version,
                 "product": {
                     "name": self.__archiving_granules_stac.id,  # NOTE: Original value = granule_identifier.granule. Should be the name of granule.
@@ -724,13 +730,19 @@ class DaacArchiverCatalia:
                 }
             }
             LOGGER.debug(f'daac_cnm_message: {daac_cnm_message}')
-            self.__sns.set_external_role(daac_config['daac_role_arn'], daac_config['daac_role_session_name']).publish_message(json.dumps(daac_cnm_message), True)
-            self.update_status({
+            if 'role_arn' in daac_config and \
+                'role_session_name' in daac_config and \
+                daac_config['role_arn'] != '' and \
+                daac_config['role_session_name'] != '':
+                self.__sns.set_external_role(daac_config['role_arn'], daac_config['role_session_name']).publish_message(json.dumps(daac_cnm_message), True)
+            else:
+                self.__sns.publish_message(json.dumps(daac_cnm_message), False)
+            self.update_status(sending_uuid, {
                 "status": "cnm-submit-success",
             })
         except Exception as e:
             LOGGER.exception(f'failed during archival process')
-            self.update_status({
+            self.update_status(sending_uuid, {
                 "status": "cnm-submit-failed",
                 "errorMessage": str(e),
             })
