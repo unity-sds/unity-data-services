@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from cumulus_lambda_functions.daac_archiver.catalia_auth_db import CataliaAuthDb
+from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_auth_db import CataliaAuthDb
 
 
 class TestCataliaAuthDb(TestCase):

@@ -4,8 +4,8 @@ from typing import Optional
 import boto3
 from mdps_ds_lib.lib.aws.aws_param_store import AwsParamStore
 
-from cumulus_lambda_functions.daac_archiver.catalia_auth_db import CataliaAuthDb
-from cumulus_lambda_functions.daac_archiver.catalia_daac_handshakes_db import CataliaDaacHandshakesDb
+from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_auth_db import CataliaAuthDb
+from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_daac_handshakes_db import CataliaDaacHandshakesDb
 from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia import DaacArchiverCatalia
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.uds_api.web_service_constants import WebServiceConstants

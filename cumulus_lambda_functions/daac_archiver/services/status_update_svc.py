@@ -3,10 +3,10 @@ import os
 
 from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 from mdps_ds_lib.lib.utils.time_utils import TimeUtils
-from cumulus_lambda_functions.daac_archiver.catalia_archiving_traces import CataliaArchivingTraces
+from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_archiving_traces import CataliaArchivingTraces
 from cumulus_lambda_functions.daac_archiver.services.sfa_client_mw import SfaClientMw
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
-from cumulus_lambda_functions.daac_archiver.catalia_status_db import CataliaStatusDb
+from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_status_db import CataliaStatusDb
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
 
@@ -71,7 +71,6 @@ class StatusUpdateSvc:
 
     def validate_status(self, archival_status):
         import jsonschema
-        from datetime import datetime
         if not isinstance(archival_status, dict):
             raise ValueError(f'archival_status must be a dictionary, got {type(archival_status)}')
 
