@@ -7,7 +7,6 @@ from mdps_ds_lib.lib.aws.aws_sns import AwsSns
 from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 
 from cumulus_lambda_functions.daac_archiver.catalia_archiving_traces import CataliaArchivingTraces
-from cumulus_lambda_functions.daac_archiver.catalia_status_db import CataliaStatusDb
 from cumulus_lambda_functions.daac_archiver.services.sfa_client_mw import SfaClientMw
 from cumulus_lambda_functions.daac_archiver.services.staging_svc import StagingSvc
 from cumulus_lambda_functions.daac_archiver.services.status_update_svc import StatusUpdateSvc

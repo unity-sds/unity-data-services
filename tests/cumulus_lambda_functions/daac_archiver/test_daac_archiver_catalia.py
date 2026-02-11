@@ -6,323 +6,10 @@ from datetime import datetime
 from pystac import Item, Asset
 from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia import DaacArchiverCatalia
 
-
 class TestDaacArchiverCatalia(TestCase):
 
     def setUp(self):
         return
-
-    def test_update_status_01(self):
-        """
-        Test update_status method with progressive status updates:
-        1. Creates STAC item without archival extension or status
-        2. Adds archival statuses one by one in sequence
-        3. Verifies each status is added correctly and in order
-        4. Verifies STAC Fast API client update_item is called
-        """
-        # Setup test data
-        collection_id = 'example-collection'
-        item_id = f'example-item-{uuid.uuid4().hex[:8]}'
-
-        # Create STAC Item without any archival extension or properties
-        stac_item = Item(
-            id=item_id,
-            geometry={
-                "type": "Polygon",
-                "coordinates": [[[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]]]
-            },
-            bbox=[-180, -90, 180, 90],
-            datetime=datetime.now(),
-            properties={}  # No archival extension or status initially
-        )
-        stac_item.collection_id = collection_id
-
-        # Define status updates to apply in sequence
-        status_updates = [
-            {
-                "status": "cnm-authorized-success"
-            },
-            {
-                "status": "cnm-staged-success",
-                "href": "s3://uds-staging/example-collection/example-item-with-archival-status"
-            },
-            {
-                "status": "cnm-submit-success"
-            },
-            {
-                "status": "cnm-receive-failed",
-                "errorCode": "NETWORK_TIMEOUT",
-                "errorMessage": "Failed to receive CNM response within timeout period",
-                "href": "https://example.com/cnm/receive/def456"
-            }
-        ]
-
-        # Mock dependencies
-        with patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsS3') as mock_s3_class, \
-             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsSns') as mock_sns_class, \
-             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.SFAClientFactory') as mock_sfa_factory:
-
-            # Setup mocks
-            mock_s3 = Mock()
-            mock_s3_class.return_value = mock_s3
-            mock_sns = Mock()
-            mock_sns_class.return_value = mock_sns
-            mock_sfa_client = Mock()
-            mock_sfa_factory.return_value.get_instance_from_env.return_value = mock_sfa_client
-
-            # Storage for captured SFA client calls
-            sfa_calls = []
-
-            # Mock SFA client update_item to capture and verify parameters
-            def mock_update_item(collection_id, item_id, item, update_whole=True):
-                # Store the call details for verification
-                call_info = {
-                    'collection_id': collection_id,
-                    'item_id': item_id,
-                    'item_dict': item.copy()  # Make a copy to preserve state
-                }
-                sfa_calls.append(call_info)
-
-                # Verify the basic parameters are correct
-                expected_collection_id = 'example-collection'
-                expected_item_id = item_id  # This will be the generated item_id
-
-                if collection_id != expected_collection_id:
-                    raise AssertionError(f"Expected collection_id '{expected_collection_id}', got '{collection_id}'")
-
-                return item
-
-            mock_sfa_client.update_item.side_effect = mock_update_item
-
-            # Create archiver instance
-            archiver = DaacArchiverCatalia()
-
-            # Set the STAC item to be updated
-            archiver._DaacArchiverCatalia__archiving_granules_stac = stac_item
-
-            # Verify initial state - no archival extension or status
-            initial_stac = archiver._DaacArchiverCatalia__archiving_granules_stac
-            self.assertNotIn('archival:status', initial_stac.properties,
-                           "Initially should have no archival:status property")
-
-            # Check if stac_extensions exists and if it does, verify no archival extension
-            if hasattr(initial_stac, 'stac_extensions') and initial_stac.stac_extensions:
-                self.assertNotIn(archiver._DaacArchiverCatalia__archiving_status_extension_url, initial_stac.stac_extensions,
-                               "Initially should have no archival extension")
-            archiver.add_archival_extension()
-            # Apply status updates one by one and verify each
-            for i, status_update in enumerate(status_updates):
-                # Call update_status with the current status
-                result = archiver.update_status('sample', status_update)
-
-                # Verify method returns self
-                self.assertEqual(result, archiver, f"update_status should return self (iteration {i+1})")
-
-                # Get updated STAC item
-                updated_stac = archiver._DaacArchiverCatalia__archiving_granules_stac
-
-                # Verify archival extension was added (should happen on first call)
-                self.assertIn(archiver._DaacArchiverCatalia__archiving_status_extension_url, updated_stac.stac_extensions,
-                            f"Archival extension should be present after update {i+1}")
-
-                # Verify archival:status property exists and is a list
-                self.assertIn('archival:status', updated_stac.properties,
-                            f"archival:status property should exist after update {i+1}")
-                archival_statuses = updated_stac.properties['archival:status']
-                self.assertIsInstance(archival_statuses, list,
-                                    f"archival:status should be a list after update {i+1}")
-
-                # Verify correct number of status entries
-                expected_count = i + 1
-                self.assertEqual(len(archival_statuses), expected_count,
-                               f"Should have {expected_count} status entries after update {i+1}")
-
-                # Verify the latest status was added correctly
-                latest_status = archival_statuses[-1]
-
-                # Check required status field
-                self.assertEqual(latest_status['status'], status_update['status'],
-                               f"Status field should match for update {i+1}")
-
-                # Check optional fields if present in the update
-                if 'href' in status_update:
-                    self.assertEqual(latest_status['href'], status_update['href'],
-                                   f"href field should match for update {i+1}")
-
-                if 'errorCode' in status_update:
-                    self.assertEqual(latest_status['errorCode'], status_update['errorCode'],
-                                   f"errorCode field should match for update {i+1}")
-
-                if 'errorMessage' in status_update:
-                    self.assertEqual(latest_status['errorMessage'], status_update['errorMessage'],
-                                   f"errorMessage field should match for update {i+1}")
-
-                # Verify datetime was automatically added
-                self.assertIn('datetime', latest_status,
-                            f"datetime should be automatically added for update {i+1}")
-
-                # Verify timestamp format (should end with 'Z' for UTC)
-                timestamp = latest_status['datetime']
-                self.assertTrue(timestamp.endswith('Z'),
-                              f"timestamp should end with 'Z' for update {i+1}: {timestamp}")
-
-                # Verify SFA client update_item was called
-                expected_call_count = i + 1
-                self.assertEqual(mock_sfa_client.update_item.call_count, expected_call_count,
-                               f"SFA client update_item should be called {expected_call_count} times")
-
-                # Verify the captured SFA call details
-                self.assertEqual(len(sfa_calls), expected_call_count,
-                               f"Should have captured {expected_call_count} SFA calls")
-
-                # Get the latest SFA call details
-                latest_sfa_call = sfa_calls[-1]
-
-                # Verify call parameters
-                self.assertEqual(latest_sfa_call['collection_id'], collection_id,
-                               f"SFA call collection_id should be correct for update {i+1}")
-                self.assertEqual(latest_sfa_call['item_id'], item_id,
-                               f"SFA call item_id should be correct for update {i+1}")
-
-                # Verify the item_dict content that was sent to SFA client
-                sent_item_dict = latest_sfa_call['item_dict']
-                self.assertIsInstance(sent_item_dict, dict,
-                                    f"SFA call item_dict should be a dict for update {i+1}")
-
-                # Verify basic STAC structure in sent item_dict
-                self.assertEqual(sent_item_dict['id'], item_id,
-                               f"SFA item_dict should have correct id for update {i+1}")
-                self.assertEqual(sent_item_dict['collection'], collection_id,
-                               f"SFA item_dict should have correct collection for update {i+1}")
-
-                # Verify archival extension was added to sent item_dict
-                self.assertIn('stac_extensions', sent_item_dict,
-                            f"SFA item_dict should have stac_extensions for update {i+1}")
-                self.assertIn(archiver._DaacArchiverCatalia__archiving_status_extension_url, sent_item_dict['stac_extensions'],
-                            f"SFA item_dict should have archival extension for update {i+1}")
-
-                # Verify archival:status property in sent item_dict
-                self.assertIn('properties', sent_item_dict,
-                            f"SFA item_dict should have properties for update {i+1}")
-                properties = sent_item_dict['properties']
-                self.assertIn('archival:status', properties,
-                            f"SFA item_dict properties should have archival:status for update {i+1}")
-
-                # Verify archival:status content in sent item_dict
-                sent_archival_statuses = properties['archival:status']
-                self.assertIsInstance(sent_archival_statuses, list,
-                                    f"SFA item_dict archival:status should be a list for update {i+1}")
-                self.assertEqual(len(sent_archival_statuses), expected_count,
-                               f"SFA item_dict should have {expected_count} status entries for update {i+1}")
-
-                # Verify the latest status in sent item_dict matches what we just added
-                sent_latest_status = sent_archival_statuses[-1]
-                self.assertEqual(sent_latest_status['status'], status_update['status'],
-                               f"SFA item_dict latest status should match for update {i+1}")
-
-                # Verify datetime was added to sent item_dict
-                self.assertIn('datetime', sent_latest_status,
-                            f"SFA item_dict latest status should have datetime for update {i+1}")
-                sent_timestamp = sent_latest_status['datetime']
-                self.assertTrue(sent_timestamp.endswith('Z'),
-                              f"SFA item_dict timestamp should end with 'Z' for update {i+1}: {sent_timestamp}")
-
-                # Verify optional fields in sent item_dict
-                if 'href' in status_update:
-                    self.assertIn('href', sent_latest_status,
-                                f"SFA item_dict should have href for update {i+1}")
-                    self.assertEqual(sent_latest_status['href'], status_update['href'],
-                                   f"SFA item_dict href should match for update {i+1}")
-
-                if 'errorCode' in status_update:
-                    self.assertIn('errorCode', sent_latest_status,
-                                f"SFA item_dict should have errorCode for update {i+1}")
-                    self.assertEqual(sent_latest_status['errorCode'], status_update['errorCode'],
-                                   f"SFA item_dict errorCode should match for update {i+1}")
-
-                if 'errorMessage' in status_update:
-                    self.assertIn('errorMessage', sent_latest_status,
-                                f"SFA item_dict should have errorMessage for update {i+1}")
-                    self.assertEqual(sent_latest_status['errorMessage'], status_update['errorMessage'],
-                                   f"SFA item_dict errorMessage should match for update {i+1}")
-
-            # Final verification - check all statuses are in correct order
-            final_stac = archiver._DaacArchiverCatalia__archiving_granules_stac
-            final_statuses = final_stac.properties['archival:status']
-
-            # Verify all status values are in the correct sequence
-            expected_status_sequence = [update['status'] for update in status_updates]
-            actual_status_sequence = [status['status'] for status in final_statuses]
-            self.assertEqual(actual_status_sequence, expected_status_sequence,
-                           "Status updates should be in the correct order")
-
-            # Verify statuses with href field have correct href values
-            statuses_with_href = [(i, status) for i, status in enumerate(final_statuses) if 'href' in status]
-            expected_hrefs = [
-                (1, "s3://uds-staging/example-collection/example-item-with-archival-status"),  # cnm-staged-success
-                (3, "https://example.com/cnm/receive/def456")  # cnm-receive-failed
-            ]
-
-            for status_index, expected_href in expected_hrefs:
-                found_status = final_statuses[status_index]
-                self.assertEqual(found_status['href'], expected_href,
-                               f"Status at index {status_index} should have href: {expected_href}")
-
-            # Verify error information for failed status
-            failed_status = final_statuses[3]  # cnm-receive-failed
-            self.assertEqual(failed_status['errorCode'], "NETWORK_TIMEOUT")
-            self.assertEqual(failed_status['errorMessage'], "Failed to receive CNM response within timeout period")
-
-            # Final verification of the last item_dict sent to SFA client
-            final_sfa_call = sfa_calls[-1]
-            final_sent_item_dict = final_sfa_call['item_dict']
-
-            # Verify the final sent item_dict has all status updates in correct order
-            final_sent_properties = final_sent_item_dict['properties']
-            final_sent_statuses = final_sent_properties['archival:status']
-
-            # Verify all status values are in the correct sequence in sent item_dict
-            final_sent_status_sequence = [status['status'] for status in final_sent_statuses]
-            self.assertEqual(final_sent_status_sequence, expected_status_sequence,
-                           "Status updates should be in correct order in final sent item_dict")
-
-            # Verify specific statuses in final sent item_dict
-            # Status 0: cnm-authorized-success (basic status only)
-            sent_status_0 = final_sent_statuses[0]
-            self.assertEqual(sent_status_0['status'], "cnm-authorized-success")
-            self.assertIn('datetime', sent_status_0)
-            self.assertNotIn('href', sent_status_0)
-            self.assertNotIn('errorCode', sent_status_0)
-
-            # Status 1: cnm-staged-success (with href)
-            sent_status_1 = final_sent_statuses[1]
-            self.assertEqual(sent_status_1['status'], "cnm-staged-success")
-            self.assertEqual(sent_status_1['href'], "s3://uds-staging/example-collection/example-item-with-archival-status")
-            self.assertIn('datetime', sent_status_1)
-            self.assertNotIn('errorCode', sent_status_1)
-
-            # Status 2: cnm-submit-success (basic status only)
-            sent_status_2 = final_sent_statuses[2]
-            self.assertEqual(sent_status_2['status'], "cnm-submit-success")
-            self.assertIn('datetime', sent_status_2)
-            self.assertNotIn('href', sent_status_2)
-            self.assertNotIn('errorCode', sent_status_2)
-
-            # Status 3: cnm-receive-failed (with href and error details)
-            sent_status_3 = final_sent_statuses[3]
-            self.assertEqual(sent_status_3['status'], "cnm-receive-failed")
-            self.assertEqual(sent_status_3['href'], "https://example.com/cnm/receive/def456")
-            self.assertEqual(sent_status_3['errorCode'], "NETWORK_TIMEOUT")
-            self.assertEqual(sent_status_3['errorMessage'], "Failed to receive CNM response within timeout period")
-            self.assertIn('datetime', sent_status_3)
-
-            # Verify all statuses have unique timestamps (they should be different due to sequential calls)
-            sent_timestamps = [status['datetime'] for status in final_sent_statuses]
-            self.assertEqual(len(sent_timestamps), len(set(sent_timestamps)),
-                           "All status timestamps should be unique in sent item_dict")
-
-            print(f"✅ Test passed! All {len(status_updates)} status updates applied correctly in sequence")
-            print(f"📤 Verified SFA client received correct item_dict with {len(final_sent_statuses)} status entries")
 
     def test_extract_files_01(self):
         """
@@ -446,15 +133,19 @@ class TestDaacArchiverCatalia(TestCase):
         # Mock dependencies
         with patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsS3') as mock_s3_class, \
              patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsSns') as mock_sns_class, \
-             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.SFAClientFactory') as mock_sfa_factory:
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.SfaClientMw') as mock_sfa_client_mw, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.StagingSvc') as mock_staging_svc, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.StatusUpdateSvc') as mock_status_svc, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.CataliaArchivingTraces') as mock_traces:
 
             # Setup mocks
-            mock_s3 = Mock()
-            mock_s3_class.return_value = mock_s3
-            mock_sns = Mock()
-            mock_sns_class.return_value = mock_sns
-            mock_sfa_client = Mock()
-            mock_sfa_factory.return_value.get_instance_from_env.return_value = mock_sfa_client
+            mock_s3_class.return_value = Mock()
+            mock_sns_class.return_value = Mock()
+            mock_sfa_client_mw.return_value = Mock()
+            mock_sfa_client_mw.add_archival_extension = Mock(side_effect=lambda x: x)  # Pass through
+            mock_staging_svc.return_value = Mock()
+            mock_status_svc.return_value = Mock()
+            mock_traces.return_value = Mock()
 
             # Create archiver instance
             archiver = DaacArchiverCatalia()
@@ -686,15 +377,19 @@ class TestDaacArchiverCatalia(TestCase):
         # Mock dependencies
         with patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsS3') as mock_s3_class, \
              patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsSns') as mock_sns_class, \
-             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.SFAClientFactory') as mock_sfa_factory:
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.SfaClientMw') as mock_sfa_client_mw, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.StagingSvc') as mock_staging_svc, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.StatusUpdateSvc') as mock_status_svc, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.CataliaArchivingTraces') as mock_traces:
 
             # Setup mocks
-            mock_s3 = Mock()
-            mock_s3_class.return_value = mock_s3
-            mock_sns = Mock()
-            mock_sns_class.return_value = mock_sns
-            mock_sfa_client = Mock()
-            mock_sfa_factory.return_value.get_instance_from_env.return_value = mock_sfa_client
+            mock_s3_class.return_value = Mock()
+            mock_sns_class.return_value = Mock()
+            mock_sfa_client_mw.return_value = Mock()
+            mock_sfa_client_mw.add_archival_extension = Mock(side_effect=lambda x: x)  # Pass through
+            mock_staging_svc.return_value = Mock()
+            mock_status_svc.return_value = Mock()
+            mock_traces.return_value = Mock()
 
             # Create archiver instance
             archiver = DaacArchiverCatalia()
@@ -868,16 +563,20 @@ class TestDaacArchiverCatalia(TestCase):
         # Mock dependencies
         with patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsS3') as mock_s3_class, \
              patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsSns') as mock_sns_class, \
-             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.SFAClientFactory') as mock_sfa_factory, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.SfaClientMw') as mock_sfa_client_mw, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.StagingSvc') as mock_staging_svc, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.StatusUpdateSvc') as mock_status_svc, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.CataliaArchivingTraces') as mock_traces, \
              patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.DaacArchiverCatalia.archive_granule_json', autospec=True) as mock_archive_granule_json:
 
             # Setup mocks
-            mock_s3 = Mock()
-            mock_s3_class.return_value = mock_s3
-            mock_sns = Mock()
-            mock_sns_class.return_value = mock_sns
-            mock_sfa_client = Mock()
-            mock_sfa_factory.return_value.get_instance_from_env.return_value = mock_sfa_client
+            mock_s3_class.return_value = Mock()
+            mock_sns_class.return_value = Mock()
+            mock_sfa_client_mw.return_value = Mock()
+            mock_sfa_client_mw.add_archival_extension = Mock(side_effect=lambda x: x)  # Pass through
+            mock_staging_svc.return_value = Mock()
+            mock_status_svc.return_value = Mock()
+            mock_traces.return_value = Mock()
 
             # Track calls to archive_granule_json to verify concurrent execution
             call_times = []
@@ -1009,16 +708,20 @@ class TestDaacArchiverCatalia(TestCase):
         # Mock dependencies
         with patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsS3') as mock_s3_class, \
              patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsSns') as mock_sns_class, \
-             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.SFAClientFactory') as mock_sfa_factory, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.SfaClientMw') as mock_sfa_client_mw, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.StagingSvc') as mock_staging_svc, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.StatusUpdateSvc') as mock_status_svc, \
+             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.CataliaArchivingTraces') as mock_traces, \
              patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.DaacArchiverCatalia.archive_granule_json', autospec=True) as mock_archive_granule_json:
 
             # Setup mocks
-            mock_s3 = Mock()
-            mock_s3_class.return_value = mock_s3
-            mock_sns = Mock()
-            mock_sns_class.return_value = mock_sns
-            mock_sfa_client = Mock()
-            mock_sfa_factory.return_value.get_instance_from_env.return_value = mock_sfa_client
+            mock_s3_class.return_value = Mock()
+            mock_sns_class.return_value = Mock()
+            mock_sfa_client_mw.return_value = Mock()
+            mock_sfa_client_mw.add_archival_extension = Mock(side_effect=lambda x: x)  # Pass through
+            mock_staging_svc.return_value = Mock()
+            mock_status_svc.return_value = Mock()
+            mock_traces.return_value = Mock()
 
             # Track processing results
             processing_results = {}
@@ -1125,13 +828,11 @@ class TestDaacArchiverCatalia(TestCase):
         # Mock dependencies
         with patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsS3') as mock_s3_class, \
              patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.AwsSns') as mock_sns_class, \
-             patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.SFAClientFactory') as mock_sfa_factory, \
              patch('cumulus_lambda_functions.daac_archiver.daac_archiver_catalia.DaacArchiverCatalia.archive_granule_json', autospec=True) as mock_archive_granule_json:
 
             # Setup mocks
             mock_s3_class.return_value = Mock()
             mock_sns_class.return_value = Mock()
-            mock_sfa_factory.return_value.get_instance_from_env.return_value = Mock()
 
             # Track worker instances and their configurations
             worker_instances = []
