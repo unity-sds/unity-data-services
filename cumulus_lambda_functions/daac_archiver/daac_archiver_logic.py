@@ -10,7 +10,7 @@ from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 from mdps_ds_lib.lib.aws.aws_message_transformers import AwsMessageTransformers
 from mdps_ds_lib.lib.utils.json_validator import JsonValidator
 
-from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia import DaacArchiverCatalia
+from cumulus_lambda_functions.daac_archiver.services.status_update_svc import StatusUpdateSvc
 from cumulus_lambda_functions.lib.uds_db.granules_db_index import GranulesDbIndex
 from mdps_ds_lib.lib.aws.aws_sns import AwsSns
 from mdps_ds_lib.lib.utils.time_utils import TimeUtils
@@ -154,7 +154,7 @@ class DaacArchiverLogic:
             raise ValueError(f"missing ARCHIVAL_STATUS_MECHANISM environment variable or value is not {['UDS', 'FAST_STAC']}")
         if update_type == 'UDS':
             return self.update_stac_uds(cnm_notification_msg)
-        dac = DaacArchiverCatalia()
+        dac = StatusUpdateSvc()
         return dac.update_status_wrapper(cnm_notification_msg)
 
     def update_stac_uds(self, cnm_notification_msg):

@@ -2,16 +2,15 @@ import json
 import os
 from uuid import uuid4
 
-from mdps_ds_lib.lib.aws.aws_param_store import AwsParamStore
 from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 from mdps_ds_lib.lib.aws.aws_sns import AwsSns
 from mdps_ds_lib.lib.utils.time_utils import TimeUtils
-from mdps_ds_lib.stac_fast_api_client.sfa_client_factory import SFAClientFactory
-from pystac import Item
 
 from cumulus_lambda_functions.daac_archiver.catalia_archiving_traces import CataliaArchivingTraces
 from cumulus_lambda_functions.daac_archiver.catalia_status_db import CataliaStatusDb
+from cumulus_lambda_functions.daac_archiver.services.sfa_client_mw import SfaClientMw
 from cumulus_lambda_functions.daac_archiver.services.staging_svc import StagingSvc
+from cumulus_lambda_functions.daac_archiver.services.status_update_svc import StatusUpdateSvc
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.lib.uds_utils import backoff_wrapper
 
@@ -19,60 +18,13 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 
 
 class DaacArchiverCatalia:
-    archival_status_schema = {
-      "type": "object",
-      "required": [
-        "status"
-      ],
-      "properties": {
-        "status": {
-          "type": "string",
-          "enum": [
-            "cnm-authorized-success",
-            "cnm-authorized-failed",
-            "cnm-staged-success",
-            "cnm-staged-failed",
-            "cnm-submit-success",
-            "cnm-submit-failed",
-            "cnm-receive-success",
-            "cnm-receive-failed"
-          ]
-        },
-        "errorCode": {
-          "type": "string"
-        },
-        "errorMessage": {
-          "type": "string"
-        },
-        "href": {
-          "type": "string",
-          "format": "iri-reference"
-        },
-        "datetime": {
-              "title": "Date and Time",
-              "description": "timestamp of this update, in UTC (Formatted in RFC 3339) ",
-              "type": "string",
-              "format": "date-time",
-              "pattern": "(\\+00:00|Z)$"
-          }
-      },
-      "additionalProperties": False
-    }
-
     def __init__(self):
         self.__staging_service = StagingSvc()
         self.__sns = AwsSns()
         self.__s3 = AwsS3()
         self.__staged_s3_bucket = 'SET_ME_UP'  # DONE. There is validation to see if it's original value, it will throw an error.
-        self.__status_ddb = CataliaStatusDb(os.getenv('CATALYA_STATUS_DB', None))
         self.__uds_ctla_archiving_traces = CataliaArchivingTraces(os.getenv('CATALYA_TRACING_DB', None))
         self.__daac_agreements = []
-        sfa_auth_ssm_key = os.getenv('SFA_AUTH', None)
-        LOGGER.debug(f'retrieving SSM details from {sfa_auth_ssm_key}')
-        sfa_auth_ssm_dict = AwsParamStore().get_param(sfa_auth_ssm_key)
-        if sfa_auth_ssm_dict is None:
-            raise ValueError(f'missing SSM detaails for SFA Auth: {sfa_auth_ssm_dict}')
-        self.__sfa_client = SFAClientFactory().get_instance_from_dict(json.loads(sfa_auth_ssm_dict))
         self.__update_status_to_sfa = os.getenv('UPDATE_STATUS_TO_SFA', 'FALSE').strip().upper() == 'TRUE'
         self.__archiving_granules_stac = None
         self.__archiving_status_extension_url = "https://stac-extensions.github.io/archival_statuses/v1.0.0/schema.json"
@@ -94,7 +46,7 @@ class DaacArchiverCatalia:
 
     @property
     def staged_s3_bucket(self):
-        return self.__staging_service.staged_s3_bucket
+        return self.staged_s3_bucket
 
     @staged_s3_bucket.setter
     def staged_s3_bucket(self, val):
@@ -102,7 +54,7 @@ class DaacArchiverCatalia:
         :param val:
         :return: None
         """
-        self.__staging_service.__staged_s3_bucket = val
+        self.__staged_s3_bucket = val
         return
 
     @property
@@ -134,13 +86,13 @@ class DaacArchiverCatalia:
             all_granule_jsons = []
             page = 1
             limit = 100  # Reasonable batch size
-
+            sfa_client_mw = SfaClientMw()
             while True:
                 LOGGER.debug(f'Fetching granules page {page} for collection {collection_id}')
 
                 # Use backoff wrapper for STAC API call
                 granules_response = backoff_wrapper(
-                    self.__sfa_client.get_items,
+                    sfa_client_mw.sfa_client.get_items,
                     collection_id=collection_id,
                     limit=limit,
                     offset=(page - 1) * limit
@@ -271,13 +223,10 @@ class DaacArchiverCatalia:
 
         return self
 
-    def load_granule_from_client(self, collection_id, granule_id):
-        self.__archiving_granules_stac = backoff_wrapper(self.__sfa_client.get_item, collection_id, item_id=granule_id)
-        return self
-
     def archive_granule(self, collection_id, granule_id):
         # TODO look up granule details
-        self.load_granule_from_client(collection_id, granule_id)
+        sfa_client_mw = SfaClientMw()
+        self.__archiving_granules_stac = backoff_wrapper(sfa_client_mw.sfa_client.get_item, collection_id, item_id=granule_id)
         LOGGER.debug(f'retrieved stac_item from STAC Fast API: {self.__archiving_granules_stac}')
         self.archive_granule_json()
         return self
@@ -303,151 +252,15 @@ class DaacArchiverCatalia:
         """
         if self.__archiving_granules_stac is None:
             raise ValueError(f'NULL archiving granule. Pls retrieve it first.')
-        self.add_archival_extension()
+        self.archiving_granules_stac = SfaClientMw.add_archival_extension(self.archiving_granules_stac)
         if len(self.__daac_agreements) < 1:
             LOGGER.debug(f'this collection does not have any daac. {self.__archiving_granules_stac}')
             return
+        self.__staging_service.staged_s3_bucket = self.staged_s3_bucket
         self.__staging_service.stage_files(self.archiving_granules_stac)
         for each_agreement in self.__daac_agreements:
             LOGGER.debug(f'working on {each_agreement}')
             self.send_daac_sns(each_agreement)
-        return
-
-    def add_archival_extension(self):
-        """
-        1. Convert dictionary to pystac object. store the modified object back to the self.__archiving_granules_stac
-        2. Check if it has a stac_extensions, and it has self.__archiving_status_extension_url
-        3. If so, done
-        4. If not, add that extension, done
-
-        :return:
-        """
-        if self.__archiving_granules_stac is None:
-            raise ValueError(f'NULL archiving granule. Cannot add archival extension.')
-
-        # Convert to pystac Item if it's a dictionary
-        if isinstance(self.__archiving_granules_stac, dict):
-            self.__archiving_granules_stac = Item.from_dict(self.__archiving_granules_stac)
-
-        # Check if the archival extension is already present
-        if hasattr(self.__archiving_granules_stac, 'stac_extensions'):
-            if self.__archiving_status_extension_url not in self.__archiving_granules_stac.stac_extensions:
-                self.__archiving_granules_stac.stac_extensions.append(self.__archiving_status_extension_url)
-                LOGGER.debug(f'Added archival extension to STAC item: {self.__archiving_status_extension_url}')
-        else:
-            # Initialize stac_extensions if it doesn't exist
-            self.__archiving_granules_stac.stac_extensions = [self.__archiving_status_extension_url]
-            LOGGER.debug(f'Initialized stac_extensions with archival extension: {self.__archiving_status_extension_url}')
-
-        # Initialize archival:status property if it doesn't exist
-        if 'archival:status' not in self.__archiving_granules_stac.properties:
-            self.__archiving_granules_stac.properties['archival:status'] = []
-            LOGGER.debug(f'Initialized archival:status property for STAC item')
-        return self
-
-    def update_status_wrapper(self, cnm_notification_msg: dict):
-        existing_statuses = self.__status_ddb.get(cnm_notification_msg['identifier'])
-        if len(existing_statuses) < 1:
-            raise ValueError(f'unknown collection & granule: {cnm_notification_msg}')
-        collection_id, granule_id = existing_statuses[0][CataliaStatusDb.collection], existing_statuses[0][CataliaStatusDb.name_str]
-        self.load_granule_from_client(collection_id, granule_id)
-        if cnm_notification_msg['response']['status'] == 'SUCCESS':
-            latest_daac_status = {
-                'status': 'cnm-receive-success',
-            }
-            # TODO ask DAAC if they pass HREF?
-        else:
-            latest_daac_status = {
-                'status': 'cnm-receive-failed',
-                'errorMessage': cnm_notification_msg['response']['errorMessage'] if 'errorMessage' in cnm_notification_msg['response'] else 'unknown',
-                'errorCode': cnm_notification_msg['response']['errorCode'] if 'errorCode' in cnm_notification_msg['response'] else 'unknown',
-            }
-        self.update_status(cnm_notification_msg['identifier'], latest_daac_status)
-
-        return self
-
-    def update_status(self, identifier: str, archival_status: dict):
-        """
-        1. validate archival_status from parameter against self.archival_status_schema
-        2. Add archival_status to self.__archiving_granules_stac>properties>archival:status
-        3. get collection and item id from  self.__archiving_granules_stac
-        4. convert self.__archiving_granules_stac to a json
-        5. call self.__sfa_client.update_item()  # Note partial may not be available. Just update whole for now.
-        :param archival_status:
-        :return:
-        """
-        # TODO optional updating DEVSEED. configurable
-        # TODO store status to DDB?
-        # TODO if final status, write back to S3
-        import jsonschema
-        from datetime import datetime
-
-        if self.__archiving_granules_stac is None:
-            raise ValueError(f'NULL archiving granule. Cannot update status.')
-
-        if not isinstance(archival_status, dict):
-            raise ValueError(f'archival_status must be a dictionary, got {type(archival_status)}')
-
-        # Validate archival_status against schema
-        try:
-            jsonschema.validate(archival_status, self.archival_status_schema)
-            LOGGER.debug(f'archival_status validation successful: {archival_status}')
-        except jsonschema.ValidationError as e:
-            LOGGER.error(f'archival_status validation failed: {e}')
-            raise ValueError(f'Invalid archival_status format: {e.message}')
-
-        # Add timestamp to the status
-        archival_status_with_timestamp = archival_status.copy()
-        archival_status_with_timestamp['datetime'] = f'{TimeUtils.get_current_time()}Z'
-
-        # Ensure archival:status property exists and is a list
-        if 'archival:status' not in self.__archiving_granules_stac.properties:
-            self.__archiving_granules_stac.properties['archival:status'] = []
-        elif not isinstance(self.__archiving_granules_stac.properties['archival:status'], list):
-            self.__archiving_granules_stac.properties['archival:status'] = []
-
-        # Add the new status to the list
-        self.__archiving_granules_stac.properties['archival:status'].append(archival_status_with_timestamp)
-        LOGGER.info(f'Added archival status: {archival_status_with_timestamp}')
-
-        # Get collection and item IDs
-        collection_id = self.__archiving_granules_stac.collection_id
-        item_id = self.__archiving_granules_stac.id
-
-        if not collection_id or not item_id:
-            raise ValueError(f'Missing collection_id or item_id from STAC item. collection_id: {collection_id}, item_id: {item_id}')
-
-        errors = []
-        if self.__update_status_to_sfa:
-            try:
-                # Convert STAC item to JSON dictionary
-                stac_item_dict = self.__archiving_granules_stac.to_dict()
-
-                # Update the item using the STAC Fast API client
-                updated_item = backoff_wrapper(self.__sfa_client.update_item,
-                    collection_id=collection_id,
-                    item_id=item_id,
-                    item=stac_item_dict
-                )
-                LOGGER.info(f'Successfully updated STAC item {item_id} in collection {collection_id} with new archival status')
-                LOGGER.debug(f'Updated item response: {updated_item}')
-            except Exception as e:
-                LOGGER.exception(f'Failed to update STAC item {item_id} in collection {collection_id}')
-                errors.append(e)
-        try:
-            self.__status_ddb.add(identifier, collection_id, item_id, archival_status['status'],
-                                  archival_status_with_timestamp['datetime'],
-                                  archival_status['errorCode'] if 'errorCode' in archival_status else None,
-                                  archival_status['errorMessage'] if 'errorMessage' in archival_status else None,
-                                  archival_status['href'] if 'href' in archival_status else None,
-                                  )
-        except Exception as e:
-            LOGGER.exception(f'Failed to store status in DDB {collection_id}')
-            errors.append(e)
-
-        # TODO update TRACE if succeess and write to S3 original file adjacent
-        if len(errors) > 0:
-            raise RuntimeError(f'Failed to update STAC item status: {errors}')
         return
 
     def extract_files(self, daac_config: dict):
@@ -651,6 +464,8 @@ class DaacArchiverCatalia:
         :return:
         """
         sending_uuid = str(uuid4())
+        update_status_svc = StatusUpdateSvc()\
+            .load_manually(sending_uuid, self.__archiving_granules_stac.collection_id, self.__archiving_granules_stac.id)
         try:
             LOGGER.debug(f'send_daac_sns daac_config: {daac_config}')
             self.__sns.set_topic_arn(daac_config['sns_topic_arn'])
@@ -682,12 +497,13 @@ class DaacArchiverCatalia:
                 self.__sns.set_external_role(daac_config['role_arn'], daac_config['role_session_name']).publish_message(json.dumps(daac_cnm_message), True)
             else:
                 self.__sns.publish_message(json.dumps(daac_cnm_message), False)
-            self.update_status(sending_uuid, {
+
+            update_status_svc.update_status({
                 "status": "cnm-submit-success",
             })
         except Exception as e:
             LOGGER.exception(f'failed during archival process')
-            self.update_status(sending_uuid, {
+            update_status_svc.update_status(sending_uuid, {
                 "status": "cnm-submit-failed",
                 "errorMessage": str(e),
             })
