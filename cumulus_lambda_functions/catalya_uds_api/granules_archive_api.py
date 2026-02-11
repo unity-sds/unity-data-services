@@ -220,9 +220,7 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
             'httpMethod': 'PUT',
             'domainName': request.url.hostname,
         },
-        'body': json.dumps({
-            'stac_item': stac_item
-        }),
+        'body': json.dumps(stac_item),
         'isBase64Encoded': False
     }
 

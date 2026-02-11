@@ -280,6 +280,7 @@ class DaacArchiverCatalia:
     def verbose_archive_granule(self, collection_id, granule_id, item_json: dict):
         # TODO validate item.json is valid or just ask for STAC Item object
         # TODO update collection and granule id in item.json if different. Needed ??
+        LOGGER.debug(f'verbose_archive_granule input item_json: {item_json}')
         self.__archiving_granules_stac = item_json
         self.archive_granule_json()
         return self
