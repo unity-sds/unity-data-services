@@ -238,7 +238,8 @@ variable "granules_cnm_ingester__s3_glob" {
 
 variable "uds_ctla_s3_staging_bucket" {
   type = string
-  description = "outputs of uds_catalia_bucket module. Example: catalya-ds-dev-unity-william-test-1"
+  description = "outputs of uds_catalia_bucket module or `SKIP_STAGING_STAC_ASSETS` to skip staging. Example: catalya-ds-dev-unity-william-test-1"
+  default = "SKIP_STAGING_STAC_ASSETS"
 }
 
 #variable "granules_cnm_ingester__is_deploying_bucket" {
