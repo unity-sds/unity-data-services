@@ -15,7 +15,6 @@ from cumulus_lambda_functions.lib.uds_utils import backoff_wrapper
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
 
-
 class DaacArchiverCatalia:
     def __init__(self):
         self.__staging_service = StagingSvc()
@@ -390,39 +389,44 @@ class DaacArchiverCatalia:
         if hasattr(asset, 'roles') and asset.roles and len(asset.roles) > 0:
             asset_type = asset.roles[0]
 
-        # Get file size
-        file_size = -1
+        # Get file size - REQUIRED for DAAC archival
+        file_size = None
         if hasattr(asset, 'extra_fields') and 'file:size' in asset.extra_fields:
             file_size = asset.extra_fields['file:size']
         elif hasattr(asset, 'extra_fields') and 'file_size' in asset.extra_fields:
             file_size = asset.extra_fields['file_size']
 
-        # Get checksum information
-        checksum_type = 'md5'  # Default
-        checksum_value = 'unknown'  # Default
+        # Validate file size is present
+        if file_size is None or file_size < 0:
+            raise ValueError(f'Missing or invalid file size for asset {asset_key}. Size is required for DAAC archival and will be rejected by receiver.')
+
+        # Get checksum information - format should be <type>:<value>
+        checksum_type = None
+        checksum_value = None
 
         if hasattr(asset, 'extra_fields'):
+            checksum_field = None
             if 'file:checksum' in asset.extra_fields:
-                checksum_value = asset.extra_fields['file:checksum']
+                checksum_field = asset.extra_fields['file:checksum']
             elif 'file_checksum' in asset.extra_fields:
-                checksum_value = asset.extra_fields['file_checksum']
+                checksum_field = asset.extra_fields['file_checksum']
 
-        # Try to parse checksum info from description if available
-        if hasattr(asset, 'description') and asset.description:
-            desc = asset.description.lower()
-            if 'checksumtype=' in desc:
-                # Parse description like "size=1579135;checksumType=md5;checksum=deb1087d3e614f31b7c9eb461edea93a"
-                parts = desc.split(';')
-                for part in parts:
-                    if part.startswith('checksumtype='):
-                        checksum_type = part.split('=')[1]
-                    elif part.startswith('checksum='):
-                        checksum_value = part.split('=')[1]
-                    elif part.startswith('size=') and file_size == -1:
-                        try:
-                            file_size = int(part.split('=')[1])
-                        except ValueError:
-                            pass
+            if checksum_field:
+                # Parse checksum in format <type>:<value>
+                if ':' in checksum_field:
+                    parts = checksum_field.split(':', 1)  # Split only on first ':'
+                    checksum_type = parts[0].strip()
+                    checksum_value = parts[1].strip()
+                # NOTE: There will be no assumption. Type and value has to come from the field or it will throw an error.
+                # else:
+                #     # If no colon, assume it's just the value with default md5 type
+                #     LOGGER.warning(f'Checksum for asset {asset_key} is not in <type>:<value> format, assuming md5')
+                #     checksum_type = 'md5'
+                #     checksum_value = checksum_field.strip()
+
+        # Validate checksum is present
+        if not checksum_type or not checksum_value:
+            raise ValueError(f'Missing or invalid checksum for asset {asset_key}. Checksum (in format <type>:<value>) is required for DAAC archival and will be rejected by receiver.')
 
         # Build CNM file structure
         cnm_file = {
