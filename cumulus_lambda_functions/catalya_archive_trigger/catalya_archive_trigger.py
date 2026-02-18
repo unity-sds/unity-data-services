@@ -128,7 +128,7 @@ class CatalyaArchiveTrigger:
                 # Convert to pystac Item object
                 stac_item = Item.from_dict(item_dict)
                 if stac_item.collection_id is None or stac_item.collection_id == '':
-                    LOGGER.warning(f'Missing collection_id for {item_s3_url}, skipping')
+                    LOGGER.error(f'Missing collection_id for {item_s3_url}, skipping')
                     continue
 
                 granule_id = stac_item.id

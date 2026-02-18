@@ -9,10 +9,12 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 
 
 class StagingSvc:
+    SET_ME_UP = 'SET_ME_UP'
+
     def __init__(self):
         self.__s3 = AwsS3()
         self.__archiving_granules_stac = None
-        self.__staged_s3_bucket = 'SET_ME_UP'  # DONE. There is validation to see if it's original value, it will throw an error.
+        self.__staged_s3_bucket = self.SET_ME_UP  # DONE. There is validation to see if it's original value, it will throw an error.
     @property
     def staged_s3_bucket(self):
         return self.__staged_s3_bucket
@@ -43,7 +45,7 @@ class StagingSvc:
         if self.__archiving_granules_stac is None:
             raise ValueError(f'NULL archiving granule. Cannot stage files.')
 
-        if self.__staged_s3_bucket == 'SET_ME_UP':
+        if self.__staged_s3_bucket == self.SET_ME_UP:
             raise ValueError(f'Staged S3 bucket is not configured. Please set self.__staged_s3_bucket.')
 
         # Get collection and item IDs

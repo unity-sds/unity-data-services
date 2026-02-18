@@ -16,6 +16,7 @@ from cumulus_lambda_functions.lib.uds_utils import backoff_wrapper
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
 
 class DaacArchiverCatalia:
+    SKIP_STAGING_STAC_ASSETS = 'SKIP_STAGING_STAC_ASSETS'
     def __init__(self):
         self.__staging_service = StagingSvc()
         self.__sns = AwsSns()
@@ -254,8 +255,11 @@ class DaacArchiverCatalia:
         if len(self.__daac_agreements) < 1:
             LOGGER.debug(f'this collection does not have any daac. {self.__archiving_granules_stac}')
             return
-        self.__staging_service.staged_s3_bucket = self.staged_s3_bucket
-        self.__staging_service.stage_files(self.archiving_granules_stac)
+        if self.staged_s3_bucket != self.SKIP_STAGING_STAC_ASSETS:
+            self.__staging_service.staged_s3_bucket = self.staged_s3_bucket
+            self.__staging_service.stage_files(self.archiving_granules_stac)
+        else:
+            LOGGER.debug(f'Not staging assets to staging buckets. Sending them as hysds bucket S3 URLs')
         for each_agreement in self.__daac_agreements:
             LOGGER.debug(f'working on {each_agreement}')
             self.send_daac_sns(each_agreement)
