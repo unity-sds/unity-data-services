@@ -36,6 +36,13 @@ class DaacUpdateModel(BaseModel):
     daac_role_session_name: str
     archiving_types: Optional[list[ArchivingTypesModel]] = None
 
+
+class VerboseArchiveRequestModel(BaseModel):
+    username: str
+    algorithm_name: str
+    algorithm_version: str
+    stac_item: dict
+
 class InternalDDBConnector:
     def __init__(self):
         required_env = ['CATALYA_DAAC_AGREEMENT_DB_NAME', 'CATALYA_DB_NAME']
@@ -161,11 +168,11 @@ async def archive_single_granule(request: Request, collection_id: str, granule_i
     LOGGER.debug(f'Async archive function started: {response_lambda}')
     response.status_code = 202
     return {'message': 'archive processing'}
-
 @router.put("/{collection_id}/verbose_archive/{granule_id}")
 @router.put("/{collection_id}/verbose_archive/{granule_id}/")
-async def verbose_archive_single_granule(request: Request, collection_id: str, granule_id: str, item_s3_url: str, stac_item: dict, response: Response):
+async def verbose_archive_single_granule(request: Request, collection_id: str, granule_id: str, item_s3_url: str, request_body: VerboseArchiveRequestModel, response: Response):
     LOGGER.debug(f'started verbose_archive_single_granule with item_s3_url: {item_s3_url}')
+    LOGGER.debug(f'username: {request_body.username}, algorithm: {request_body.algorithm_name} v{request_body.algorithm_version}')
 
     # Validate item_s3_url
     if not item_s3_url:
@@ -174,9 +181,9 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
     if not item_s3_url.startswith('s3://') or len(item_s3_url.split('/')) < 4:
         raise HTTPException(status_code=400, detail='item_s3_url must be in the format s3://<bucket>/<path>')
 
-    # Convert STAC item to JSON
-    item_json = stac_item
-    LOGGER.debug(f'Received STAC item JSON: {json.dumps(item_json)}')
+    # Extract STAC item from request body
+    stac_item = request_body.stac_item
+    LOGGER.debug(f'Received STAC item JSON: {json.dumps(stac_item)}')
 
     i1 = InternalDDBConnector()
     authorized_daacs = i1.archive_methods_initiator(request, collection_id, None)
@@ -220,7 +227,7 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
             'httpMethod': 'PUT',
             'domainName': request.url.hostname,
         },
-        'body': json.dumps(stac_item),
+        'body': json.dumps(request_body.model_dump()),
         'isBase64Encoded': False
     }
 
@@ -235,9 +242,12 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
 
 @router.put("/{collection_id}/verbose_archive/{granule_id}/actual")
 @router.put("/{collection_id}/verbose_archive/{granule_id}/actual/")
-async def verbose_archive_single_granule_actual(request: Request, collection_id: str, granule_id: str, item_s3_url: str, stac_item: dict, response: Response):
+async def verbose_archive_single_granule_actual(request: Request, collection_id: str, granule_id: str, item_s3_url: str, request_body: VerboseArchiveRequestModel, response: Response):
     LOGGER.debug(f'started verbose_archive_single_granule_actual with item_s3_url: {item_s3_url}')
-    # TODO stac_item is already a dict?
+    LOGGER.debug(f'username: {request_body.username}, algorithm: {request_body.algorithm_name} v{request_body.algorithm_version}')
+
+    # TODO: Add algorithm authorization check here using request_body.algorithm_name and request_body.algorithm_version
+
     i1 = InternalDDBConnector()
     authorized_daacs = i1.archive_methods_initiator(request, collection_id, None)
     # authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
@@ -245,7 +255,7 @@ async def verbose_archive_single_granule_actual(request: Request, collection_id:
     dac = DaacArchiverCatalia()
     dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
     dac.daac_agreements = authorized_configured_daac_configs
-    dac.verbose_archive_granule(collection_id, granule_id, item_s3_url, stac_item)
+    dac.verbose_archive_granule(collection_id, granule_id, item_s3_url, request_body.stac_item)
     return {'message': 'archive initiated'}
 
 @router.put("/{collection_id}/archive/{granule_id}/actual")

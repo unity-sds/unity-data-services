@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 import posixpath
 import requests
 from mdps_ds_lib.lib.aws.aws_message_transformers import AwsMessageTransformers
+from mdps_ds_lib.lib.utils.json_validator import JsonValidator
 from pystac import Item, Catalog, Collection
 
 from mdps_ds_lib.lib.aws.aws_param_store import AwsParamStore
@@ -14,6 +15,19 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 
 
 class CatalyaArchiveTrigger:
+    HYSDS_MET_SCHEMA = {
+        'type': 'object',
+        "username": "sshah",
+        "algorithm_name": "cardamom-noaa-downloader_2",
+        "algorithm_version": "1.0.0",
+
+        'required': ['username', 'algorithm_name', 'algorithm_version'],
+        'properties': {
+            'username': {'type': 'string'},
+            'algorithm_name': {'type': 'string'},
+            'algorithm_version': {'type': 'string'},
+        }
+    }
     @staticmethod
     def join_s3_url(base_url: str, relative_path: str) -> str:
         """
@@ -104,6 +118,23 @@ class CatalyaArchiveTrigger:
                 LOGGER.info(f"Ignoring link of type '{link.rel}': {link.target}")
         return list(set(item_links))
 
+    def retrieve_user_n_alg_name_version(self, catalog_s3_url):
+        b, p = self.__s3.split_s3_url(os.path.dirname(catalog_s3_url))
+        s3_files = [k for k in self.__s3.get_child_s3_files(b, f'{p}/', lambda x: x['Key'].endswith('met.json'))]
+        if len(s3_files) < 1:
+            raise ValueError(f'missing file to find username + algorithm name & version')
+        errors = {}
+        for each_s3_file in s3_files:
+            hysds_metadata = json.loads(self.__s3.set_s3_url(f's3://{b}/{each_s3_file[0]}').read_small_txt_file())
+            result = JsonValidator(self.HYSDS_MET_SCHEMA).validate(hysds_metadata)
+            if result is not None:
+                errors[each_s3_file[0]] = result
+            return {
+                'username': hysds_metadata['username'],
+                'algorithm_name': hysds_metadata['algorithm_name'],
+                'algorithm_version': hysds_metadata['algorithm_version'],
+            }
+        raise ValueError(f'unable to find HySDS Metadata file {errors}')
 
     def retrieve_items(self, item_urls: list):
         """
@@ -211,6 +242,9 @@ class CatalyaArchiveTrigger:
         catalog_dict = json.loads(catalog_content)
         LOGGER.debug(f'Catalog downloaded successfully')
 
+        LOGGER.info('Retrieving username, algorithm name + version from HySDS Metadata')
+        hysds_metadata = self.retrieve_user_n_alg_name_version(catalog_s3_url)
+
         # Step 3: Retrieve all STAC items
         LOGGER.info('Retrieving all STAC items from catalog')
         item_s3_urls = self.retrieve_all_stac_items(catalog_dict, catalog_s3_url)
@@ -262,7 +296,11 @@ class CatalyaArchiveTrigger:
                 }
 
                 LOGGER.info(f'Calling archive API: PUT {api_url}')
-                response = requests.put(api_url, headers=headers, params=params, json=item_dict, timeout=30)
+                body_json = {
+                    **hysds_metadata,
+                    'stac_item': item_dict
+                }
+                response = requests.put(api_url, headers=headers, params=params, json=body_json, timeout=30)
                 response.raise_for_status()
 
                 LOGGER.info(f'Successfully triggered archive for granule {granule_id}: {response.json()}')
