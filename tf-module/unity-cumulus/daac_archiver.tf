@@ -44,6 +44,13 @@ resource "aws_lambda_function" "daac_archiver_response" {
       LOG_LEVEL = var.log_level
       ES_URL = aws_elasticsearch_domain.uds-es.endpoint
       ES_PORT = 443
+      ARCHIVAL_STATUS_MECHANISM = "UDS"  # UDS or FAST_STAC
+      DS_URL = 'TODO'
+      SFA_USERNAME = 'TODO'
+      SFA_PASSWORD = 'TODO'
+      SFA_AUTH_KEY = 'TODO'
+      SFA_AUTH_VALUE = 'TODO'
+      SFA_BEARER_TOKEN = 'TODO'
     }
   }
 
