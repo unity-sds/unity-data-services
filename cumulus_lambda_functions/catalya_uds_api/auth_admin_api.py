@@ -25,6 +25,13 @@ class AuthDeleteModel(BaseModel):
     group_name: str
 
 
+class AuthDeleteModelAlgorithm(BaseModel):
+    source: str
+    target: str
+    algorithm_name: str
+    algorithm_version: str
+
+
 delete_schema = {
     'type': 'object',
     'required': ['source', 'target', 'group_name'],
@@ -60,6 +67,12 @@ class AuthAddModel(BaseModel):
     group_name: str
     access: bool
 
+class AuthAddModelAlgorithm(BaseModel):
+    source: str
+    target: str
+    algorithm_name: str
+    algorithm_version: str
+    access: bool
 
 add_schema = {
     'type': 'object',
@@ -105,6 +118,10 @@ class AuthCrud:
         #         'statusCode': 200,
         #         'body': all_records
         #     }
+
+    def convert_algorithm_to_group_name(self):
+        self.__request_body['group_name'] = f"{self.__request_body['algorithm_name']}___{self.__request_body['algorithm_version']}"
+        return self
 
     def add_new_record(self):
         body_validator_result = JsonValidator(add_schema).validate(self.__request_body)
@@ -175,6 +192,39 @@ async def add_auth_mapping(request: Request, new_body: AuthAddModel):
         return add_result['body']
     raise HTTPException(status_code=add_result['statusCode'], detail=add_result['body'])
 
+@router.delete("/algorithm")
+@router.delete("/algorithm/")
+async def delete_auth_mapping(request: Request, delete_body: AuthDeleteModelAlgorithm):
+    """
+    Deleting one authorization mapping
+    """
+    LOGGER.debug(f'started delete_auth_mapping')
+    auth_info = FastApiUtils.get_authorization_info(request)
+    auth_crud = AuthCrud(auth_info, delete_body.model_dump())
+    is_admin_result = auth_crud.is_admin()
+    if is_admin_result['statusCode'] != 200:
+        raise HTTPException(status_code=is_admin_result['statusCode'], detail=is_admin_result['body'])
+    delete_result = auth_crud.convert_algorithm_to_group_name().delete_record()
+    if delete_result['statusCode'] == 200:
+        return delete_result['body']
+    raise HTTPException(status_code=delete_result['statusCode'], detail=delete_result['body'])
+
+@router.post("/algorithm")
+@router.post("/algorithm/")
+async def add_auth_mapping_for_algorithms(request: Request, new_body: AuthAddModelAlgorithm):
+    """
+    Adding a new Authorization mapping
+    """
+    LOGGER.debug(f'started add_auth_mapping. sss {new_body.model_dump()}')
+    auth_info = FastApiUtils.get_authorization_info(request)
+    auth_crud = AuthCrud(auth_info, new_body.model_dump())
+    is_admin_result = auth_crud.is_admin()
+    if is_admin_result['statusCode'] != 200:
+        raise HTTPException(status_code=is_admin_result['statusCode'], detail=is_admin_result['body'])
+    add_result = auth_crud.convert_algorithm_to_group_name().add_new_record()
+    if add_result['statusCode'] == 200:
+        return add_result['body']
+    raise HTTPException(status_code=add_result['statusCode'], detail=add_result['body'])
 
 @router.get("")
 @router.get("/")
