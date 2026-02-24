@@ -7,6 +7,7 @@ from mdps_ds_lib.lib.aws.aws_param_store import AwsParamStore
 from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_auth_db import CataliaAuthDb
 from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_daac_handshakes_db import CataliaDaacHandshakesDb
 from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia import DaacArchiverCatalia
+from cumulus_lambda_functions.lib.authorization.central_auth_classes import CentralAuthFactory
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.uds_api.web_service_constants import WebServiceConstants
 from cumulus_lambda_functions.uds_api.fast_api_utils import FastApiUtils
@@ -74,8 +75,9 @@ class InternalDDBConnector:
         return self.__archive_methods_initiator_internal(collection_id, daac_collection_id)
 
 
-    def archive_methods_initiator_manual_algorithm(self, username, alg_name, alg_version, collection_id, daac_collection_id):
+    def archive_methods_initiator_manual_algorithm(self, username, alg_name, alg_version, request, collection_id, daac_collection_id):
         user_groups = []  # TODO need to get user groups from username from Keycloak. Need to abstract it
+        user_groups = CentralAuthFactory().get_instance(os.getenv('CENTRAL_AUTH_CLASS')).request_authorization_info(request.headers.get('Authorization', ''), username)
         self.auth_info = {
             'username': username,
             'ldap_groups': user_groups
@@ -209,7 +211,7 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
     LOGGER.debug(f'Received STAC item JSON: {json.dumps(stac_item)}')
 
     i1 = InternalDDBConnector()
-    authorized_daacs = i1.archive_methods_initiator_manual_algorithm(request_body.username, request_body.algorithm_name, request_body.algorithm_version, collection_id, None)
+    authorized_daacs = i1.archive_methods_initiator_manual_algorithm(request_body.username, request_body.algorithm_name, request_body.algorithm_version, request, collection_id, None)
     # authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
     authorized_configured_daac_configs = [k for k in i1.configured_daac_configs if k[i1.cdhsd.target_project] in authorized_daacs]
 
@@ -269,10 +271,9 @@ async def verbose_archive_single_granule_actual(request: Request, collection_id:
     LOGGER.debug(f'started verbose_archive_single_granule_actual with item_s3_url: {item_s3_url}')
     LOGGER.debug(f'username: {request_body.username}, algorithm: {request_body.algorithm_name} v{request_body.algorithm_version}')
 
-    # TODO: Add algorithm authorization check here using request_body.algorithm_name and request_body.algorithm_version
 
     i1 = InternalDDBConnector()
-    authorized_daacs = i1.archive_methods_initiator_manual_algorithm(request_body.username, request_body.algorithm_name, request_body.algorithm_version, collection_id, None)
+    authorized_daacs = i1.archive_methods_initiator_manual_algorithm(request_body.username, request_body.algorithm_name, request_body.algorithm_version, request, collection_id, None)
     # authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
     authorized_configured_daac_configs = [k for k in i1.configured_daac_configs if k[i1.cdhsd.target_project] in authorized_daacs]
 

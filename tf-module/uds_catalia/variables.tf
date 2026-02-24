@@ -271,3 +271,8 @@ variable "UDS_API_BASE_URL" {
 variable "UDS_BEARER_TOKEN" {
   type = string
 }
+
+variable "central_auth_class" {
+  type = string
+  default = "KEYCLOAK"
+}
