@@ -53,9 +53,7 @@ class InternalDDBConnector:
         self.auth_info = {}
         self.configured_daac_configs = []
 
-    def archive_methods_initiator(self, request, collection_id, daac_collection_id):
-        LOGGER.debug(f'started archive_methods_initiator.')
-        self.auth_info = FastApiUtils.get_authorization_info(request)
+    def __archive_methods_initiator_internal(self, collection_id, daac_collection_id):
         if daac_collection_id is None:
             self.configured_daac_configs = self.cdhsd.search(collection_id)
             configured_daac_ids = [] if len(self.configured_daac_configs) < 1 else [k[self.cdhsd.target_project] for k in self.configured_daac_configs]
@@ -70,6 +68,31 @@ class InternalDDBConnector:
             }))
         return authorized_daacs
 
+    def archive_methods_initiator(self, request, collection_id, daac_collection_id):
+        LOGGER.debug(f'started archive_methods_initiator.')
+        self.auth_info = FastApiUtils.get_authorization_info(request)
+        return self.__archive_methods_initiator_internal(collection_id, daac_collection_id)
+
+
+    def archive_methods_initiator_manual_algorithm(self, username, alg_name, alg_version, collection_id, daac_collection_id):
+        user_groups = []  # TODO need to get user groups from username from Keycloak. Need to abstract it
+        self.auth_info = {
+            'username': username,
+            'ldap_groups': user_groups
+        }
+        username_based_authorized_daacs = self.__archive_methods_initiator_internal(collection_id, daac_collection_id)
+        self.auth_info['ldap_groups'] = [f'{alg_name}___{alg_version}']
+        algorithm_based_authorized_daacs = self.__archive_methods_initiator_internal(collection_id, daac_collection_id)
+        # Intersection: Only allow DAAC collections authorized by BOTH user groups AND algorithm
+        authorized_daacs = list(set(username_based_authorized_daacs) & set(algorithm_based_authorized_daacs))
+        LOGGER.debug(f'Username authorized: {username_based_authorized_daacs}, Algorithm authorized: {algorithm_based_authorized_daacs}, Final: {authorized_daacs}')
+        if len(authorized_daacs) < 1:
+            LOGGER.debug(f'user: {username} is not authorized for {collection_id} based on {user_groups} and {alg_name} + {alg_version}')
+            raise HTTPException(status_code=403, detail=json.dumps({
+                'message': f'user: {username} is not authorized for {collection_id} based on {user_groups} and {alg_name} + {alg_version}'
+            }))
+
+        return authorized_daacs
 @router.post("/{collection_id}/{daac_collection_id}/archive")
 @router.post("/{collection_id}/{daac_collection_id}/archive/")
 async def add_daac_archive_config(request: Request, collection_id: str, daac_collection_id: str, new_body: DaacUpdateModel):
@@ -186,7 +209,7 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
     LOGGER.debug(f'Received STAC item JSON: {json.dumps(stac_item)}')
 
     i1 = InternalDDBConnector()
-    authorized_daacs = i1.archive_methods_initiator(request, collection_id, None)
+    authorized_daacs = i1.archive_methods_initiator_manual_algorithm(request_body.username, request_body.algorithm_name, request_body.algorithm_version, collection_id, None)
     # authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
     authorized_configured_daac_configs = [k for k in i1.configured_daac_configs if k[i1.cdhsd.target_project] in authorized_daacs]
 
@@ -249,9 +272,11 @@ async def verbose_archive_single_granule_actual(request: Request, collection_id:
     # TODO: Add algorithm authorization check here using request_body.algorithm_name and request_body.algorithm_version
 
     i1 = InternalDDBConnector()
-    authorized_daacs = i1.archive_methods_initiator(request, collection_id, None)
+    authorized_daacs = i1.archive_methods_initiator_manual_algorithm(request_body.username, request_body.algorithm_name, request_body.algorithm_version, collection_id, None)
     # authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
     authorized_configured_daac_configs = [k for k in i1.configured_daac_configs if k[i1.cdhsd.target_project] in authorized_daacs]
+
+
     dac = DaacArchiverCatalia()
     dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
     dac.daac_agreements = authorized_configured_daac_configs
