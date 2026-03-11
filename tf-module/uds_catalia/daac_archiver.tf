@@ -93,7 +93,8 @@ resource "aws_ssm_parameter" "uds_api_credentials" {
   type  = "SecureString"
   value = jsonencode({
     API_BASE_URL = var.UDS_API_BASE_URL
-    BEARER_TOKEN = var.UDS_BEARER_TOKEN
+    MAAP_API_HOST = var.MAAP_API_HOST
+    DPS_MACHINE_TOKEN = var.DPS_MACHINE_TOKEN
   })
   description = "Secure credentials and configuration for DAAC archiver service"
   tags        = var.tags

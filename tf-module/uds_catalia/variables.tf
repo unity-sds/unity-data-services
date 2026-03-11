@@ -268,11 +268,16 @@ variable "rest_api_stage" {
 variable "UDS_API_BASE_URL" {
   type = string
 }
-variable "UDS_BEARER_TOKEN" {
+variable "DPS_MACHINE_TOKEN" {
   type = string
 }
 
 variable "central_auth_class" {
   type = string
   default = "KEYCLOAK"
+}
+
+variable "MAAP_API_HOST" {
+  type = string
+  default = "https://api.maap-project.org"
 }

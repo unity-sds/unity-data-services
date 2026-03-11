@@ -10,6 +10,7 @@ resource "aws_lambda_function" "uds_api_1" {
   environment {
     variables = {
       LOG_LEVEL = var.log_level
+      UDS_API_CREDS = aws_ssm_parameter.uds_api_credentials.id
       CATALYA_STATUS_DB = aws_dynamodb_table.uds_ctla_daac_status.name
       CATALYA_TRACING_DB = aws_dynamodb_table.uds_ctla_archiving_traces.name
       CATALYA_DB_NAME = aws_dynamodb_table.uds_ctla_auth_ddb.name
@@ -47,6 +48,7 @@ resource "aws_lambda_function" "uds_api_authorizer" {
   memory_size   = 512
   environment {
     variables = {
+      UDS_API_CREDS = aws_ssm_parameter.uds_api_credentials.id
       LOG_LEVEL = var.log_level
     }
   }

@@ -22,20 +22,39 @@ class FastApiUtils:
         """
         action = request.method
         resource = request.url.path
-        bearer_token = request.headers.get('Authorization', '')
-        LOGGER.debug(f'raw bearer_token: {bearer_token}')
-        username_part = bearer_token.split('.')[1]
-        jwt_decoded = base64.standard_b64decode(f'{username_part}========'.encode()).decode()
-        LOGGER.debug(f'jwt_decoded: {jwt_decoded}')
-        jwt_decoded = json.loads(jwt_decoded)
-        ldap_groups = jwt_decoded['cognito:groups']
-        username = jwt_decoded['username']
+        # Access the Lambda event from Mangum
+        lambda_event = request.scope.get('aws.event', {})
+
+        # Get the authorizer context
+        authorizer_context = lambda_event.get('requestContext', {}).get('authorizer', {})
+
+        # Access the values from your Lambda authorizer
+        username = authorizer_context.get('username')
+        email = authorizer_context.get('email')
+        groups = json.loads(authorizer_context.get('groups', '[]'))
+
         return {
-            'username': username,
-            'ldap_groups': list(set(ldap_groups)),
             'action': action,
+            'username': username,
+            'ldap_groups': groups,
             'resource': resource,
+            'email': email,
         }
+
+        # bearer_token = request.headers.get('Authorization', '')
+        # LOGGER.debug(f'raw bearer_token: {bearer_token}')
+        # username_part = bearer_token.split('.')[1]
+        # jwt_decoded = base64.standard_b64decode(f'{username_part}========'.encode()).decode()
+        # LOGGER.debug(f'jwt_decoded: {jwt_decoded}')
+        # jwt_decoded = json.loads(jwt_decoded)
+        # ldap_groups = jwt_decoded['cognito:groups']
+        # username = jwt_decoded['username']
+        # return {
+        #     'username': username,
+        #     'ldap_groups': list(set(ldap_groups)),
+        #     'action': action,
+        #     'resource': resource,
+        # }
 
     @staticmethod
     def get_cors_origins():

@@ -9,6 +9,8 @@ from pystac import Item, Catalog, Collection
 
 from mdps_ds_lib.lib.aws.aws_param_store import AwsParamStore
 from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
+
+from cumulus_lambda_functions.daac_archiver.services.maap_api_client import MaapApiClient
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
@@ -265,9 +267,8 @@ class CatalyaArchiveTrigger:
 
         # Extract API base URL and bearer token
         api_base_url = uds_api_creds.get('API_BASE_URL', '').rstrip('/')
-        bearer_token = uds_api_creds.get('BEARER_TOKEN', '')
-
-        if not api_base_url or not bearer_token:
+        user_creds = MaapApiClient().get_user_jwt_token(hysds_metadata['username'])
+        if not api_base_url or not user_creds:
             raise ValueError('UDS API credentials must contain api_base_url and bearer_token')
 
         LOGGER.info(f'API base URL: {api_base_url}')
@@ -288,7 +289,8 @@ class CatalyaArchiveTrigger:
                 # Call the UDS API verbose_archive endpoint
                 api_url = f'{api_base_url}/collections/{collection_id}/verbose_archive/{granule_id}'
                 headers = {
-                    'Authorization': bearer_token,
+                    # 'Authorization': user_creds,
+                    'proxy-ticket': user_creds,
                     'Content-Type': 'application/json'
                 }
                 params = {
