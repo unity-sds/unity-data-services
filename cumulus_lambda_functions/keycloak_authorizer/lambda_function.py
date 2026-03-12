@@ -53,6 +53,9 @@ def lambda_handler(event, context):
     # fake_jwt_string = base64.b64encode(json.dumps(fake_jwt_payload).encode()).decode()
 
     # Generate the IAM policy document that allows all actions
+    arn_parts = method_arn.split('/')
+    resource_arn = f"{arn_parts[0]}/{arn_parts[1]}/*/*"
+    user_details['groups'] = ','.join(user_details['groups'])
     policy = {
         "principalId": user_details["username"],
         "policyDocument": {
@@ -61,7 +64,7 @@ def lambda_handler(event, context):
                 {
                     "Action": "execute-api:Invoke",
                     "Effect": "Allow",
-                    "Resource": method_arn.split('/')[0] + '/*' if method_arn else '*'
+                    "Resource": resource_arn
                 }
             ]
         },

@@ -31,7 +31,7 @@ class FastApiUtils:
         # Access the values from your Lambda authorizer
         username = authorizer_context.get('username')
         email = authorizer_context.get('email')
-        groups = json.loads(authorizer_context.get('groups', '[]'))
+        groups = authorizer_context.get('groups', '').split(',')
 
         return {
             'action': action,
