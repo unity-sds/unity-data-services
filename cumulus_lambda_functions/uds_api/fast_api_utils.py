@@ -16,6 +16,25 @@ LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_le
 
 class FastApiUtils:
     @staticmethod
+    def get_authorization_token(request: Request):
+        """
+        Try to look for and retrieve authorization token to put it as part of the next request
+        This supports Bearer tokens (Authorization), PGT tokens (proxy-ticket), and future auth methods
+        :param request:
+        :return:
+        """
+        auth_headers = {}
+        auth_header_names = ['authorization', 'proxy-ticket', 'x-api-key']  # Add more as needed
+
+        for header_name in auth_header_names:
+            header_value = request.headers.get(header_name)
+            if header_value:
+                # Preserve original header name casing for forwarding
+                auth_headers[header_name.title()] = header_value
+
+        return auth_headers
+
+    @staticmethod
     def get_authorization_info(request: Request):
         """
         :return:

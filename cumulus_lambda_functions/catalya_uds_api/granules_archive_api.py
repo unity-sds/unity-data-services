@@ -137,7 +137,6 @@ async def get_daac_archive_config(request: Request, collection_id: str, daac_col
         LOGGER.exception(f'error while get_daac_archive_config: {collection_id}, {daac_collection_id}')
         raise HTTPException(status_code=500, detail=e)
     return {'result': result}
-
 @router.put("/{collection_id}/archive/{granule_id}")
 @router.put("/{collection_id}/archive/{granule_id}/")
 async def archive_single_granule(request: Request, collection_id: str, granule_id: str, response: Response):
@@ -160,7 +159,6 @@ async def archive_single_granule(request: Request, collection_id: str, granule_i
     if not archive_lambda_name:
         raise HTTPException(status_code=500, detail='ARCHIVE_LAMBDA_NAME environment variable not set')
 
-    bearer_token = request.headers.get('authorization', '')
     actual_path = f'{request.url.path}/actual' if not request.url.path.endswith('/') else f'{request.url.path}actual'
 
     actual_event = {
@@ -168,7 +166,7 @@ async def archive_single_granule(request: Request, collection_id: str, granule_i
         'path': actual_path,
         'httpMethod': 'PUT',
         'headers': {
-            'Authorization': bearer_token,
+            **FastApiUtils.get_authorization_token(request),  # Forward all auth headers
             'Accept': '*/*',
             'Host': request.url.hostname,
         },
@@ -228,7 +226,6 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
     if not archive_lambda_name:
         raise HTTPException(status_code=500, detail='ARCHIVE_LAMBDA_NAME environment variable not set')
 
-    bearer_token = request.headers.get('authorization', '')
     actual_path = f'{request.url.path}/actual' if not request.url.path.endswith('/') else f'{request.url.path}actual'
 
     actual_event = {
@@ -236,7 +233,7 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
         'path': actual_path,
         'httpMethod': 'PUT',
         'headers': {
-            'Authorization': bearer_token,
+            **FastApiUtils.get_authorization_token(request),  # Forward all auth headers
             'Accept': '*/*',
             'Host': request.url.hostname,
         },
