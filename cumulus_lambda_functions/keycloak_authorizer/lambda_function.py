@@ -20,8 +20,9 @@ def lambda_handler(event, context):
     :return: IAM policy document allowing the request with fake user context
     """
 
-    # Extract the authorization token (even though we're not validating it)
-    token = event.get('proxy-ticket', 'Fake')
+    # Extract the authorization token from the event
+    # API Gateway TOKEN authorizer passes the token value in 'authorizationToken' field
+    token = event.get('authorizationToken', 'Fake')
     method_arn = event.get('methodArn', '')
 
     user_details = MaapApiClient().get_user_details(token)

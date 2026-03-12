@@ -24,7 +24,7 @@ resource "aws_api_gateway_authorizer" "unity_cognito_authorizer" {
   rest_api_id     = aws_api_gateway_rest_api.rest_api.id
   authorizer_uri  = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${aws_lambda_function.uds_api_authorizer.arn}/invocations"
   type            = "TOKEN"
-  identity_source = "method.request.header.Authorization"
+  identity_source = "method.request.header.proxy-ticket"
 }
 
 # Lambda permission for API Gateway to invoke the authorizer
@@ -63,11 +63,20 @@ resource "aws_lambda_permission" "uds_all_lambda_integration__apigw_lambda" {
 resource "aws_api_gateway_deployment" "shared_services_api_gateway_deployment" {
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
 
+  # Force redeployment when authorizer changes
+  triggers = {
+    redeployment = sha1(jsonencode([
+      aws_api_gateway_authorizer.unity_cognito_authorizer.id,
+      aws_api_gateway_authorizer.unity_cognito_authorizer.identity_source,
+    ]))
+  }
+
   lifecycle {
     create_before_destroy = true
   }
 
   depends_on = [
+    aws_api_gateway_authorizer.unity_cognito_authorizer,
     aws_api_gateway_integration.openapi_lambda_integration,
     aws_api_gateway_integration.docs_lambda_integration,
 

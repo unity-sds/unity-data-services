@@ -74,5 +74,3 @@ class MaapApiClient:
             # Add a flag to indicate this is a placeholder
             "authType": "PLACEHOLDER_KEYCLOAK"
         }
-
-
