@@ -154,20 +154,22 @@ resource "aws_lambda_function" "catalya_archiver_trigger" {
 }
 
 
-resource "aws_sns_topic" "catalya_archiver_trigger" {
-  name = "${var.prefix}-catalya_archiver_trigger"
-  tags = var.tags
-  // TODO add access policy to be pushed from all MAAP S3 buckets
-}
-
-resource "aws_sns_topic_policy" "catalya_archiver_trigger" {
-  arn = aws_sns_topic.catalya_archiver_trigger.arn
-  policy = templatefile("${path.module}/daac_archiver_sns_policy.json", {
-    region: var.aws_region,
-    accountId: local.account_id,
-    snsName: "${var.prefix}-catalya_archiver_trigger",
-  })
-}
+# resource "aws_sns_topic" "catalya_archiver_trigger" {
+#   name = "${var.prefix}-catalya_archiver_trigger"
+#   tags = var.tags
+#   // TODO add access policy to be pushed from all MAAP S3 buckets
+# }
+#
+#
+#
+# resource "aws_sns_topic_policy" "catalya_archiver_trigger" {
+#   arn = aws_sns_topic.catalya_archiver_trigger.arn
+#   policy = templatefile("${path.module}/daac_archiver_sns_policy.json", {
+#     region: var.aws_region,
+#     accountId: local.account_id,
+#     snsName: "${var.prefix}-catalya_archiver_trigger",
+#   })
+# }
 
 module "catalya_archiver_trigger" {
   source = "../sqs--sns-lambda-connector"
@@ -177,6 +179,6 @@ module "catalya_archiver_trigger" {
   lambda_processing_role_arn          = local.lambda_role_arn
   name                       = "catalya_archiver_trigger"
   prefix                     = var.prefix
-  sns_arn                    = aws_sns_topic.catalya_archiver_trigger.arn
+  sns_arn                    =  var.ARCHIVER_TRIGER_SNS_ARN
   cool_off = aws_lambda_function.catalya_archiver_trigger.timeout
 }

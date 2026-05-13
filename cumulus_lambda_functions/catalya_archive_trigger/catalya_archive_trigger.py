@@ -99,8 +99,9 @@ class CatalyaArchiveTrigger:
             elif link.rel == 'child' or link.rel == 'collection':
                 # Collection link - read collection and extract items
                 try:
-                    collection = self.__s3.set_s3_url(link.target).read_small_txt_file()
-                    collection = Collection.from_dict(collection)
+                    collection_content = self.__s3.set_s3_url(link.target).read_small_txt_file()
+                    collection_dict = json.loads(collection_content)
+                    collection = Collection.from_dict(collection_dict)
                     collection_item_links = list(collection.get_item_links())
                     collection_folder = os.path.dirname(link.target)
                     temp_item_links = [k.target for k in collection.get_links() if
@@ -274,7 +275,7 @@ class CatalyaArchiveTrigger:
         LOGGER.info(f'API base URL: {api_base_url}')
 
         # Step 8: Trigger archive API requests one by one
-        LOGGER.info('Triggering archive requests for all processed items')
+        LOGGER.info(f'Triggering archive requests for all processed items: {processed_items}')
         for item_s3_url, item_dict in processed_items.items():
             try:
                 collection_id = item_dict.get('collection')

@@ -281,3 +281,7 @@ variable "MAAP_API_HOST" {
   type = string
   default = "https://api.maap-project.org"
 }
+
+variable "ARCHIVER_TRIGER_SNS_ARN" {
+  type = string
+}
