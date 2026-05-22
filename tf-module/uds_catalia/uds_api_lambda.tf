@@ -27,7 +27,6 @@ resource "aws_lambda_function" "uds_api_1" {
       UDS_BASE_URL = var.uds_base_url
       DAPA_API_URL_BASE = "${var.uds_base_url}/${var.dapa_api_prefix}"
       FARGATE_CONFIG = aws_ssm_parameter.daac_archiver_fargate_config.id
-      CENTRAL_AUTH_CLASS = var.central_auth_class
     }
   }
 

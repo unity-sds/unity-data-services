@@ -272,11 +272,6 @@ variable "DPS_MACHINE_TOKEN" {
   type = string
 }
 
-variable "central_auth_class" {
-  type = string
-  default = "KEYCLOAK"
-}
-
 variable "MAAP_API_HOST" {
   type = string
   default = "https://api.maap-project.org"
