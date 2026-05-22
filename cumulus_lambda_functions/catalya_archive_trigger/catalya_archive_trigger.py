@@ -192,6 +192,8 @@ class CatalyaArchiveTrigger:
                             raise FileNotFoundError(f'Asset does not exist at S3 URL: {asset.href}')
                         LOGGER.debug(f'Verified asset exists: {asset.href}')
 
+                # Links are not needed. removing them.
+                stac_item.clear_links()
                 # Store the updated item dictionary
                 processed_items[item_s3_url] = stac_item.to_dict()
                 LOGGER.info(f'Successfully processed STAC item: {granule_id}')

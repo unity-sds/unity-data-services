@@ -83,10 +83,13 @@ class InternalDDBConnector:
             'ldap_groups': user_groups
         }
         username_based_authorized_daacs = self.__archive_methods_initiator_internal(collection_id, daac_collection_id)
+        LOGGER.debug(f'username_based_authorized_daacs: {username_based_authorized_daacs}')
         self.auth_info['ldap_groups'] = [f'{alg_name}___{alg_version}']
         algorithm_based_authorized_daacs = self.__archive_methods_initiator_internal(collection_id, daac_collection_id)
+        LOGGER.debug(f'algorithm_based_authorized_daacs: {algorithm_based_authorized_daacs}')
         # Intersection: Only allow DAAC collections authorized by BOTH user groups AND algorithm
         authorized_daacs = list(set(username_based_authorized_daacs) & set(algorithm_based_authorized_daacs))
+        LOGGER.debug(f'authorized_daacs: {authorized_daacs}')
         LOGGER.debug(f'Username authorized: {username_based_authorized_daacs}, Algorithm authorized: {algorithm_based_authorized_daacs}, Final: {authorized_daacs}')
         if len(authorized_daacs) < 1:
             LOGGER.debug(f'user: {username} is not authorized for {collection_id} based on {user_groups} and {alg_name} + {alg_version}')
