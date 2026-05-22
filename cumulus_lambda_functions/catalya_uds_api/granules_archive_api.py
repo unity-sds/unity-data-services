@@ -7,7 +7,6 @@ from mdps_ds_lib.lib.aws.aws_param_store import AwsParamStore
 from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_auth_db import CataliaAuthDb
 from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_daac_handshakes_db import CataliaDaacHandshakesDb
 from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia import DaacArchiverCatalia
-from cumulus_lambda_functions.lib.authorization.central_auth_classes import CentralAuthFactory
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.uds_api.web_service_constants import WebServiceConstants
 from cumulus_lambda_functions.uds_api.fast_api_utils import FastApiUtils
@@ -76,12 +75,14 @@ class InternalDDBConnector:
 
 
     def archive_methods_initiator_manual_algorithm(self, username, alg_name, alg_version, request, collection_id, daac_collection_id):
-        user_groups = []  # TODO need to get user groups from username from Keycloak. Need to abstract it
-        user_groups = CentralAuthFactory().get_instance(os.getenv('CENTRAL_AUTH_CLASS')).request_authorization_info(request.headers.get('Authorization', ''), username)
+        # Get user groups from the forwarded authorizer context
+        auth_info = FastApiUtils.get_authorization_info(request)
+        user_groups = auth_info.get('ldap_groups', [])
         self.auth_info = {
             'username': username,
             'ldap_groups': user_groups
         }
+        LOGGER.debug(f'self.auth_info: {self.auth_info}')
         username_based_authorized_daacs = self.__archive_methods_initiator_internal(collection_id, daac_collection_id)
         LOGGER.debug(f'username_based_authorized_daacs: {username_based_authorized_daacs}')
         self.auth_info['ldap_groups'] = [f'{alg_name}___{alg_version}']

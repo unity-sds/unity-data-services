@@ -55,7 +55,21 @@ def lambda_handler(event, context):
     # Generate the IAM policy document that allows all actions
     arn_parts = method_arn.split('/')
     resource_arn = f"{arn_parts[0]}/{arn_parts[1]}/*/*"
-    user_details['groups'] = ','.join(user_details['groups'])
+
+    # API Gateway requires all context values to be strings
+    # Convert user_details to ensure all values are strings (avoid double conversion)
+    context = {}
+    for key, value in user_details.items():
+        if key == 'groups':
+            # Handle groups specially - convert list to comma-separated string
+            context[key] = ','.join(value) if isinstance(value, list) else str(value)
+        elif isinstance(value, str):
+            # Already a string, use as-is
+            context[key] = value
+        else:
+            # Convert non-string values (int, bool, etc.) to string
+            context[key] = str(value)
+
     policy = {
         "principalId": user_details["username"],
         "policyDocument": {
@@ -68,7 +82,7 @@ def lambda_handler(event, context):
                 }
             ]
         },
-        "context": user_details
+        "context": context
     }
     print(policy)
     return policy

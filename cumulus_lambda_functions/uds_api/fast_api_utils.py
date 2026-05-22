@@ -44,13 +44,20 @@ class FastApiUtils:
         # Access the Lambda event from Mangum
         lambda_event = request.scope.get('aws.event', {})
 
+        # Debug logging to see what's in the event
+        LOGGER.debug(f'lambda_event keys: {lambda_event.keys() if lambda_event else "None"}')
+        LOGGER.debug(f'requestContext: {lambda_event.get("requestContext", {})}')
+
         # Get the authorizer context
         authorizer_context = lambda_event.get('requestContext', {}).get('authorizer', {})
+        LOGGER.debug(f'authorizer_context: {authorizer_context}')
 
         # Access the values from your Lambda authorizer
         username = authorizer_context.get('username')
         email = authorizer_context.get('email')
-        groups = authorizer_context.get('groups', '').split(',')
+        groups = authorizer_context.get('groups', '').split(',') if authorizer_context.get('groups') else []
+
+        LOGGER.debug(f'Extracted - username: {username}, email: {email}, groups: {groups}')
 
         return {
             'action': action,
