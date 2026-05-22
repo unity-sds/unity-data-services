@@ -165,6 +165,10 @@ async def archive_single_granule(request: Request, collection_id: str, granule_i
 
     actual_path = f'{request.url.path}/actual' if not request.url.path.endswith('/') else f'{request.url.path}actual'
 
+    # Extract the original authorizer context to forward it
+    lambda_event = request.scope.get('aws.event', {})
+    authorizer_context = lambda_event.get('requestContext', {}).get('authorizer', {})
+
     actual_event = {
         'resource': actual_path,
         'path': actual_path,
@@ -182,6 +186,7 @@ async def archive_single_granule(request: Request, collection_id: str, granule_i
             'resourcePath': actual_path,
             'httpMethod': 'PUT',
             'domainName': request.url.hostname,
+            'authorizer': authorizer_context,  # Forward the authorizer context
         },
         'body': json.dumps({}),
         'isBase64Encoded': False
@@ -232,6 +237,10 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
 
     actual_path = f'{request.url.path}/actual' if not request.url.path.endswith('/') else f'{request.url.path}actual'
 
+    # Extract the original authorizer context to forward it
+    lambda_event = request.scope.get('aws.event', {})
+    authorizer_context = lambda_event.get('requestContext', {}).get('authorizer', {})
+
     actual_event = {
         'resource': actual_path,
         'path': actual_path,
@@ -252,6 +261,7 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
             'resourcePath': actual_path,
             'httpMethod': 'PUT',
             'domainName': request.url.hostname,
+            'authorizer': authorizer_context,  # Forward the authorizer context
         },
         'body': json.dumps(request_body.model_dump()),
         'isBase64Encoded': False
