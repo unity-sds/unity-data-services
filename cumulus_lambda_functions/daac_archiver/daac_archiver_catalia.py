@@ -477,7 +477,7 @@ class DaacArchiverCatalia:
             LOGGER.warning(f'missing __sending_uuid. generating one.')
             self.__sending_uuid = str(uuid4())
         update_status_svc = StatusUpdateSvc()\
-            .load_manually(self.__sending_uuid, self.__archiving_granules_stac.collection_id, self.__archiving_granules_stac.id)
+            .load_manually(self.__sending_uuid, self.__archiving_granules_stac.collection_id, daac_config['targetProject'], self.__archiving_granules_stac.id)
         try:
             LOGGER.debug(f'send_daac_sns daac_config: {daac_config}')
             self.__sns.set_topic_arn(daac_config['sns_topic_arn'])
@@ -520,3 +520,7 @@ class DaacArchiverCatalia:
                 "errorMessage": str(e),
             })
         return
+
+# TODO store all status messages in S3. index them in DB? Or use DDB to trace
+# TODO store all statuses from DDB to another DB Postgres or Parquet for accountability tool.
+

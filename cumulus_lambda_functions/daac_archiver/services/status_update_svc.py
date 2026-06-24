@@ -56,17 +56,17 @@ class StatusUpdateSvc:
         self.__uds_ctla_archiving_traces = CataliaArchivingTraces(os.getenv('CATALYA_TRACING_DB', None))
         self.__status_ddb = CataliaStatusDb(os.getenv('CATALYA_STATUS_DB', None))
         self.__archiving_granules_stac = None
-        self.__identifier, self.__collection, self.__granule = None, None, None
+        self.__identifier, self.__collection, self.__target_collection, self.__granule = None, None, None, None
 
-    def load_manually(self, identifier, collection, granule):
-        self.__identifier, self.__collection, self.__granule = identifier, collection, granule
+    def load_manually(self, identifier, collection, target_collection, granule):
+        self.__identifier, self.__collection, self.__target_collection, self.__granule = identifier, collection, target_collection, granule
         return self
 
     def load_from_db(self, identifier:str):
         archived_granule_metadata = self.__uds_ctla_archiving_traces.get(identifier)
         if archived_granule_metadata is None or (isinstance(archived_granule_metadata, list) and len(archived_granule_metadata) < 1):
             raise ValueError(f'missing archived metadata for identifier : {identifier}')
-        self.__identifier, self.__collection, self.__granule = identifier, archived_granule_metadata[0][CataliaStatusDb.collection], archived_granule_metadata[0][CataliaStatusDb.name_str]
+        self.__identifier, self.__collection, self.__target_collection, self.__granule = identifier, archived_granule_metadata[0][CataliaStatusDb.collection], archived_granule_metadata[0][CataliaStatusDb.target_collection], archived_granule_metadata[0][CataliaStatusDb.name_str]
         return self
 
     def validate_status(self, archival_status):
@@ -87,7 +87,7 @@ class StatusUpdateSvc:
         existing_statuses = self.__status_ddb.get(cnm_notification_msg['identifier'])
         if len(existing_statuses) < 1:
             raise ValueError(f'unknown collection & granule: {cnm_notification_msg}')
-        self.__identifier, self.__collection, self.__granule = cnm_notification_msg['identifier'], existing_statuses[0][CataliaStatusDb.collection], existing_statuses[0][CataliaStatusDb.name_str]
+        self.__identifier, self.__collection, self.__target_collection, self.__granule = cnm_notification_msg['identifier'], existing_statuses[0][CataliaStatusDb.collection], existing_statuses[0][CataliaStatusDb.target_collection], existing_statuses[0][CataliaStatusDb.name_str]
         if cnm_notification_msg['response']['status'] == 'SUCCESS':
             latest_daac_status = {
                 'status': 'cnm-receive-success',
@@ -111,6 +111,7 @@ class StatusUpdateSvc:
                                   archival_status['errorCode'] if 'errorCode' in archival_status else None,
                                   archival_status['errorMessage'] if 'errorMessage' in archival_status else None,
                                   archival_status['href'] if 'href' in archival_status else None,
+                                  self.__target_collection
                                   )
         except Exception as e:
             LOGGER.exception(f'Failed to store status in DDB {self.__collection}')
