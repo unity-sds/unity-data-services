@@ -515,7 +515,7 @@ class DaacArchiverCatalia:
             })
         except Exception as e:
             LOGGER.exception(f'failed during archival process')
-            update_status_svc.update_status(self.__sending_uuid, {
+            update_status_svc.update_status({
                 "status": "cnm-submit-failed",
                 "errorMessage": str(e),
             })
