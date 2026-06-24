@@ -1,6 +1,7 @@
 import json
 import os
 from typing import Optional
+import uuid
 import boto3
 from mdps_ds_lib.lib.aws.aws_param_store import AwsParamStore
 
@@ -150,20 +151,23 @@ async def archive_single_granule(request: Request, collection_id: str, granule_i
     # authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
     authorized_configured_daac_configs = [k for k in i1.configured_daac_configs if k[i1.cdhsd.target_project] in authorized_daacs]
 
+    # Generate a UUID for this archive operation
+    operation_id = str(uuid.uuid4())
+
     if os.getenv('IS_API_IN_DOCKER', 'FALSE') == 'TRUE':
         LOGGER.debug(f'In docker. No time limit for archiving')
         dac = DaacArchiverCatalia()
         dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
         dac.daac_agreements = authorized_configured_daac_configs
         dac.archive_granule(collection_id, granule_id)
-        return {'message': 'archive initiated'}
+        return {'message': 'archive initiated', 'operation_id': operation_id}
 
     # Async invocation for API Gateway to avoid timeout
     archive_lambda_name = os.environ.get('ARCHIVE_LAMBDA_NAME', '').strip()
     if not archive_lambda_name:
         raise HTTPException(status_code=500, detail='ARCHIVE_LAMBDA_NAME environment variable not set')
 
-    actual_path = f'{request.url.path}/actual' if not request.url.path.endswith('/') else f'{request.url.path}actual'
+    actual_path = f'{request.url.path}/actual/{operation_id}' if not request.url.path.endswith('/') else f'{request.url.path}actual/{operation_id}'
 
     # Extract the original authorizer context to forward it
     lambda_event = request.scope.get('aws.event', {})
@@ -180,7 +184,8 @@ async def archive_single_granule(request: Request, collection_id: str, granule_i
         },
         'pathParameters': {
             'collection_id': collection_id,
-            'granule_id': granule_id
+            'granule_id': granule_id,
+            'operation_id': operation_id
         },
         'requestContext': {
             'resourcePath': actual_path,
@@ -192,14 +197,14 @@ async def archive_single_granule(request: Request, collection_id: str, granule_i
         'isBase64Encoded': False
     }
 
-    LOGGER.info(f'Invoking async lambda for archive: {archive_lambda_name}')
+    LOGGER.info(f'Invoking async lambda for archive: {archive_lambda_name} with operation_id: {operation_id}')
     response_lambda = AwsLambda().invoke_function(
         function_name=archive_lambda_name,
         payload=actual_event,
     )
     LOGGER.debug(f'Async archive function started: {response_lambda}')
     response.status_code = 202
-    return {'message': 'archive processing'}
+    return {'message': 'archive processing', 'operation_id': operation_id}
 @router.put("/{collection_id}/verbose_archive/{granule_id}")
 @router.put("/{collection_id}/verbose_archive/{granule_id}/")
 async def verbose_archive_single_granule(request: Request, collection_id: str, granule_id: str, item_s3_url: str, request_body: VerboseArchiveRequestModel, response: Response):
@@ -222,20 +227,23 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
     # authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
     authorized_configured_daac_configs = [k for k in i1.configured_daac_configs if k[i1.cdhsd.target_project] in authorized_daacs]
 
+    # Generate a UUID for this archive operation
+    operation_id = str(uuid.uuid4())
+
     if os.getenv('IS_API_IN_DOCKER', 'FALSE') == 'TRUE':
         LOGGER.debug(f'In docker. No time limit for archiving')
         dac = DaacArchiverCatalia()
         dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
         dac.daac_agreements = authorized_configured_daac_configs
         dac.archive_granule(collection_id, granule_id)
-        return {'message': 'archive initiated'}
+        return {'message': 'archive initiated', 'operation_id': operation_id}
 
     # Async invocation for API Gateway to avoid timeout
     archive_lambda_name = os.environ.get('ARCHIVE_LAMBDA_NAME', '').strip()
     if not archive_lambda_name:
         raise HTTPException(status_code=500, detail='ARCHIVE_LAMBDA_NAME environment variable not set')
 
-    actual_path = f'{request.url.path}/actual' if not request.url.path.endswith('/') else f'{request.url.path}actual'
+    actual_path = f'{request.url.path}/actual/{operation_id}' if not request.url.path.endswith('/') else f'{request.url.path}actual/{operation_id}'
 
     # Extract the original authorizer context to forward it
     lambda_event = request.scope.get('aws.event', {})
@@ -252,7 +260,8 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
         },
         'pathParameters': {
             'collection_id': collection_id,
-            'granule_id': granule_id
+            'granule_id': granule_id,
+            'operation_id': operation_id
         },
         'queryStringParameters': {
             'item_s3_url': item_s3_url
@@ -267,19 +276,19 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
         'isBase64Encoded': False
     }
 
-    LOGGER.info(f'Invoking async lambda for verbose archive: {archive_lambda_name}')
+    LOGGER.info(f'Invoking async lambda for verbose archive: {archive_lambda_name} with operation_id: {operation_id}')
     response_lambda = AwsLambda().invoke_function(
         function_name=archive_lambda_name,
         payload=actual_event,
     )
     LOGGER.debug(f'Async verbose archive function started: {response_lambda}')
     response.status_code = 202
-    return {'message': 'verbose archive processing'}
+    return {'message': 'verbose archive processing', 'operation_id': operation_id}
 
-@router.put("/{collection_id}/verbose_archive/{granule_id}/actual")
-@router.put("/{collection_id}/verbose_archive/{granule_id}/actual/")
-async def verbose_archive_single_granule_actual(request: Request, collection_id: str, granule_id: str, item_s3_url: str, request_body: VerboseArchiveRequestModel, response: Response):
-    LOGGER.debug(f'started verbose_archive_single_granule_actual with item_s3_url: {item_s3_url}')
+@router.put("/{collection_id}/verbose_archive/{granule_id}/actual/{operation_id}")
+@router.put("/{collection_id}/verbose_archive/{granule_id}/actual/{operation_id}/")
+async def verbose_archive_single_granule_actual(request: Request, collection_id: str, granule_id: str, operation_id: str, item_s3_url: str, request_body: VerboseArchiveRequestModel, response: Response):
+    LOGGER.debug(f'started verbose_archive_single_granule_actual with item_s3_url: {item_s3_url} and operation_id: {operation_id}')
     LOGGER.debug(f'username: {request_body.username}, algorithm: {request_body.algorithm_name} v{request_body.algorithm_version}')
 
 
@@ -295,10 +304,10 @@ async def verbose_archive_single_granule_actual(request: Request, collection_id:
     dac.verbose_archive_granule(collection_id, granule_id, item_s3_url, request_body.stac_item)
     return {'message': 'archive initiated'}
 
-@router.put("/{collection_id}/archive/{granule_id}/actual")
-@router.put("/{collection_id}/archive/{granule_id}/actual/")
-async def archive_single_granule_actual(request: Request, collection_id: str, granule_id: str):
-    LOGGER.debug(f'started archive_single_granule.')
+@router.put("/{collection_id}/archive/{granule_id}/actual/{operation_id}")
+@router.put("/{collection_id}/archive/{granule_id}/actual/{operation_id}/")
+async def archive_single_granule_actual(request: Request, collection_id: str, granule_id: str, operation_id: str):
+    LOGGER.debug(f'started archive_single_granule_actual with operation_id: {operation_id}')
     i1 = InternalDDBConnector()
     authorized_daacs = i1.archive_methods_initiator(request, collection_id, None)
     # authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
