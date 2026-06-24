@@ -29,6 +29,7 @@ class DaacArchiverCatalia:
         self.__archiving_status_extension_url = "https://stac-extensions.github.io/archival_statuses/v1.0.0/schema.json"
         self.__cnm_msg_version = "1.6.0"
         self.__tracing_s3_url = None
+        self.__sending_uuid = None
 
     @property
     def archiving_granules_stac(self):
@@ -222,20 +223,22 @@ class DaacArchiverCatalia:
 
         return self
 
-    def archive_granule(self, collection_id, granule_id):
+    def archive_granule(self, collection_id, granule_id, sending_uuid: str):
         # TODO look up granule details
         sfa_client_mw = SfaClientMw()
         self.__archiving_granules_stac = backoff_wrapper(sfa_client_mw.sfa_client.get_item, collection_id, item_id=granule_id)
         LOGGER.debug(f'retrieved stac_item from STAC Fast API: {self.__archiving_granules_stac}')
+        self.__sending_uuid = sending_uuid
         self.archive_granule_json()
         return self
 
-    def verbose_archive_granule(self, collection_id, granule_id, tracing_s3_url, item_json: dict):
+    def verbose_archive_granule(self, collection_id, granule_id, tracing_s3_url, item_json: dict, sending_uuid: str):
         # TODO validate item.json is valid or just ask for STAC Item object
         # TODO update collection and granule id in item.json if different. Needed ??
         LOGGER.debug(f'verbose_archive_granule input item_json: {item_json}')
         self.__tracing_s3_url = tracing_s3_url
         self.__archiving_granules_stac = item_json
+        self.__sending_uuid = sending_uuid
         self.archive_granule_json()
         return self
 
@@ -470,22 +473,24 @@ class DaacArchiverCatalia:
         :param daac_config:
         :return:
         """
-        sending_uuid = str(uuid4())
+        if self.__sending_uuid is None:
+            LOGGER.warning(f'missing __sending_uuid. generating one.')
+            self.__sending_uuid = str(uuid4())
         update_status_svc = StatusUpdateSvc()\
-            .load_manually(sending_uuid, self.__archiving_granules_stac.collection_id, self.__archiving_granules_stac.id)
+            .load_manually(self.__sending_uuid, self.__archiving_granules_stac.collection_id, self.__archiving_granules_stac.id)
         try:
             LOGGER.debug(f'send_daac_sns daac_config: {daac_config}')
             self.__sns.set_topic_arn(daac_config['sns_topic_arn'])
             # TODO store details to new DB.
             if self.__tracing_s3_url is not None:
-                self.__uds_ctla_archiving_traces.add(sending_uuid, self.__tracing_s3_url, 'TODO', ['TODO'],
+                self.__uds_ctla_archiving_traces.add(self.__sending_uuid, self.__tracing_s3_url, 'TODO', ['TODO'],
                                                      self.__archiving_granules_stac.collection_id, self.__archiving_granules_stac.id, TimeUtils().get_datetime_str())
             daac_cnm_message = {
                 "collection": {
                     'name': daac_config['targetProject'],
                     'version': daac_config['data_version'],
                 },
-                'identifier': sending_uuid,  # "identifier": self.__archiving_granules_stac.id,  # Seems like it's the same granule IDuds_cnm_json['identifier'],
+                'identifier': self.__sending_uuid,  # "identifier": self.__archiving_granules_stac.id,  # Seems like it's the same granule IDuds_cnm_json['identifier'],
                 # From DAAC: Unique identifier for the message as a whole. It is the senders responsibility to ensure uniqueness. This identifier can be used in response messages to provide tracability.
                 "submissionTime": f'{TimeUtils.get_current_time()}Z',
                 "provider": daac_config['provider'],  # NOTE: we can't use tenant as provider anymore coz we aren't sure tennt will be there in CATALIA. if 'daac_provider' in daac_config else granule_identifier.tenant
@@ -510,7 +515,7 @@ class DaacArchiverCatalia:
             })
         except Exception as e:
             LOGGER.exception(f'failed during archival process')
-            update_status_svc.update_status(sending_uuid, {
+            update_status_svc.update_status(self.__sending_uuid, {
                 "status": "cnm-submit-failed",
                 "errorMessage": str(e),
             })

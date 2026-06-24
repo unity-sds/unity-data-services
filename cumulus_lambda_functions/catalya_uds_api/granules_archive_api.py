@@ -159,7 +159,7 @@ async def archive_single_granule(request: Request, collection_id: str, granule_i
         dac = DaacArchiverCatalia()
         dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
         dac.daac_agreements = authorized_configured_daac_configs
-        dac.archive_granule(collection_id, granule_id)
+        dac.archive_granule(collection_id, granule_id, operation_id)
         return {'message': 'archive initiated', 'operation_id': operation_id}
 
     # Async invocation for API Gateway to avoid timeout
@@ -235,7 +235,8 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
         dac = DaacArchiverCatalia()
         dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
         dac.daac_agreements = authorized_configured_daac_configs
-        dac.archive_granule(collection_id, granule_id)
+        dac.verbose_archive_granule(collection_id, granule_id, item_s3_url, request_body.stac_item, operation_id)
+
         return {'message': 'archive initiated', 'operation_id': operation_id}
 
     # Async invocation for API Gateway to avoid timeout
@@ -301,7 +302,7 @@ async def verbose_archive_single_granule_actual(request: Request, collection_id:
     dac = DaacArchiverCatalia()
     dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
     dac.daac_agreements = authorized_configured_daac_configs
-    dac.verbose_archive_granule(collection_id, granule_id, item_s3_url, request_body.stac_item)
+    dac.verbose_archive_granule(collection_id, granule_id, item_s3_url, request_body.stac_item, operation_id)
     return {'message': 'archive initiated'}
 
 @router.put("/{collection_id}/archive/{granule_id}/actual/{operation_id}")
@@ -315,7 +316,7 @@ async def archive_single_granule_actual(request: Request, collection_id: str, gr
     dac = DaacArchiverCatalia()
     dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
     dac.daac_agreements = authorized_configured_daac_configs
-    dac.archive_granule(collection_id, granule_id)
+    dac.archive_granule(collection_id, granule_id, operation_id)
     return {'message': 'archive initiated'}
 
 @router.put("/{collection_id}/archive")
