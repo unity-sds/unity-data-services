@@ -8,7 +8,6 @@ from cumulus_lambda_functions.daac_archiver.cnm_plugins.cnm_plugin_processor imp
 from cumulus_lambda_functions.daac_archiver.cnm_plugins.cnm_plugin_abstract import CnmPluginAbstract
 from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_status_db import CataliaStatusDb
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
-from cumulus_lambda_functions.lib.uds_db.granules_db_index import GranulesDbIndex
 from cumulus_lambda_functions.lib.uds_db.uds_collections import UdsCollections
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
@@ -52,6 +51,7 @@ class DaacReceiver:
         return self
 
     def update_stac_uds(self, cnm_notification_msg):
+        from cumulus_lambda_functions.lib.uds_db.granules_db_index import GranulesDbIndex
         granules_index = GranulesDbIndex()
         granule_identifier = UdsCollections.decode_identifier(cnm_notification_msg['identifier'])  # This is normally meant to be for collection. Since our granule ID also has collection id prefix. we can use this.
         try:
