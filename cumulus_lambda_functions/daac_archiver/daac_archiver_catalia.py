@@ -6,10 +6,11 @@ from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 from mdps_ds_lib.lib.aws.aws_sns import AwsSns
 from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 
+from cumulus_lambda_functions.daac_archiver.cnm_plugins.cnm_plugin_processor import CnmPluginProcessor
+from cumulus_lambda_functions.daac_archiver.cnm_plugins.cnm_plugin_abstract import CnmPluginAbstract
 from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_archiving_traces import CataliaArchivingTraces
 from cumulus_lambda_functions.daac_archiver.services.sfa_client_mw import SfaClientMw
 from cumulus_lambda_functions.daac_archiver.services.staging_svc import StagingSvc
-from cumulus_lambda_functions.daac_archiver.services.status_update_svc import StatusUpdateSvc
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.lib.uds_utils import backoff_wrapper
 
@@ -476,8 +477,12 @@ class DaacArchiverCatalia:
         if self.__sending_uuid is None:
             LOGGER.warning(f'missing __sending_uuid. generating one.')
             self.__sending_uuid = str(uuid4())
-        update_status_svc = StatusUpdateSvc()\
-            .load_manually(self.__sending_uuid, self.__archiving_granules_stac.collection_id, daac_config['targetProject'], self.__archiving_granules_stac.id)
+        plugin_processor_params = {
+            CnmPluginAbstract.sending_id: self.__sending_uuid,
+            CnmPluginAbstract.collection_id: self.__archiving_granules_stac.collection_id,
+            CnmPluginAbstract.granule_id: self.__archiving_granules_stac.id,
+            CnmPluginAbstract.target_collection_id: daac_config['targetProject'],
+        }
         try:
             LOGGER.debug(f'send_daac_sns daac_config: {daac_config}')
             self.__sns.set_topic_arn(daac_config['sns_topic_arn'])
@@ -509,16 +514,16 @@ class DaacArchiverCatalia:
                 self.__sns.set_external_role(daac_config['role_arn'], daac_config['role_session_name']).publish_message(json.dumps(daac_cnm_message), True)
             else:
                 self.__sns.publish_message(json.dumps(daac_cnm_message), False)
-
-            update_status_svc.update_status({
+            plugin_processor_params[CnmPluginAbstract.cnm_msg] = {
                 "status": "cnm-submit-success",
-            })
+            }
         except Exception as e:
             LOGGER.exception(f'failed during archival process')
-            update_status_svc.update_status({
+            plugin_processor_params[CnmPluginAbstract.cnm_msg] = {
                 "status": "cnm-submit-failed",
                 "errorMessage": str(e),
-            })
+            }
+        CnmPluginProcessor(plugin_processor_params).run()
         return
 
 # TODO store all status messages in S3. index them in DB? Or use DDB to trace

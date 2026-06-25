@@ -47,6 +47,9 @@ resource "aws_lambda_function" "uds_daac_archiver_response" {
       SFA_AUTH = aws_ssm_parameter.daac_archiver_credentials.id
       CATALYA_STATUS_DB = aws_dynamodb_table.uds_ctla_daac_status.name
       CATALYA_TRACING_DB = aws_dynamodb_table.uds_ctla_archiving_traces.name
+      CNM_PLUG_IN_NAMES = var.CNM_PLUG_IN_NAMES
+      CNM_STORAGE_BUCKET = var.CNM_STORAGE_BUCKET
+      CNM_STORAGE_PREFIX = var.CNM_STORAGE_PREFIX
     }
   }
 

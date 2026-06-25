@@ -25,6 +25,10 @@ resource "aws_lambda_function" "uds_api_1" {
       CORS_ORIGINS = var.cors_origins
       DAPA_API_URL_BASE = "${var.uds_base_url}/${var.dapa_api_prefix}"
       FARGATE_CONFIG = aws_ssm_parameter.daac_archiver_fargate_config.id
+
+      CNM_PLUG_IN_NAMES = var.CNM_PLUG_IN_NAMES
+      CNM_STORAGE_BUCKET = var.CNM_STORAGE_BUCKET
+      CNM_STORAGE_PREFIX = var.CNM_STORAGE_PREFIX
     }
   }
 

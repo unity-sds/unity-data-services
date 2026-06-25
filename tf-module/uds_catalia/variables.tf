@@ -280,3 +280,16 @@ variable "MAAP_API_HOST" {
 variable "ARCHIVER_TRIGER_SNS_ARN" {
   type = string
 }
+
+variable "CNM_PLUG_IN_NAMES" {
+  type = string
+  description = "comma separated plugins"
+  default = "STATUS_UPDATE,STORAGE"
+}
+variable "CNM_STORAGE_BUCKET" {
+  type = string
+}
+variable "CNM_STORAGE_PREFIX" {
+  type = string
+  default = "CNM_MESSAGES"
+}
