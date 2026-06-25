@@ -7,7 +7,7 @@ class CnmPluginAbstract(ABC):
     granule_id = 'granule_id'
     target_collection_id = 'target_collection_id'
     cnm_msg = 'cnm_msg'
-    cnm_notification_msg = 'cnm_notification_msg'
+    status_msg = 'status_msg'
     CNM_PLUG_IN_NAMES = 'CNM_PLUG_IN_NAMES'
 
     def __init__(self, params: dict):

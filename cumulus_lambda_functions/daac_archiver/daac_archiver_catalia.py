@@ -506,6 +506,7 @@ class DaacArchiverCatalia:
                     'files': self.extract_files(daac_config),
                 }
             }
+            plugin_processor_params[CnmPluginAbstract.cnm_msg] = daac_cnm_message
             LOGGER.debug(f'daac_cnm_message: {daac_cnm_message}')
             if 'role_arn' in daac_config and \
                 'role_session_name' in daac_config and \
@@ -514,12 +515,12 @@ class DaacArchiverCatalia:
                 self.__sns.set_external_role(daac_config['role_arn'], daac_config['role_session_name']).publish_message(json.dumps(daac_cnm_message), True)
             else:
                 self.__sns.publish_message(json.dumps(daac_cnm_message), False)
-            plugin_processor_params[CnmPluginAbstract.cnm_msg] = {
+            plugin_processor_params[CnmPluginAbstract.status_msg] = {
                 "status": "cnm-submit-success",
             }
         except Exception as e:
             LOGGER.exception(f'failed during archival process')
-            plugin_processor_params[CnmPluginAbstract.cnm_msg] = {
+            plugin_processor_params[CnmPluginAbstract.status_msg] = {
                 "status": "cnm-submit-failed",
                 "errorMessage": str(e),
             }

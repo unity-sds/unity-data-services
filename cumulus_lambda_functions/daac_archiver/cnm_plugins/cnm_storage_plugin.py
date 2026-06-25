@@ -8,7 +8,7 @@ class CnmStoragePlugin(CnmPluginAbstract):
     def __init__(self, params: dict):
         super().__init__(params)
         required_params = [self.sending_id, self.collection_id, self.granule_id, self.target_collection_id, self.cnm_msg]
-        if not all([k in self._params for k in required_params]):
+        if any([k not in self._params for k in required_params]):
             raise ValueError(f'missing required params: {required_params} v. {self._params}')
 
     def run(self):

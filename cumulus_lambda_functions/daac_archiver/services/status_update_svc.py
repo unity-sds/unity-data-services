@@ -84,10 +84,11 @@ class StatusUpdateSvc:
         return
 
     def update_status_wrapper(self, cnm_notification_msg: dict):
-        existing_statuses = self.__status_ddb.get(cnm_notification_msg['identifier'])
-        if len(existing_statuses) < 1:
-            raise ValueError(f'unknown collection & granule: {cnm_notification_msg}')
-        self.__identifier, self.__collection, self.__target_collection, self.__granule = cnm_notification_msg['identifier'], existing_statuses[0][CataliaStatusDb.collection], existing_statuses[0][CataliaStatusDb.target_collection], existing_statuses[0][CataliaStatusDb.name_str]
+        if any([k is None for k in [self.__identifier, self.__collection, self.__target_collection, self.__granule]]):
+            existing_statuses = self.__status_ddb.get(cnm_notification_msg['identifier'])
+            if len(existing_statuses) < 1:
+                raise ValueError(f'unknown collection & granule: {cnm_notification_msg}')
+            self.__identifier, self.__collection, self.__target_collection, self.__granule = cnm_notification_msg['identifier'], existing_statuses[0][CataliaStatusDb.collection], existing_statuses[0][CataliaStatusDb.target_collection], existing_statuses[0][CataliaStatusDb.name_str]
         if cnm_notification_msg['response']['status'] == 'SUCCESS':
             latest_daac_status = {
                 'status': 'cnm-receive-success',

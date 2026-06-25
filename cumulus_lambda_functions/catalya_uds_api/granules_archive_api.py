@@ -8,6 +8,7 @@ from mdps_ds_lib.lib.aws.aws_param_store import AwsParamStore
 from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_auth_db import CataliaAuthDb
 from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_daac_handshakes_db import CataliaDaacHandshakesDb
 from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia import DaacArchiverCatalia
+from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_status_db import CataliaStatusDb
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.uds_api.web_service_constants import WebServiceConstants
 from cumulus_lambda_functions.uds_api.fast_api_utils import FastApiUtils
@@ -429,3 +430,14 @@ async def archive_entire_collection_actual(request: Request, collection_id: str)
     dac.daac_agreements = authorized_configured_daac_configs
     dac.archive_collection(collection_id)  # TODO accept filtering mechanisms?
     return {'message': 'archive initiated'}
+
+
+@router.get("/{operation_id}")
+@router.get("/{operation_id}/")
+async def get_archive_status(request: Request, operation_id: str):
+    LOGGER.debug(f'started get_archive_status with operation_id: {operation_id}')
+    status_ddb = CataliaStatusDb(os.getenv('CATALYA_STATUS_DB', None))
+    existing_statuses = status_ddb.get(operation_id)
+    if len(existing_statuses) < 1:
+        raise HTTPException(status_code=404, detail=f'STATUS DB does not have any entry for {operation_id}')
+    return {'status_list': existing_statuses}

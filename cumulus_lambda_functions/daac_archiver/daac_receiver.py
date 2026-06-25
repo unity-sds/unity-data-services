@@ -6,6 +6,7 @@ from mdps_ds_lib.lib.utils.json_validator import JsonValidator
 
 from cumulus_lambda_functions.daac_archiver.cnm_plugins.cnm_plugin_processor import CnmPluginProcessor
 from cumulus_lambda_functions.daac_archiver.cnm_plugins.cnm_plugin_abstract import CnmPluginAbstract
+from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_status_db import CataliaStatusDb
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.lib.uds_db.granules_db_index import GranulesDbIndex
 from cumulus_lambda_functions.lib.uds_db.uds_collections import UdsCollections
@@ -36,7 +37,18 @@ class DaacReceiver:
             raise ValueError(f"missing ARCHIVAL_STATUS_MECHANISM environment variable or value is not {['UDS', 'FAST_STAC']}")
         if update_type == 'UDS':
             return self.update_stac_uds(cnm_notification_msg)
-        CnmPluginProcessor({CnmPluginAbstract.cnm_notification_msg: cnm_notification_msg}).run()
+        status_ddb = CataliaStatusDb(os.getenv('CATALYA_STATUS_DB', None))
+        existing_statuses = status_ddb.get(cnm_notification_msg['identifier'])
+        if len(existing_statuses) < 1:
+            raise ValueError(f'unknown collection & granule: {cnm_notification_msg}')
+        plugin_processor_params = {
+            CnmPluginAbstract.sending_id: cnm_notification_msg['identifier'],
+            CnmPluginAbstract.collection_id: existing_statuses[0][CataliaStatusDb.collection],
+            CnmPluginAbstract.granule_id: existing_statuses[0][CataliaStatusDb.name_str],
+            CnmPluginAbstract.target_collection_id: existing_statuses[0][CataliaStatusDb.target_collection],
+            CnmPluginAbstract.cnm_msg: cnm_notification_msg,
+        }
+        CnmPluginProcessor(plugin_processor_params).run()
         return self
 
     def update_stac_uds(self, cnm_notification_msg):

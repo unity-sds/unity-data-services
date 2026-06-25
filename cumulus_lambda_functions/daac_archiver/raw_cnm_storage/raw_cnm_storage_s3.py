@@ -21,7 +21,7 @@ class RawCnmStorageS3(RawCnmStorageAbstract):
         return self
 
     def store_data(self, cnm_msg: dict):
-        if not all([k is not None for k in [self.__sending_id, self.__collection_id, self.__granule_id, self.__target_collection_id]]):
+        if any([k is None for k in [self.__sending_id, self.__collection_id, self.__granule_id, self.__target_collection_id]]):
             raise ValueError(f'one or more of sending_id, collection_id, granule_id, target_collection_id is null: {[self.__sending_id, self.__collection_id, self.__granule_id, self.__target_collection_id]}')
         target_key_1 = [] if self.__s3_base_path == '' else [self.__s3_base_path]
         target_key_1.extend([self.__collection_id, self.__granule_id, self.__target_collection_id, self.__sending_id, f"{datetime.strftime('%Y-%m-%dT%H:%M:%S%Z')}.json"])
