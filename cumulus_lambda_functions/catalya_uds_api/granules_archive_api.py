@@ -10,8 +10,8 @@ from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_daac_handshakes_db i
 from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia import DaacArchiverCatalia
 from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_status_db import CataliaStatusDb
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
-from cumulus_lambda_functions.uds_api.web_service_constants import WebServiceConstants
-from cumulus_lambda_functions.uds_api.fast_api_utils import FastApiUtils
+from cumulus_lambda_functions.lib.uds_fast_api.web_service_constants import WebServiceConstants
+from cumulus_lambda_functions.lib.uds_fast_api.fast_api_utils import FastApiUtils
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 from mdps_ds_lib.lib.aws.aws_lambda import AwsLambda

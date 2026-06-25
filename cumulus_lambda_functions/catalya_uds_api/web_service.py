@@ -1,8 +1,6 @@
-from fastapi.staticfiles import StaticFiles
-
 from cumulus_lambda_functions.catalya_uds_api import auth_admin_api
 from cumulus_lambda_functions.catalya_uds_api import granules_archive_api
-from cumulus_lambda_functions.uds_api.fast_api_utils import FastApiUtils
+from cumulus_lambda_functions.lib.uds_fast_api.fast_api_utils import FastApiUtils
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from dotenv import load_dotenv
 

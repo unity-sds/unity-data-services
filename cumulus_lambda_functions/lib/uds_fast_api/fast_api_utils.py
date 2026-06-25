@@ -1,4 +1,3 @@
-import base64
 import json
 import os
 
@@ -7,9 +6,9 @@ from mdps_ds_lib.lib.utils.file_utils import FileUtils
 from mdps_ds_lib.lib.constants import Constants
 
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import Request
 
-from cumulus_lambda_functions.uds_api.web_service_constants import WebServiceConstants
+from cumulus_lambda_functions.lib.uds_fast_api.web_service_constants import WebServiceConstants
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
 

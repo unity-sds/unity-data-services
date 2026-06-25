@@ -2,8 +2,8 @@ from typing import Union
 
 from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_auth_db import CataliaAuthDb
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
-from cumulus_lambda_functions.uds_api.fast_api_utils import FastApiUtils
-from cumulus_lambda_functions.uds_api.web_service_constants import WebServiceConstants
+from cumulus_lambda_functions.lib.uds_fast_api.fast_api_utils import FastApiUtils
+from cumulus_lambda_functions.lib.uds_fast_api.web_service_constants import WebServiceConstants
 from fastapi import APIRouter, HTTPException, Request
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
