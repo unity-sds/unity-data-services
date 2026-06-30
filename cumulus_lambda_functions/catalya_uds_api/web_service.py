@@ -1,4 +1,4 @@
-from cumulus_lambda_functions.catalya_uds_api import auth_admin_api
+from cumulus_lambda_functions.catalya_uds_api import auth_admin_api, daac_archive_config_api
 from cumulus_lambda_functions.catalya_uds_api import granules_archive_api
 from cumulus_lambda_functions.lib.uds_fast_api.fast_api_utils import FastApiUtils
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
@@ -33,6 +33,7 @@ app.add_middleware(
 main_router = APIRouter(redirect_slashes=False)
 main_router.include_router(auth_admin_api.router)
 main_router.include_router(granules_archive_api.router)
+main_router.include_router(daac_archive_config_api.router)
 app.include_router(main_router, prefix=f'/{api_base_prefix}')
 
 

@@ -34,7 +34,7 @@ def choose_process():
         return result_str
     if argv[1].strip().upper() == 'CATALYA_COLLECTION_ARCHIVE':
         logging.info('starting CATALYA_COLLECTION_ARCHIVE script')
-        from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia import DaacArchiverCatalia
+        from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia_2 import DaacArchiverCatalia
         dac = DaacArchiverCatalia()
         dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
         dac.daac_agreements = json.loads(os.getenv('CATALYA_DAAC_CONFIGS'))

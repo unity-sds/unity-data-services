@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
 
 from pystac import Item, Asset
-from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia import DaacArchiverCatalia
+from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia_2 import DaacArchiverCatalia
 
 class TestDaacArchiverCatalia(TestCase):
 

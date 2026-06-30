@@ -1,15 +1,13 @@
 import json
 import os
-from typing import Optional
-import uuid
 import boto3
 from mdps_ds_lib.lib.aws.aws_param_store import AwsParamStore
 
-from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_auth_db import CataliaAuthDb
-from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_daac_handshakes_db import CataliaDaacHandshakesDb
-from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia import DaacArchiverCatalia
+
+from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia_2 import DaacArchiverCatalia
 from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_status_db import CataliaStatusDb
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
+from cumulus_lambda_functions.lib.uds_fast_api.internal_ddb_connector import InternalDDBConnector
 from cumulus_lambda_functions.lib.uds_fast_api.web_service_constants import WebServiceConstants
 from cumulus_lambda_functions.lib.uds_fast_api.fast_api_utils import FastApiUtils
 from fastapi import APIRouter, HTTPException, Request, Response
@@ -24,125 +22,15 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-class ArchivingTypesModel(BaseModel):
-    data_type: str
-    file_extension: Optional[list[str]] = []
-
-
-class DaacUpdateModel(BaseModel):
-    api_key: str
-    daac_provider: str
-    daac_data_version: str
-    daac_sns_topic_arn: str
-    daac_role_arn: str
-    daac_role_session_name: str
-    archiving_types: Optional[list[ArchivingTypesModel]] = None
-
 
 class VerboseArchiveRequestModel(BaseModel):
     username: str
     algorithm_name: str
     algorithm_version: str
     stac_item: dict
-
-class InternalDDBConnector:
-    def __init__(self):
-        required_env = ['CATALYA_DAAC_AGREEMENT_DB_NAME', 'CATALYA_DB_NAME']
-        if not all([k in os.environ for k in required_env]):
-            raise EnvironmentError(f'one or more missing env: {required_env}')
-        self.cad = CataliaAuthDb(os.getenv('CATALYA_DB_NAME'))
-        self.cdhsd = CataliaDaacHandshakesDb(os.getenv('CATALYA_DAAC_AGREEMENT_DB_NAME'))
-        self.auth_info = {}
-        self.configured_daac_configs = []
-
-    def __archive_methods_initiator_internal(self, collection_id, daac_collection_id):
-        if daac_collection_id is None:
-            self.configured_daac_configs = self.cdhsd.search(collection_id)
-            configured_daac_ids = [] if len(self.configured_daac_configs) < 1 else [k[self.cdhsd.target_project] for k in self.configured_daac_configs]
-        else:
-            configured_daac_ids = [daac_collection_id]
-
-        authorized_daacs = [] if len(configured_daac_ids) < 1 else self.cad.get_authorized_daac_full(self.auth_info.get('ldap_groups'), collection_id, configured_daac_ids)
-        if len(authorized_daacs) < 1:
-            LOGGER.debug(f'user: {self.auth_info["username"]} is not authorized for {collection_id}')
-            raise HTTPException(status_code=403, detail=json.dumps({
-                'message': 'not authorized to execute this action'
-            }))
-        return authorized_daacs
-
-    def archive_methods_initiator(self, request, collection_id, daac_collection_id):
-        LOGGER.debug(f'started archive_methods_initiator.')
-        self.auth_info = FastApiUtils.get_authorization_info(request)
-        return self.__archive_methods_initiator_internal(collection_id, daac_collection_id)
+    sending_uuids: dict
 
 
-    def archive_methods_initiator_manual_algorithm(self, username, alg_name, alg_version, request, collection_id, daac_collection_id):
-        # Get user groups from the forwarded authorizer context
-        auth_info = FastApiUtils.get_authorization_info(request)
-        user_groups = auth_info.get('ldap_groups', [])
-        self.auth_info = {
-            'username': username,
-            'ldap_groups': user_groups
-        }
-        LOGGER.debug(f'self.auth_info: {self.auth_info}')
-        username_based_authorized_daacs = self.__archive_methods_initiator_internal(collection_id, daac_collection_id)
-        LOGGER.debug(f'username_based_authorized_daacs: {username_based_authorized_daacs}')
-        self.auth_info['ldap_groups'] = [f'{alg_name}___{alg_version}']
-        algorithm_based_authorized_daacs = self.__archive_methods_initiator_internal(collection_id, daac_collection_id)
-        LOGGER.debug(f'algorithm_based_authorized_daacs: {algorithm_based_authorized_daacs}')
-        # Intersection: Only allow DAAC collections authorized by BOTH user groups AND algorithm
-        authorized_daacs = list(set(username_based_authorized_daacs) & set(algorithm_based_authorized_daacs))
-        LOGGER.debug(f'authorized_daacs: {authorized_daacs}')
-        LOGGER.debug(f'Username authorized: {username_based_authorized_daacs}, Algorithm authorized: {algorithm_based_authorized_daacs}, Final: {authorized_daacs}')
-        if len(authorized_daacs) < 1:
-            LOGGER.debug(f'user: {username} is not authorized for {collection_id} based on {user_groups} and {alg_name} + {alg_version}')
-            raise HTTPException(status_code=403, detail=json.dumps({
-                'message': f'user: {username} is not authorized for {collection_id} based on {user_groups} and {alg_name} + {alg_version}'
-            }))
-
-        return authorized_daacs
-@router.post("/{collection_id}/{daac_collection_id}/archive")
-@router.post("/{collection_id}/{daac_collection_id}/archive/")
-async def add_daac_archive_config(request: Request, collection_id: str, daac_collection_id: str, new_body: DaacUpdateModel):
-    LOGGER.debug(f'started add_daac_archive_config. {new_body.model_dump()}')
-    i1 = InternalDDBConnector()
-    authorized_daacs = i1.archive_methods_initiator(request, collection_id, daac_collection_id)
-    # authorized_ldaps = [k['userGroup'] for k in authorized_daacs]
-    b1 = new_body.model_dump()
-    try:
-        # def add(self, catalia_collection, daac_collection, api_key, provider, data_version, sns_topic_arn, role_arn, role_session_name, archiving_types, user, user_group):
-        i1.cdhsd.add(collection_id, daac_collection_id, b1['api_key'], b1['daac_provider'], b1['daac_data_version'],
-                     b1['daac_sns_topic_arn'], b1['daac_role_arn'], b1['daac_role_session_name'], b1['archiving_types'], i1.auth_info['username'], i1.auth_info.get('ldap_groups'))
-    except Exception as e:
-        LOGGER.exception(f'error while add_daac_archive_config: {b1}')
-        raise HTTPException(status_code=500, detail=e)
-    return {'message': 'archive config added'}
-
-@router.delete("/{collection_id}/{daac_collection_id}/archive")
-@router.delete("/{collection_id}/{daac_collection_id}/archive/")
-async def delete_daac_archive_config(request: Request, collection_id: str, daac_collection_id: str):
-    LOGGER.debug(f'started delete_daac_archive_config.')
-    i1 = InternalDDBConnector()
-    authorized_daacs = i1.archive_methods_initiator(request, collection_id, daac_collection_id)
-    try:
-        i1.cdhsd.delete(collection_id, daac_collection_id)
-    except Exception as e:
-        LOGGER.exception(f'error while delete_daac_archive_config: {collection_id}, {daac_collection_id}')
-        raise HTTPException(status_code=500, detail=e)
-    return {'message': 'archive config deleted'}
-
-@router.get("/{collection_id}/{daac_collection_id}/archive")
-@router.get("/{collection_id}/{daac_collection_id}/archive/")
-async def get_daac_archive_config(request: Request, collection_id: str, daac_collection_id: str):
-    LOGGER.debug(f'started get_daac_archive_config.')
-    i1 = InternalDDBConnector()
-    authorized_daacs = i1.archive_methods_initiator(request, collection_id, daac_collection_id)
-    try:
-        result = i1.cdhsd.get_single(collection_id, daac_collection_id)
-    except Exception as e:
-        LOGGER.exception(f'error while get_daac_archive_config: {collection_id}, {daac_collection_id}')
-        raise HTTPException(status_code=500, detail=e)
-    return {'result': result}
 @router.put("/{collection_id}/archive/{granule_id}")
 @router.put("/{collection_id}/archive/{granule_id}/")
 async def archive_single_granule(request: Request, collection_id: str, granule_id: str, response: Response):
@@ -152,28 +40,32 @@ async def archive_single_granule(request: Request, collection_id: str, granule_i
     # authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
     authorized_configured_daac_configs = [k for k in i1.configured_daac_configs if k[i1.cdhsd.target_project] in authorized_daacs]
 
-    # Generate a UUID for this archive operation
-    operation_id = str(uuid.uuid4())
+    dac = DaacArchiverCatalia()
+    dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
+    dac.daac_agreements = authorized_configured_daac_configs
+    dac.archiving_granules_stac = dac.retrieve_archiving_granule(collection_id, granule_id)
+    sending_ids = dac.generate_sending_ids_dict()
 
     if os.getenv('IS_API_IN_DOCKER', 'FALSE') == 'TRUE':
         LOGGER.debug(f'In docker. No time limit for archiving')
-        dac = DaacArchiverCatalia()
-        dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
-        dac.daac_agreements = authorized_configured_daac_configs
-        dac.archive_granule(collection_id, granule_id, operation_id)
-        return {'message': 'archive initiated', 'operation_id': operation_id}
+        dac.archive_granule_json()
+        return {'message': 'archive initiated', 'operation_ids': sending_ids}
 
     # Async invocation for API Gateway to avoid timeout
     archive_lambda_name = os.environ.get('ARCHIVE_LAMBDA_NAME', '').strip()
     if not archive_lambda_name:
         raise HTTPException(status_code=500, detail='ARCHIVE_LAMBDA_NAME environment variable not set')
 
-    actual_path = f'{request.url.path}/actual/{operation_id}' if not request.url.path.endswith('/') else f'{request.url.path}actual/{operation_id}'
+    # TODO need to replace with verbose
+    actual_path = f'{request.url.path}/actual' if not request.url.path.endswith('/') else f'{request.url.path}actual'
 
     # Extract the original authorizer context to forward it
     lambda_event = request.scope.get('aws.event', {})
     authorizer_context = lambda_event.get('requestContext', {}).get('authorizer', {})
 
+    updated_request_body = {}
+    updated_request_body['sending_uuids'] = dac.sending_uuids
+    updated_request_body['stac_item'] = dac.archiving_granules_stac
     actual_event = {
         'resource': actual_path,
         'path': actual_path,
@@ -186,7 +78,6 @@ async def archive_single_granule(request: Request, collection_id: str, granule_i
         'pathParameters': {
             'collection_id': collection_id,
             'granule_id': granule_id,
-            'operation_id': operation_id
         },
         'requestContext': {
             'resourcePath': actual_path,
@@ -194,18 +85,18 @@ async def archive_single_granule(request: Request, collection_id: str, granule_i
             'domainName': request.url.hostname,
             'authorizer': authorizer_context,  # Forward the authorizer context
         },
-        'body': json.dumps({}),
+        'body': json.dumps(updated_request_body),
         'isBase64Encoded': False
     }
 
-    LOGGER.info(f'Invoking async lambda for archive: {archive_lambda_name} with operation_id: {operation_id}')
+    LOGGER.info(f'Invoking async lambda for archive: {archive_lambda_name} with operation_ids: {sending_ids}')
     response_lambda = AwsLambda().invoke_function(
         function_name=archive_lambda_name,
         payload=actual_event,
     )
     LOGGER.debug(f'Async archive function started: {response_lambda}')
     response.status_code = 202
-    return {'message': 'archive processing', 'operation_id': operation_id}
+    return {'message': 'archive processing', 'operation_ids': sending_ids}
 @router.put("/{collection_id}/verbose_archive/{granule_id}")
 @router.put("/{collection_id}/verbose_archive/{granule_id}/")
 async def verbose_archive_single_granule(request: Request, collection_id: str, granule_id: str, item_s3_url: str, request_body: VerboseArchiveRequestModel, response: Response):
@@ -228,29 +119,31 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
     # authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
     authorized_configured_daac_configs = [k for k in i1.configured_daac_configs if k[i1.cdhsd.target_project] in authorized_daacs]
 
-    # Generate a UUID for this archive operation
-    operation_id = str(uuid.uuid4())
+    dac = DaacArchiverCatalia()
+    dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
+    dac.daac_agreements = authorized_configured_daac_configs
+    dac.tracing_s3_url = item_s3_url
+    dac.archiving_granules_stac = request_body.stac_item
+    sending_ids = dac.generate_sending_ids_dict()
 
     if os.getenv('IS_API_IN_DOCKER', 'FALSE') == 'TRUE':
         LOGGER.debug(f'In docker. No time limit for archiving')
-        dac = DaacArchiverCatalia()
-        dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
-        dac.daac_agreements = authorized_configured_daac_configs
-        dac.verbose_archive_granule(collection_id, granule_id, item_s3_url, request_body.stac_item, operation_id)
-
-        return {'message': 'archive initiated', 'operation_id': operation_id}
+        dac.archive_granule_json()
+        return {'message': 'archive initiated', 'operation_id': sending_ids}
 
     # Async invocation for API Gateway to avoid timeout
     archive_lambda_name = os.environ.get('ARCHIVE_LAMBDA_NAME', '').strip()
     if not archive_lambda_name:
         raise HTTPException(status_code=500, detail='ARCHIVE_LAMBDA_NAME environment variable not set')
 
-    actual_path = f'{request.url.path}/actual/{operation_id}' if not request.url.path.endswith('/') else f'{request.url.path}actual/{operation_id}'
+    actual_path = f'{request.url.path}/actual' if not request.url.path.endswith('/') else f'{request.url.path}actual'
 
     # Extract the original authorizer context to forward it
     lambda_event = request.scope.get('aws.event', {})
     authorizer_context = lambda_event.get('requestContext', {}).get('authorizer', {})
 
+    updated_request_body = request_body.model_dump()
+    updated_request_body['sending_uuids'] = dac.sending_uuids
     actual_event = {
         'resource': actual_path,
         'path': actual_path,
@@ -263,7 +156,6 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
         'pathParameters': {
             'collection_id': collection_id,
             'granule_id': granule_id,
-            'operation_id': operation_id
         },
         'queryStringParameters': {
             'item_s3_url': item_s3_url
@@ -274,18 +166,18 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
             'domainName': request.url.hostname,
             'authorizer': authorizer_context,  # Forward the authorizer context
         },
-        'body': json.dumps(request_body.model_dump()),
+        'body': json.dumps(updated_request_body),
         'isBase64Encoded': False
     }
 
-    LOGGER.info(f'Invoking async lambda for verbose archive: {archive_lambda_name} with operation_id: {operation_id}')
+    LOGGER.info(f'Invoking async lambda for verbose archive: {archive_lambda_name} with operation_ids: {sending_ids}')
     response_lambda = AwsLambda().invoke_function(
         function_name=archive_lambda_name,
         payload=actual_event,
     )
     LOGGER.debug(f'Async verbose archive function started: {response_lambda}')
     response.status_code = 202
-    return {'message': 'verbose archive processing', 'operation_id': operation_id}
+    return {'message': 'verbose archive processing', 'operation_ids': sending_ids}
 
 @router.put("/{collection_id}/verbose_archive/{granule_id}/actual/{operation_id}")
 @router.put("/{collection_id}/verbose_archive/{granule_id}/actual/{operation_id}/")
@@ -293,31 +185,19 @@ async def verbose_archive_single_granule_actual(request: Request, collection_id:
     LOGGER.debug(f'started verbose_archive_single_granule_actual with item_s3_url: {item_s3_url} and operation_id: {operation_id}')
     LOGGER.debug(f'username: {request_body.username}, algorithm: {request_body.algorithm_name} v{request_body.algorithm_version}')
 
-
     i1 = InternalDDBConnector()
     authorized_daacs = i1.archive_methods_initiator_manual_algorithm(request_body.username, request_body.algorithm_name, request_body.algorithm_version, request, collection_id, None)
     # authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
     authorized_configured_daac_configs = [k for k in i1.configured_daac_configs if k[i1.cdhsd.target_project] in authorized_daacs]
 
-
     dac = DaacArchiverCatalia()
     dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
     dac.daac_agreements = authorized_configured_daac_configs
-    dac.verbose_archive_granule(collection_id, granule_id, item_s3_url, request_body.stac_item, operation_id)
-    return {'message': 'archive initiated'}
+    dac.tracing_s3_url = item_s3_url
+    dac.archiving_granules_stac = request_body.stac_item
+    dac.sending_uuids = request_body.sending_uuids
+    dac.archive_granule_json()
 
-@router.put("/{collection_id}/archive/{granule_id}/actual/{operation_id}")
-@router.put("/{collection_id}/archive/{granule_id}/actual/{operation_id}/")
-async def archive_single_granule_actual(request: Request, collection_id: str, granule_id: str, operation_id: str):
-    LOGGER.debug(f'started archive_single_granule_actual with operation_id: {operation_id}')
-    i1 = InternalDDBConnector()
-    authorized_daacs = i1.archive_methods_initiator(request, collection_id, None)
-    # authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
-    authorized_configured_daac_configs = [k for k in i1.configured_daac_configs if k[i1.cdhsd.target_project] in authorized_daacs]
-    dac = DaacArchiverCatalia()
-    dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
-    dac.daac_agreements = authorized_configured_daac_configs
-    dac.archive_granule(collection_id, granule_id, operation_id)
     return {'message': 'archive initiated'}
 
 @router.put("/{collection_id}/archive")
