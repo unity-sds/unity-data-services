@@ -12,6 +12,7 @@ from cumulus_lambda_functions.lib.uds_fast_api.web_service_constants import WebS
 from cumulus_lambda_functions.lib.uds_fast_api.fast_api_utils import FastApiUtils
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
+from typing import Optional
 from mdps_ds_lib.lib.aws.aws_lambda import AwsLambda
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
@@ -27,6 +28,12 @@ class VerboseArchiveRequestModel(BaseModel):
     username: str
     algorithm_name: str
     algorithm_version: str
+    stac_item: dict
+
+class VerboseArchiveActualRequestModel(BaseModel):
+    username: str  # TODO this is not mandatory if it comes from the archive_single_granule
+    algorithm_name: str  # TODO this is not mandatory if it comes from the archive_single_granule
+    algorithm_version: str  # TODO this is not mandatory if it comes from the archive_single_granule
     stac_item: dict
     sending_uuids: dict
 
@@ -181,7 +188,7 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
 
 @router.put("/{collection_id}/verbose_archive/{granule_id}/actual/{operation_id}")
 @router.put("/{collection_id}/verbose_archive/{granule_id}/actual/{operation_id}/")
-async def verbose_archive_single_granule_actual(request: Request, collection_id: str, granule_id: str, operation_id: str, item_s3_url: str, request_body: VerboseArchiveRequestModel, response: Response):
+async def verbose_archive_single_granule_actual(request: Request, collection_id: str, granule_id: str, operation_id: str, item_s3_url: str, request_body: VerboseArchiveActualRequestModel, response: Response):
     LOGGER.debug(f'started verbose_archive_single_granule_actual with item_s3_url: {item_s3_url} and operation_id: {operation_id}')
     LOGGER.debug(f'username: {request_body.username}, algorithm: {request_body.algorithm_name} v{request_body.algorithm_version}')
 
