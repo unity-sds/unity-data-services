@@ -1,0 +1,6 @@
+project = "Catalya-DS"
+venue = "dev"
+datastore_bucket_name = "william_test_1"
+datastore_bucket_notification_prefix = "stage_out"
+prefix="catalya-uds-dev"
+account_id="979188186972"

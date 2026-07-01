@@ -22,7 +22,7 @@
       "href": "./output_1.nc",
       "roles": ["data"],
       "file:size": 0,
-      "file:checksum": "d41d8cd98f00b204e9800998ecf8427e",
+      "file:checksum": "md5:d41d8cd98f00b204e9800998ecf8427e",
       "description": "main data"
     },
     "output_1.nc.stac.json": {
