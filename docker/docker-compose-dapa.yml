@@ -4,7 +4,6 @@ services:
     image: cae-artifactory.jpl.nasa.gov:16001/gov/nasa/jpl/unity/uds:latest
     container_name: parquet-flask
     environment:
-      - CUMULUS_BASE='https://axhmoecy02.execute-api.us-west-2.amazonaws.com/dev'
       - log_level=DEBUG
     ports:
       - 9801:9801

@@ -14,10 +14,7 @@ resource "aws_lambda_function" "granules_cnm_ingester" {
       SNS_TOPIC_ARN = var.cnm_sns_topic_arn
       ES_URL = aws_elasticsearch_domain.uds-es.endpoint
       ES_PORT = 443
-      CUMULUS_WORKFLOW_SQS_URL = var.workflow_sqs_url
-      CUMULUS_LAMBDA_PREFIX = var.prefix
       REPORT_TO_EMS = var.report_to_ems
-      CUMULUS_WORKFLOW_NAME = "CatalogGranule"
       UNITY_DEFAULT_PROVIDER = var.unity_default_provider
       COLLECTION_CREATION_LAMBDA_NAME = "NA"
     }

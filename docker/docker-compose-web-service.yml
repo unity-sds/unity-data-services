@@ -1,9 +1,10 @@
 version: "3.7"
 services:
   cumulus_granules_upload:
-    image: ghcr.io/unity-sds/unity-data-services:7.10.1
+    image: ghcr.io/unity-sds/unity-data-services:9.15.1
+    platform: linux/amd64
     restart: always
-    entrypoint: 'uvicorn web_service_stac_browser:app --host 0.0.0.0 --port 8005 --log-level info --reload'
+    entrypoint: 'uvicorn web_service:app --host 0.0.0.0 --port 8005 --log-level info --reload'
     tty: true
     working_dir: '/usr/src/app/unity/cumulus_lambda_functions/uds_api'
     ports:
@@ -14,9 +15,6 @@ services:
       PYTHONPATH: '${PYTHONPATH}:/usr/src/app/unity'
 
       COLLECTION_CREATION_LAMBDA_NAME: 'arn:aws:lambda:us-west-2:xxx:function:uds-sbx-cumulus-uds_api_1'
-      CUMULUS_LAMBDA_PREFIX: 'uds-sbx-cumulus'
-      CUMULUS_WORKFLOW_NAME: 'CatalogGranule'
-      CUMULUS_WORKFLOW_SQS_URL: 'https://sqs.us-west-2.amazonaws.com/xxx/uds-sbx-cumulus-cnm-submission-queue'
       LOG_LEVEL: '10'
       UNITY_DEFAULT_PROVIDER: 'unity'
       SNS_TOPIC_ARN: 'arn:aws:sns:us-west-2:xxx:uds-sbx-cumulus-cnm-submission-sns'
@@ -24,7 +22,6 @@ services:
       ADMIN_COMMA_SEP_GROUPS: 'Unity_Admin'
       DAPA_API_PREIFX_KEY: 'data'
       STATIC_PARENT_DIR: '/usr/src/app/unity/cumulus_lambda_functions/uds_api/'
-      CUMULUS_BASE: 'https://na/dev'
       DAPA_API_URL_BASE: 'https://d3vc8w9zcq658.cloudfront.net/data'
       ES_PORT: '443'
       REPORT_TO_EMS: 'FALSE'

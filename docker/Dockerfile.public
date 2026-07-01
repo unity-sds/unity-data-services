@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.10
 MAINTAINER Wai Phyo <wai.phyo@jpl.nasa.gov>
 RUN apt-get update -y && apt-get install vim -y
 

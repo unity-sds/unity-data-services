@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from sys import argv
@@ -7,6 +8,7 @@ from mdps_ds_lib.stage_in_out.download_granules_factory import DownloadGranulesF
 from mdps_ds_lib.stage_in_out.search_granules_factory import SearchGranulesFactory
 from mdps_ds_lib.stage_in_out.stage_in_out_utils import StageInOutUtils
 from mdps_ds_lib.stage_in_out.upoad_granules_factory import UploadGranulesFactory
+
 
 
 def choose_process():
@@ -30,6 +32,13 @@ def choose_process():
         result_str = CatalogGranulesFactory().get_class(os.getenv('GRANULES_CATALOG_TYPE', 'MISSING_GRANULES_CATALOG_TYPE')).catalog()
         StageInOutUtils.write_output_to_file(result_str)
         return result_str
+    if argv[1].strip().upper() == 'CATALYA_COLLECTION_ARCHIVE':
+        logging.info('starting CATALYA_COLLECTION_ARCHIVE script')
+        from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia_2 import DaacArchiverCatalia
+        dac = DaacArchiverCatalia()
+        dac.staged_s3_bucket = os.getenv('CATALYA_UDS_STAGING_BUCKET')
+        dac.daac_agreements = json.loads(os.getenv('CATALYA_DAAC_CONFIGS'))
+        dac.archive_collection(os.getenv('CATALYA_COLLECTION_ID'))
     raise ValueError(f'invalid argument: {argv}')
 
 
