@@ -9,6 +9,8 @@ load_dotenv()
 import uvicorn
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 from mangum import Mangum
 from starlette.requests import Request
@@ -29,6 +31,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    LOGGER.error(f"Validation error for {request.url}: {exc.errors()}")
+    LOGGER.error(f"Request body: {await request.body()}")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors(), "body": str(await request.body())},
+    )
 
 main_router = APIRouter(redirect_slashes=False)
 main_router.include_router(auth_admin_api.router)

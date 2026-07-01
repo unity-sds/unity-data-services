@@ -305,6 +305,7 @@ class CatalyaArchiveTrigger:
                     **hysds_metadata,
                     'stac_item': item_dict
                 }
+                LOGGER.info(f'body_json: {body_json}')
                 response = requests.put(api_url, headers=headers, params=params, json=body_json, timeout=30)
                 response.raise_for_status()
 
