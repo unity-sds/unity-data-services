@@ -309,7 +309,7 @@ class DaacArchiverCatalia:
             if self.__tracing_s3_url is not None:
                 self.__uds_ctla_archiving_traces.add(sending_id, self.__tracing_s3_url, 'TODO', ['TODO'],
                                                      self.__archiving_granules_stac.collection_id, self.__archiving_granules_stac.id, TimeUtils().get_datetime_str())
-            daac_cnm_message = {
+            daac_cnm_message = [{
                 "collection": {
                     'name': internal_sns_pre_req.daac_agreement['targetProject'],
                     'version': internal_sns_pre_req.daac_agreement['data_version'],
@@ -320,11 +320,12 @@ class DaacArchiverCatalia:
                 "provider": internal_sns_pre_req.daac_agreement['provider'],  # NOTE: we can't use tenant as provider anymore coz we aren't sure tennt will be there in CATALIA. if 'daac_provider' in daac_config else granule_identifier.tenant
                 "version": self.__cnm_msg_version,
                 "product": {
-                    "name": self.__archiving_granules_stac.id,  # NOTE: Original value = granule_identifier.granule. Should be the name of granule.
+                    "name": os.path.splitext(internal_sns_pre_req.file_block.get('name'))[0],  # product.name = product.files[0].name minus the extension
+                    # "name": self.__archiving_granules_stac.id,  # NOTE: Original value = granule_identifier.granule. Should be the name of granule.
                     # "dataVersion": daac_config['daac_data_version'],
                     'files': [internal_sns_pre_req.file_block],
                 }
-            }
+            }]
             plugin_processor_params[CnmPluginAbstract.cnm_msg] = daac_cnm_message
             LOGGER.debug(f'daac_cnm_message: {daac_cnm_message}')
             if 'role_arn' in internal_sns_pre_req.daac_agreement and \
