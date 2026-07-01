@@ -186,10 +186,10 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
     response.status_code = 202
     return {'message': 'verbose archive processing', 'operation_ids': sending_ids}
 
-@router.put("/{collection_id}/verbose_archive/{granule_id}/actual/{operation_id}")
-@router.put("/{collection_id}/verbose_archive/{granule_id}/actual/{operation_id}/")
-async def verbose_archive_single_granule_actual(request: Request, collection_id: str, granule_id: str, operation_id: str, item_s3_url: str, request_body: VerboseArchiveActualRequestModel, response: Response):
-    LOGGER.debug(f'started verbose_archive_single_granule_actual with item_s3_url: {item_s3_url} and operation_id: {operation_id}')
+@router.put("/{collection_id}/verbose_archive/{granule_id}/actual")
+@router.put("/{collection_id}/verbose_archive/{granule_id}/actual/")
+async def verbose_archive_single_granule_actual(request: Request, collection_id: str, granule_id: str, item_s3_url: str, request_body: VerboseArchiveActualRequestModel, response: Response):
+    LOGGER.debug(f'started verbose_archive_single_granule_actual with item_s3_url: {item_s3_url}')
     LOGGER.debug(f'username: {request_body.username}, algorithm: {request_body.algorithm_name} v{request_body.algorithm_version}')
 
     i1 = InternalDDBConnector()

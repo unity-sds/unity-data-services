@@ -74,7 +74,8 @@ class DaacArchiverCatalia:
         :param val:
         :return: None
         """
-        self.__archiving_granules_stac = val
+        # self.__archiving_granules_stac = val
+        self.__archiving_granules_stac = SfaClientMw.add_archival_extension(val)
         return
 
     @property
