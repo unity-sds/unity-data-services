@@ -24,7 +24,7 @@ setup(
     author_email=['wai.phyo@jpl.nasa.gov'],
     license='NONE',
     include_package_data=True,
-    python_requires="==3.9",
+    python_requires="==3.10",
     entry_points={
     }
 )
