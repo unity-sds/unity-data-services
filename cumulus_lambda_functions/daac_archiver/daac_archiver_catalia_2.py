@@ -45,10 +45,24 @@ class DaacArchiverCatalia:
     @sending_uuids.setter
     def sending_uuids(self, val):
         """
-        :param val:
+        :param val: dict where values can be InternalSnsPreReq or list/tuple [daac_agreement, file_block]
         :return: None
         """
-        self.__sending_uuids = val
+        # Convert list/tuple values back to InternalSnsPreReq NamedTuple
+        # This is needed because JSON serialization converts NamedTuples to lists
+        if isinstance(val, dict):
+            converted = {}
+            for key, value in val.items():
+                if isinstance(value, (list, tuple)) and len(value) == 2:
+                    # Convert list/tuple back to InternalSnsPreReq
+                    converted[key] = InternalSnsPreReq(daac_agreement=value[0], file_block=value[1])
+                elif isinstance(value, InternalSnsPreReq):
+                    converted[key] = value
+                else:
+                    raise ValueError(f"Unexpected value type for sending_uuids: {type(value)}")
+            self.__sending_uuids = converted
+        else:
+            self.__sending_uuids = val
         return
 
     @property
