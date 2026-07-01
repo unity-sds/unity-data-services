@@ -57,11 +57,6 @@ variable "cnm_sns_topic_arn" {
   type = string
 }
 
-variable "workflow_sqs_url" {
-  type = string
-  description = "SNS ARN of CNM submission topic"
-}
-
 variable "unity_default_provider" {
   type = string
   description = "default provider name"
@@ -92,11 +87,6 @@ variable "unity_ui_base_url" {
 variable "report_to_ems" {
   type = string
   default = "TRUE"
-}
-
-variable "cumulus_base" {
-  type = string
-  description = "Cumulus base URL. Example: https://axhmoecy02.execute-api.us-west-2.amazonaws.com/dev"
 }
 
 variable "register_custom_metadata" {
