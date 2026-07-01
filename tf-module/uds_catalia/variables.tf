@@ -293,3 +293,7 @@ variable "CNM_STORAGE_PREFIX" {
   type = string
   default = "CNM_MESSAGES"
 }
+variable "CNM_STORAGE_CLASS" {
+  default = "S3"
+  type = string
+}

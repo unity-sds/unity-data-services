@@ -191,7 +191,7 @@ async def verbose_archive_single_granule(request: Request, collection_id: str, g
 async def verbose_archive_single_granule_actual(request: Request, collection_id: str, granule_id: str, item_s3_url: str, request_body: VerboseArchiveActualRequestModel, response: Response):
     LOGGER.debug(f'started verbose_archive_single_granule_actual with item_s3_url: {item_s3_url}')
     LOGGER.debug(f'username: {request_body.username}, algorithm: {request_body.algorithm_name} v{request_body.algorithm_version}')
-
+    LOGGER.debug(f'verbose_archive_single_granule_actual: {request_body.sending_uuids}')
     i1 = InternalDDBConnector()
     authorized_daacs = i1.archive_methods_initiator_manual_algorithm(request_body.username, request_body.algorithm_name, request_body.algorithm_version, request, collection_id, None)
     # authorized_ldaps = set([k['userGroup'] for k in authorized_daacs])
