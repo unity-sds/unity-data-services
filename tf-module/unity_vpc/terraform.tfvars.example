@@ -1,0 +1,46 @@
+# AWS Region
+aws_region = "us-west-2"
+
+# Resource naming prefix
+name_prefix = "Unity-VPC"
+
+# VPC CIDR blocks
+vpc_cidr_block       = "10.52.8.0/22"
+secondary_cidr_block = "10.0.0.0/16"
+
+# Availability zones (adjust based on your region)
+availability_zones = [
+  "us-west-2a",
+  "us-west-2b",
+  "us-west-2c",
+  "us-west-2d"
+]
+
+# NAT Gateway subnet
+nat_gateway_subnet_cidr = "10.52.11.0/28"
+
+# Public subnets (one per AZ)
+public_subnet_cidrs = [
+  "10.52.8.0/24",   # AZ1
+  "10.52.9.0/24",   # AZ2
+  "10.0.64.0/19",   # AZ3
+  "10.0.96.0/19"    # AZ4
+]
+
+# Private subnets (one per AZ)
+private_subnet_cidrs = [
+  "10.52.10.0/25",    # AZ1
+  "10.52.10.128/25",  # AZ2
+  "10.0.0.0/19",      # AZ3
+  "10.0.32.0/19"      # AZ4
+]
+
+# Enable VPC interface endpoints (optional, adds cost)
+enable_interface_endpoints = false
+
+# Common tags applied to all resources
+common_tags = {
+  Project     = "Unity"
+  Environment = "Dev"
+  ManagedBy   = "Terraform"
+}
