@@ -324,7 +324,7 @@ class DaacArchiverCatalia:
             if self.__tracing_s3_url is not None:
                 self.__uds_ctla_archiving_traces.add(sending_id, self.__tracing_s3_url, 'TODO', ['TODO'],
                                                      self.__archiving_granules_stac.collection_id, self.__archiving_granules_stac.id, TimeUtils().get_datetime_str())
-            daac_cnm_message = [{
+            daac_cnm_message = {
                 "collection": {
                     'name': internal_sns_pre_req.daac_agreement['targetProject'],
                     'version': internal_sns_pre_req.daac_agreement['data_version'],
@@ -340,7 +340,7 @@ class DaacArchiverCatalia:
                     # "dataVersion": daac_config['daac_data_version'],
                     'files': [internal_sns_pre_req.file_block],
                 }
-            }]
+            }
             plugin_processor_params[CnmPluginAbstract.cnm_msg] = daac_cnm_message
             LOGGER.debug(f'daac_cnm_message: {daac_cnm_message}')
             if 'role_arn' in internal_sns_pre_req.daac_agreement and \
