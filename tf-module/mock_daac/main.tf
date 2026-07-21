@@ -39,7 +39,7 @@ data "aws_iam_policy_document" "mock_daac_lambda_assume_role_policy" {
 # IAM Role for Lambda Function
 resource "aws_iam_role" "mock_daac_lambda_role" {
   name = "${var.prefix}-mock_daac_lambda_role"
-  permissions_boundary = "arn:aws:iam::${local.account_id}:policy/mcp-tenantOperator-AMI-APIG"
+  permissions_boundary = "arn:aws:iam::${local.account_id}:policy/zsmce-tenantOperator-AMI-APIG"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
@@ -90,7 +90,7 @@ resource "aws_iam_policy" "mock_daac_lambda_policy" {
         Action = [
           "sns:Publish"
         ],
-        Resource = "arn:aws:sns:${var.uds_region}:${var.uds_account}:${var.uds_prefix}-daac_archiver_response"
+        Resource = "arn:aws:sns:${var.uds_region}:${var.uds_account}:${var.uds_prefix}-uds_daac_archiver_response"
       }
     ]
   })
@@ -117,7 +117,7 @@ resource "aws_lambda_function" "mock_daac_lambda" {
       NO_RESPONSE_PERC = var.no_response_perc
       FAIL_PERC = var.no_response_perc
       FAIL_PERC = var.fail_perc
-      UDS_ARCHIVE_SNS_TOPIC_ARN = "arn:aws:sns:${var.uds_region}:${var.uds_account}:${var.uds_prefix}-daac_archiver_response"
+      UDS_ARCHIVE_SNS_TOPIC_ARN = "arn:aws:sns:${var.uds_region}:${var.uds_account}:${var.uds_prefix}-uds_daac_archiver_response"
     }
   }
 

@@ -144,11 +144,7 @@ resource "aws_lambda_function" "uds_api_1" {
   memory_size   = 512
   environment {
     variables = {
-      CUMULUS_BASE = var.cumulus_base
-      CUMULUS_LAMBDA_PREFIX = var.prefix
       LOG_LEVEL = var.log_level
-      CUMULUS_WORKFLOW_SQS_URL = var.workflow_sqs_url
-      CUMULUS_WORKFLOW_NAME = "CatalogGranule"
       UNITY_DEFAULT_PROVIDER = var.unity_default_provider
       COLLECTION_CREATION_LAMBDA_NAME = "arn:aws:lambda:${var.aws_region}:${local.account_id}:function:${var.prefix}-uds_api_1"
       SNS_TOPIC_ARN = var.cnm_sns_topic_arn
