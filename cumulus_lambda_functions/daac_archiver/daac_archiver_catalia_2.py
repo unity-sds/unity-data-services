@@ -310,56 +310,73 @@ class DaacArchiverCatalia:
                 self.__sending_uuids[str(uuid4())] = InternalSnsPreReq(each_agreement, each_result_file)
         return list(self.__sending_uuids.keys())
 
-    def __send_daac_sns(self, sending_id: str, internal_sns_pre_req: InternalSnsPreReq):
-        plugin_processor_params = {
-            CnmPluginAbstract.sending_id: sending_id,
-            CnmPluginAbstract.collection_id: self.__archiving_granules_stac.collection_id,
-            CnmPluginAbstract.granule_id: self.__archiving_granules_stac.id,
-            CnmPluginAbstract.target_collection_id: internal_sns_pre_req.daac_agreement['targetProject'],
+    def __gen_cnm_msg(self, sending_id: str, internal_sns_pre_req: InternalSnsPreReq):
+        daac_cnm_message = {
+            "collection": {
+                'name': internal_sns_pre_req.daac_agreement['targetProject'],
+                'version': internal_sns_pre_req.daac_agreement['data_version'],
+            },
+            'identifier': sending_id,
+            # "identifier": self.__archiving_granules_stac.id,  # Seems like it's the same granule IDuds_cnm_json['identifier'],
+            # From DAAC: Unique identifier for the message as a whole. It is the senders responsibility to ensure uniqueness. This identifier can be used in response messages to provide tracability.
+            "submissionTime": f'{TimeUtils.get_current_time()}Z',
+            "provider": internal_sns_pre_req.daac_agreement['provider'],
+            # NOTE: we can't use tenant as provider anymore coz we aren't sure tennt will be there in CATALIA. if 'daac_provider' in daac_config else granule_identifier.tenant
+            "version": self.__cnm_msg_version,
+            "product": {
+                "name": os.path.splitext(internal_sns_pre_req.file_block.get('name'))[0],
+                # product.name = product.files[0].name minus the extension
+                # "name": self.__archiving_granules_stac.id,  # NOTE: Original value = granule_identifier.granule. Should be the name of granule.
+                # "dataVersion": daac_config['daac_data_version'],
+                'files': [internal_sns_pre_req.file_block],
+            }
         }
+        return daac_cnm_message
+
+    def __send_daac_sns_batch(self, sending_ids: list, cnm_msg_strs: list, plugin_processor_params_list: list, internal_sns_pre_req: InternalSnsPreReq):
+        sns_result = None
         try:
             LOGGER.debug(f'send_daac_sns daac_config: {internal_sns_pre_req.daac_agreement}')
             self.__sns.set_topic_arn(internal_sns_pre_req.daac_agreement['sns_topic_arn'])
-            # TODO store details to new DB.
-            if self.__tracing_s3_url is not None:
-                self.__uds_ctla_archiving_traces.add(sending_id, self.__tracing_s3_url, 'TODO', ['TODO'],
-                                                     self.__archiving_granules_stac.collection_id, self.__archiving_granules_stac.id, TimeUtils().get_datetime_str())
-            daac_cnm_message = {
-                "collection": {
-                    'name': internal_sns_pre_req.daac_agreement['targetProject'],
-                    'version': internal_sns_pre_req.daac_agreement['data_version'],
-                },
-                'identifier': sending_id,  # "identifier": self.__archiving_granules_stac.id,  # Seems like it's the same granule IDuds_cnm_json['identifier'],
-                # From DAAC: Unique identifier for the message as a whole. It is the senders responsibility to ensure uniqueness. This identifier can be used in response messages to provide tracability.
-                "submissionTime": f'{TimeUtils.get_current_time()}Z',
-                "provider": internal_sns_pre_req.daac_agreement['provider'],  # NOTE: we can't use tenant as provider anymore coz we aren't sure tennt will be there in CATALIA. if 'daac_provider' in daac_config else granule_identifier.tenant
-                "version": self.__cnm_msg_version,
-                "product": {
-                    "name": os.path.splitext(internal_sns_pre_req.file_block.get('name'))[0],  # product.name = product.files[0].name minus the extension
-                    # "name": self.__archiving_granules_stac.id,  # NOTE: Original value = granule_identifier.granule. Should be the name of granule.
-                    # "dataVersion": daac_config['daac_data_version'],
-                    'files': [internal_sns_pre_req.file_block],
-                }
-            }
-            plugin_processor_params[CnmPluginAbstract.cnm_msg] = daac_cnm_message
-            LOGGER.debug(f'daac_cnm_message: {daac_cnm_message}')
+
             if 'role_arn' in internal_sns_pre_req.daac_agreement and \
-                'role_session_name' in internal_sns_pre_req.daac_agreement and \
-                internal_sns_pre_req.daac_agreement['role_arn'] != '' and \
-                internal_sns_pre_req.daac_agreement['role_session_name'] != '':
-                self.__sns.set_external_role(internal_sns_pre_req.daac_agreement['role_arn'], internal_sns_pre_req.daac_agreement['role_session_name']).publish_message(json.dumps(daac_cnm_message), True)
+                    'role_session_name' in internal_sns_pre_req.daac_agreement and \
+                    internal_sns_pre_req.daac_agreement['role_arn'] != '' and \
+                    internal_sns_pre_req.daac_agreement['role_session_name'] != '':
+                self.__sns.set_external_role(internal_sns_pre_req.daac_agreement['role_arn'],
+                                             internal_sns_pre_req.daac_agreement['role_session_name'])
+                sns_result=self.__sns.publish_messages_batch(cnm_msg_strs, True, None, sending_ids)
             else:
-                self.__sns.publish_message(json.dumps(daac_cnm_message), False)
-            plugin_processor_params[CnmPluginAbstract.status_msg] = {
-                "status": "cnm-submit-success",
-            }
+                sns_result=self.__sns.publish_messages_batch(cnm_msg_strs, False, None, sending_ids)
         except Exception as e:
             LOGGER.exception(f'failed during archival process')
-            plugin_processor_params[CnmPluginAbstract.status_msg] = {
-                "status": "cnm-submit-failed",
-                "errorMessage": str(e),
-            }
-        CnmPluginProcessor(plugin_processor_params).run()
+            for each_plugin in plugin_processor_params_list:
+                each_plugin[CnmPluginAbstract.status_msg] = {
+                    "status": "cnm-submit-failed",
+                    "errorMessage": str(e),
+                }
+                CnmPluginProcessor(each_plugin).run()
+
+        if sns_result is None:
+            for each_plugin in plugin_processor_params_list:
+                each_plugin[CnmPluginAbstract.status_msg] = {
+                    "status": "cnm-submit-failed",
+                    "errorMessage": 'sns_result is None for all messages',
+                }
+                CnmPluginProcessor(each_plugin).run()
+            return
+
+        for k, v in sns_result.items():
+            if v['status'] == 'Successful':
+                plugin_processor_params_list[k][CnmPluginAbstract.status_msg] = {
+                    "status": "cnm-submit-success",
+                }
+            else:
+                plugin_processor_params_list[k][CnmPluginAbstract.status_msg] = {
+                    "status": "cnm-submit-failed",
+                    "errorMessage": v['errorMessage'],
+                }
+            CnmPluginProcessor(v).run()
         return
 
     def archive_granule_json(self):
@@ -383,9 +400,29 @@ class DaacArchiverCatalia:
         else:
             LOGGER.debug(f'Not staging assets to staging buckets. Sending them as hysds bucket S3 URLs')
 
+        msg_ids, msg_strs, plugin_processor_params_list = [], [], {}
         for each_sending_id, each_internal_sns_pre_req in self.__sending_uuids.items():
+
             LOGGER.debug(f'working on {each_sending_id}')
-            self.__send_daac_sns(each_sending_id, each_internal_sns_pre_req)
+            msg_ids.append(each_sending_id)
+            daac_cnm_message = self.__gen_cnm_msg(each_sending_id, each_internal_sns_pre_req)
+            LOGGER.debug(f'daac_cnm_message: {daac_cnm_message}')
+            msg_strs.append(json.dumps(daac_cnm_message))
+            plugin_processor_params_list[each_sending_id] = {
+                CnmPluginAbstract.sending_id: each_sending_id,
+                CnmPluginAbstract.collection_id: self.__archiving_granules_stac.collection_id,
+                CnmPluginAbstract.granule_id: self.__archiving_granules_stac.id,
+                CnmPluginAbstract.target_collection_id: each_internal_sns_pre_req.daac_agreement['targetProject'],
+                CnmPluginAbstract.cnm_msg: daac_cnm_message
+            }
+
+        if self.__tracing_s3_url is not None:
+            LOGGER.debug(f'Adding Trace S3 URLs')
+            for each_sending_id, each_internal_sns_pre_req in self.__sending_uuids.items():
+                self.__uds_ctla_archiving_traces.add(each_sending_id, self.__tracing_s3_url, 'TODO', ['TODO'],
+                                                 self.__archiving_granules_stac.collection_id,
+                                                 self.__archiving_granules_stac.id, TimeUtils().get_datetime_str())
+
         return
 
     def retrieve_archiving_granule(self, collection_id, granule_id):
