@@ -333,7 +333,7 @@ class DaacArchiverCatalia:
         }
         return daac_cnm_message
 
-    def __send_daac_sns_batch(self, sending_ids: list, cnm_msg_strs: list, plugin_processor_params_list: list, internal_sns_pre_req: InternalSnsPreReq):
+    def __send_daac_sns_batch(self, sending_ids: list, cnm_msg_strs: list, plugin_processor_params_list: dict, internal_sns_pre_req: InternalSnsPreReq):
         sns_result = None
         try:
             LOGGER.debug(f'send_daac_sns daac_config: {internal_sns_pre_req.daac_agreement}')
@@ -350,7 +350,7 @@ class DaacArchiverCatalia:
                 sns_result=self.__sns.publish_messages_batch(cnm_msg_strs, False, None, sending_ids)
         except Exception as e:
             LOGGER.exception(f'failed during archival process')
-            for each_plugin in plugin_processor_params_list:
+            for each_plugin in plugin_processor_params_list.values():
                 each_plugin[CnmPluginAbstract.status_msg] = {
                     "status": "cnm-submit-failed",
                     "errorMessage": str(e),
@@ -358,7 +358,7 @@ class DaacArchiverCatalia:
                 CnmPluginProcessor(each_plugin).run()
 
         if sns_result is None:
-            for each_plugin in plugin_processor_params_list:
+            for each_plugin in plugin_processor_params_list.values():
                 each_plugin[CnmPluginAbstract.status_msg] = {
                     "status": "cnm-submit-failed",
                     "errorMessage": 'sns_result is None for all messages',
@@ -376,7 +376,7 @@ class DaacArchiverCatalia:
                     "status": "cnm-submit-failed",
                     "errorMessage": v['errorMessage'],
                 }
-            CnmPluginProcessor(v).run()
+            CnmPluginProcessor(plugin_processor_params_list[k]).run()
         return
 
     def archive_granule_json(self):
@@ -400,15 +400,21 @@ class DaacArchiverCatalia:
         else:
             LOGGER.debug(f'Not staging assets to staging buckets. Sending them as hysds bucket S3 URLs')
 
-        msg_ids, msg_strs, plugin_processor_params_list = [], [], {}
+        if len(self.__sending_uuids) < 1:
+            LOGGER.warning(f'There are no messages to send')
+            return
+        # Group messages by daac_agreement so each batch goes to the correct SNS topic
+        batches = {}  # sns_topic_arn -> {ids, strs, params, internal_sns_pre_req}
         for each_sending_id, each_internal_sns_pre_req in self.__sending_uuids.items():
-
             LOGGER.debug(f'working on {each_sending_id}')
-            msg_ids.append(each_sending_id)
+            topic_arn = each_internal_sns_pre_req.daac_agreement['sns_topic_arn']
+            if topic_arn not in batches:
+                batches[topic_arn] = {'ids': [], 'strs': [], 'params': {}, 'pre_req': each_internal_sns_pre_req}
             daac_cnm_message = self.__gen_cnm_msg(each_sending_id, each_internal_sns_pre_req)
             LOGGER.debug(f'daac_cnm_message: {daac_cnm_message}')
-            msg_strs.append(json.dumps(daac_cnm_message))
-            plugin_processor_params_list[each_sending_id] = {
+            batches[topic_arn]['ids'].append(each_sending_id)
+            batches[topic_arn]['strs'].append(json.dumps(daac_cnm_message))
+            batches[topic_arn]['params'][each_sending_id] = {
                 CnmPluginAbstract.sending_id: each_sending_id,
                 CnmPluginAbstract.collection_id: self.__archiving_granules_stac.collection_id,
                 CnmPluginAbstract.granule_id: self.__archiving_granules_stac.id,
@@ -423,6 +429,8 @@ class DaacArchiverCatalia:
                                                  self.__archiving_granules_stac.collection_id,
                                                  self.__archiving_granules_stac.id, TimeUtils().get_datetime_str())
 
+        for batch in batches.values():
+            self.__send_daac_sns_batch(batch['ids'], batch['strs'], batch['params'], batch['pre_req'])
         return
 
     def retrieve_archiving_granule(self, collection_id, granule_id):
