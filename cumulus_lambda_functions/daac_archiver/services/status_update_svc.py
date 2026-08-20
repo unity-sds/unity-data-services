@@ -1,12 +1,13 @@
 import json
 import os
 
+from mdps_ds_lib.lib.aws.aws_param_store import AwsParamStore
 from mdps_ds_lib.lib.aws.aws_s3 import AwsS3
 from mdps_ds_lib.lib.utils.time_utils import TimeUtils
 from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_archiving_traces import CataliaArchivingTraces
 from cumulus_lambda_functions.daac_archiver.services.sfa_client_mw import SfaClientMw
+from cumulus_lambda_functions.daac_archiver.sql_mws.catalia_status_db import CataliaStatusDb
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
-from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_status_db import CataliaStatusDb
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
 
@@ -54,7 +55,9 @@ class StatusUpdateSvc:
 
     def __init__(self):
         self.__uds_ctla_archiving_traces = CataliaArchivingTraces(os.getenv('CATALYA_TRACING_DB', None))
-        self.__status_ddb = CataliaStatusDb(os.getenv('CATALYA_STATUS_DB', None))
+        uds_api_creds = json.loads(AwsParamStore().get_param(os.getenv('CATALYA_RDS_CREDS', 'NA')))
+        self.__status_db = CataliaStatusDb(os.getenv('CATALYA_STATUS_DB'), uds_api_creds)
+
         self.__archiving_granules_stac = None
         self.__identifier, self.__collection, self.__target_collection, self.__granule = None, None, None, None
 
@@ -85,7 +88,7 @@ class StatusUpdateSvc:
 
     def update_status_wrapper(self, cnm_notification_msg: dict):
         if any([k is None for k in [self.__identifier, self.__collection, self.__target_collection, self.__granule]]):
-            existing_statuses = self.__status_ddb.get(cnm_notification_msg['identifier'])
+            existing_statuses = self.__status_db.get(cnm_notification_msg['identifier'])
             if len(existing_statuses) < 1:
                 raise ValueError(f'unknown collection & granule: {cnm_notification_msg}')
             self.__identifier, self.__collection, self.__target_collection, self.__granule = cnm_notification_msg['identifier'], existing_statuses[0][CataliaStatusDb.collection], existing_statuses[0][CataliaStatusDb.target_collection], existing_statuses[0][CataliaStatusDb.name_str]
@@ -107,7 +110,7 @@ class StatusUpdateSvc:
         if any([k is None for k in [self.__identifier, self.__collection, self.__granule]]):
             raise ValueError(f'missing identifier, collection, or granule ID')
         try:
-            self.__status_ddb.add(self.__identifier, self.__collection, self.__granule, archival_status['status'],
+            self.__status_db.add(self.__identifier, self.__collection, self.__granule, archival_status['status'],
                                   archival_status['datetime'],
                                   archival_status['errorCode'] if 'errorCode' in archival_status else None,
                                   archival_status['errorMessage'] if 'errorMessage' in archival_status else None,

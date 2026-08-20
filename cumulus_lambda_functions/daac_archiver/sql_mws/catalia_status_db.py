@@ -56,7 +56,6 @@ this module manages that quoting automatically.
 --------------------------------------------------------------------------------------
 """
 import logging
-import os
 from datetime import datetime, timezone
 from typing import Optional, Union
 
@@ -73,7 +72,7 @@ from sqlalchemy import (
     insert,
     select,
 )
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Engine, URL
 from sqlalchemy.exc import IntegrityError
 
 logger = logging.getLogger(__name__)
@@ -90,15 +89,22 @@ class CataliaStatusDb:
     href_str = 'href'
     datetime_str = 'datetime'
 
-    def __init__(self, table_name: str, db_url: Optional[str] = None):
+    db_host_key = 'URL'
+    db_port_key = 'PORT'
+    db_user_key = 'USERNAME'
+    db_password_key = 'PASSWORD'
+    db_name_key = 'DBNAME'
+
+    def __init__(self, table_name: str, db_config: dict):
         """
         :param table_name: name of the SQL table to read/write, analogous to the DDB table name.
-        :param db_url: SQLAlchemy connection URL. Falls back to the CATALYA_SQL_DB_URL
-            env var, then to a local sqlite file if neither is provided (useful for
-            local development/tests without a real database provisioned).
+        :param db_config: dict used to build a PostgreSQL connection URL, matching the JSON
+            shape stored in the `/${prefix}/daac-delivery-analysis/rds_credentials` SSM
+            parameter (see tf-module/daac_delivery_analysis/rds.tf). Must contain all of the
+            following keys: `URL`, `PORT`, `USERNAME`, `PASSWORD`, `DBNAME`.
         """
         self.__engine: Engine = create_engine(
-            db_url or os.getenv('CATALYA_SQL_DB_URL', 'sqlite:///catalia_status.db'),
+            self.__build_db_url(db_config),
             pool_pre_ping=True,
         )
         self.__metadata = MetaData()
@@ -107,6 +113,19 @@ class CataliaStatusDb:
             self.name_str, self.status, self.error_code, self.error_message, self.href_str,
         ]
         self.__table = self.__build_table(table_name)
+
+    def __build_db_url(self, db_config: dict) -> URL:
+        missing_keys = [k for k in (self.db_host_key, self.db_port_key, self.db_user_key, self.db_password_key, self.db_name_key) if k not in db_config]
+        if missing_keys:
+            raise ValueError(f'db_config is missing required key(s): {missing_keys}')
+        return URL.create(
+            drivername='postgresql',
+            username=db_config[self.db_user_key],
+            password=db_config[self.db_password_key],
+            host=db_config[self.db_host_key],
+            port=int(db_config[self.db_port_key]),
+            database=db_config[self.db_name_key],
+        )
 
     def __build_table(self, table_name: str) -> Table:
         return Table(
