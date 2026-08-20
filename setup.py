@@ -7,7 +7,8 @@ install_requires = [
     'mangum',
     'uvicorn',
     'pygeofilter',
-    'python-dotenv'
+    'python-dotenv',
+    'sqlalchemy'
 ]
 
 setup(
