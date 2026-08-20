@@ -8,7 +8,8 @@ install_requires = [
     'uvicorn',
     'pygeofilter',
     'python-dotenv',
-    'sqlalchemy'
+    'sqlalchemy',
+    'psycopg2-binary'
 ]
 
 setup(
