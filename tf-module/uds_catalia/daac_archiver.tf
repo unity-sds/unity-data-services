@@ -116,8 +116,10 @@ resource "aws_sns_topic_policy" "daac_archiver_response_policy" {
     region: var.aws_region,
     accountId: local.account_id,
     snsName: "${var.prefix}-daac_archiver_response",
+    daacAccountIds: jsonencode(formatlist("arn:aws:iam::%s:root", var.daac_account_ids))
   })
 }
+
 
 module "daac_archiver_response" {
   source = "../sqs--sns-lambda-connector"

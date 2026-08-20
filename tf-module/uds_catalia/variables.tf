@@ -297,3 +297,6 @@ variable "CNM_STORAGE_CLASS" {
   default = "S3"
   type = string
 }
+variable "daac_account_ids" {
+  type = list(string)
+}

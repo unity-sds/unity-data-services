@@ -24,12 +24,17 @@
       "Sid": "2",
       "Effect": "Allow",
       "Principal": {
-        "AWS": "*"
+        "AWS": ${daacAccountIds}
       },
       "Action": [
         "SNS:Publish"
       ],
-      "Resource": "arn:aws:sns:${region}:${accountId}:${snsName}"
+      "Resource": "arn:aws:sns:${region}:${accountId}:${snsName}",
+      "Condition": {
+        "StringEquals": {
+          "AWS:SourceOwner": "${accountId}"
+        }
+      }
     }
   ]
 }
