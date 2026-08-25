@@ -69,6 +69,7 @@ from sqlalchemy import (
     UniqueConstraint,
     and_,
     create_engine,
+    func,
     inspect,
     insert,
     select,
@@ -219,6 +220,35 @@ class CataliaStatusDb:
         with self.__engine.connect() as conn:
             rows = conn.execute(stmt).mappings().all()
         return [dict(row) for row in rows]
+
+    def count_by_status(self, collection: str, target_collection: str,
+                         start_datetime: Union[int, float, str] = None, end_datetime: Union[int, float, str] = None) -> dict:
+        """
+        Returns {status: count} for the given collection/target_collection (both
+        mandatory), optionally bounded by [start_datetime, end_datetime] -- either,
+        both, or neither may be given, covering "all time" / "since" / "until" /
+        "between" reporting windows. Statuses with zero matching rows are simply
+        absent from the result (callers wanting a fixed set of statuses -- e.g. from
+        StatusUpdateSvc.archival_status_schema -- should fill in 0 for any missing).
+        """
+        conditions = [
+            self.__table.c[self.collection] == collection,
+            self.__table.c[self.target_collection] == target_collection,
+        ]
+        if start_datetime is not None:
+            conditions.append(self.__table.c[self.datetime_str] >= self._to_epoch_millis(start_datetime))
+        if end_datetime is not None:
+            conditions.append(self.__table.c[self.datetime_str] <= self._to_epoch_millis(end_datetime))
+
+        status_col = self.__table.c[self.status]
+        stmt = (
+            select(status_col, func.count().label('status_count'))
+            .where(and_(*conditions))
+            .group_by(status_col)
+        )
+        with self.__engine.connect() as conn:
+            rows = conn.execute(stmt).all()
+        return {row[0]: row[1] for row in rows}
 
     def add(self, identifier: str, collection: str, name_str: str, status: str, datetime_str: Union[int, float, str], error_code: str=None, error_message: str=None, href_str: str=None, target_collection: str=None):
         item1 = {
