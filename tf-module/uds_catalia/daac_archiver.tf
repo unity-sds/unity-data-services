@@ -113,16 +113,15 @@ resource "aws_sns_topic" "uds_daac_archiver_response" {
   // TODO add access policy to be pushed from DAAC / other AWS account
 }
 
-resource "aws_sns_topic_policy" "daac_archiver_response_policy" {
+resource "aws_sns_topic_policy" "uds_daac_archiver_response_policy" {
   arn = aws_sns_topic.uds_daac_archiver_response.arn
   policy = templatefile("${path.module}/daac_archiver_sns_policy.json", {
+    sns_arn: aws_sns_topic.uds_daac_archiver_response.arn,
+    daac_lambda_2_sns_role: var.DAAC_LAMBDA_2_SNS_ROLE,
     region: var.aws_region,
     accountId: local.account_id,
-    snsName: "${var.prefix}-daac_archiver_response",
-    daacAccountIds: jsonencode(formatlist("arn:aws:iam::%s:root", var.daac_account_ids))
   })
 }
-
 
 module "daac_archiver_response" {
   source = "../sqs--sns-lambda-connector"

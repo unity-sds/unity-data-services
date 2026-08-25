@@ -304,3 +304,7 @@ variable "CATALYA_RDS_CREDS_PARAM_PATH" {
   type = string
   description = "PARAMETER Store Path where it has a JSON dictionary of RDS / MARIA DB / Aurora V2 connection details: {\"DBNAME\":\"xxx\",\"PASSWORD\":\"xxx\",\"PORT\":xxx,\"URL\":\"xxx\",\"USERNAME\":\"xxx\"} "
 }
+variable "DAAC_LAMBDA_2_SNS_ROLE" {
+  type = string
+  description = "arn:aws:iam::<id>:role/<name>"
+}
