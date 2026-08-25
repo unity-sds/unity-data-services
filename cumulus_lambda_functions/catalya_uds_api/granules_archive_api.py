@@ -329,3 +329,22 @@ async def get_archive_status(request: Request, operation_id: str):
     if len(existing_statuses) < 1:
         raise HTTPException(status_code=404, detail=f'STATUS DB does not have any entry for {operation_id}')
     return {'status_list': existing_statuses}
+
+
+"""
+Add a new endpoint for report. 
+Ask for thse 2
+
+        collection        VARCHAR(255),
+        target_collection VARCHAR(255),
+        
+They are mandatory. 
+Ask for start and end time which are optional. 
+So, it could be 
+1. for all time, 
+2. after start time
+3. before end time
+4. from start to end. 
+
+Use table to write a query 
+"""

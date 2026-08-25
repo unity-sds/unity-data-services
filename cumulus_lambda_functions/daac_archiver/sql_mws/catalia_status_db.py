@@ -69,6 +69,7 @@ from sqlalchemy import (
     UniqueConstraint,
     and_,
     create_engine,
+    inspect,
     insert,
     select,
 )
@@ -159,6 +160,14 @@ class CataliaStatusDb:
         if parsed.tzinfo is None:
             parsed = parsed.replace(tzinfo=timezone.utc)
         return int(parsed.timestamp() * 1000)
+
+    def table_exists(self) -> bool:
+        """
+        Returns True if the underlying table already exists in the database, False
+        otherwise. Useful for callers that want to know/report whether
+        create_table_if_missing() is actually about to create something.
+        """
+        return inspect(self.__engine).has_table(self.__table.name, schema=self.__table.schema)
 
     def create_table_if_missing(self):
         """
