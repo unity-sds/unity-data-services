@@ -50,6 +50,8 @@ resource "aws_lambda_function" "uds_daac_archiver_response" {
       CNM_PLUG_IN_NAMES = var.CNM_PLUG_IN_NAMES
       CNM_STORAGE_BUCKET = var.CNM_STORAGE_BUCKET
       CNM_STORAGE_PREFIX = var.CNM_STORAGE_PREFIX
+      CNM_STORAGE_CLASS = var.CNM_STORAGE_CLASS
+
     }
   }
 
