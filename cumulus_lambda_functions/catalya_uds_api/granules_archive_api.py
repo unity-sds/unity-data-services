@@ -5,7 +5,8 @@ from mdps_ds_lib.lib.aws.aws_param_store import AwsParamStore
 
 
 from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia_2 import DaacArchiverCatalia
-from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_status_db import CataliaStatusDb
+from cumulus_lambda_functions.daac_archiver.services.status_update_svc import StatusUpdateSvc
+from cumulus_lambda_functions.daac_archiver.sql_mws.catalia_status_db import CataliaStatusDb
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.lib.uds_fast_api.internal_ddb_connector import InternalDDBConnector
 from cumulus_lambda_functions.lib.uds_fast_api.web_service_constants import WebServiceConstants
@@ -319,12 +320,63 @@ async def archive_entire_collection_actual(request: Request, collection_id: str)
     return {'message': 'archive initiated'}
 
 
+@router.get("/report")
+@router.get("/report/")
+async def get_archive_report(request: Request, collection: str, target_collection: str,
+                              start_datetime: Optional[str] = None, end_datetime: Optional[str] = None):
+    """
+    Summary status counts (submit/response success & failure, plus the full
+    per-status breakdown) for a given collection + target_collection pair.
+
+    collection & target_collection are mandatory. start_datetime/end_datetime are
+    optional (either, both, or neither may be given), covering all-time / since /
+    until / between reporting windows. Values may be epoch-millis ints or RFC3339
+    strings (same formats CataliaStatusDb.search() already accepts).
+
+    Status names come from StatusUpdateSvc.archival_status_schema's enum instead of
+    being hardcoded here, so this stays in sync if that list changes.
+    """
+    LOGGER.debug(f'started get_archive_report for collection={collection}, target_collection={target_collection}, '
+                 f'start_datetime={start_datetime}, end_datetime={end_datetime}')
+    uds_api_creds = json.loads(AwsParamStore().get_param(os.getenv('CATALYA_RDS_CREDS', 'NA')))
+    status_db = CataliaStatusDb(os.getenv('CATALYA_STATUS_DB'), uds_api_creds)
+
+    status_counts = status_db.count_by_status(collection, target_collection, start_datetime, end_datetime)
+
+    known_statuses = StatusUpdateSvc.archival_status_schema['properties']['status']['enum']
+    full_counts = {status: status_counts.get(status, 0) for status in known_statuses}
+
+    def find_status(stage_keyword: str, result_keyword: str) -> Optional[str]:
+        matches = [s for s in known_statuses if stage_keyword in s and result_keyword in s]
+        return matches[0] if matches else None
+
+    submit_success_status = find_status('submit', 'success')
+    submit_failed_status = find_status('submit', 'failed')
+    response_success_status = find_status('receive', 'success')
+    response_failed_status = find_status('receive', 'failed')
+
+    return {
+        'collection': collection,
+        'target_collection': target_collection,
+        'start_datetime': start_datetime,
+        'end_datetime': end_datetime,
+        'status_counts': full_counts,
+        'summary': {
+            'submit_success': full_counts.get(submit_success_status, 0),
+            'submit_failed': full_counts.get(submit_failed_status, 0),
+            'response_success': full_counts.get(response_success_status, 0),
+            'response_failed': full_counts.get(response_failed_status, 0),
+        },
+    }
+
+
 @router.get("/{operation_id}")
 @router.get("/{operation_id}/")
 async def get_archive_status(request: Request, operation_id: str):
     LOGGER.debug(f'started get_archive_status with operation_id: {operation_id}')
-    status_ddb = CataliaStatusDb(os.getenv('CATALYA_STATUS_DB', None))
-    existing_statuses = status_ddb.get(operation_id)
+    uds_api_creds = json.loads(AwsParamStore().get_param(os.getenv('CATALYA_RDS_CREDS', 'NA')))
+    status_db = CataliaStatusDb(os.getenv('CATALYA_STATUS_DB'), uds_api_creds)
+    existing_statuses = status_db.get(operation_id)
     if len(existing_statuses) < 1:
         raise HTTPException(status_code=404, detail=f'STATUS DB does not have any entry for {operation_id}')
     return {'status_list': existing_statuses}

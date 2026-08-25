@@ -1,0 +1,7 @@
+terraform {
+  backend "s3" {
+    region         = "us-west-2"
+    bucket         = "catalya-app-catalog"
+    key            = "catalya-uds-dev/archive_system/daac_delivery_analysis/terraform.tfstate"
+  }
+}

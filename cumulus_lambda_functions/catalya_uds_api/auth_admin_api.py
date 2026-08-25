@@ -1,10 +1,13 @@
+import json
 from typing import Union
 
 from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_auth_db import CataliaAuthDb
+from cumulus_lambda_functions.daac_archiver.sql_mws.catalia_status_db import CataliaStatusDb
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.lib.uds_fast_api.fast_api_utils import FastApiUtils
 from cumulus_lambda_functions.lib.uds_fast_api.web_service_constants import WebServiceConstants
 from fastapi import APIRouter, HTTPException, Request
+from mdps_ds_lib.lib.aws.aws_param_store import AwsParamStore
 
 LOGGER = LambdaLoggerGenerator.get_logger(__name__, LambdaLoggerGenerator.get_level_from_env())
 
@@ -248,3 +251,35 @@ async def list_auth_mappings(request: Request, tenant: Union[str, None]=None, ve
     if query_result['statusCode'] == 200:
         return query_result['body']
     raise HTTPException(status_code=query_result['statusCode'], detail=query_result['body'])
+
+@router.post("/status-table")
+@router.post("/status-table/")
+async def build_status_table(request: Request):
+    """
+    Ensures the status db table (CATALYA_STATUS_DB) exists in the RDS Postgres
+    database, creating it -- along with its indexes/unique constraint -- via
+    CataliaStatusDb.create_table_if_missing() if it doesn't. Meant to be called once
+    on startup/deployment so the archiving Lambdas never hit a missing-table error
+    at runtime.
+    """
+    LOGGER.debug('started build_status_table')
+    auth_info = FastApiUtils.get_authorization_info(request)
+    auth_crud = AuthCrud(auth_info, {})
+    is_admin_result = auth_crud.is_admin()
+    if is_admin_result['statusCode'] != 200:
+        raise HTTPException(status_code=is_admin_result['statusCode'], detail=is_admin_result['body'])
+
+    required_env = ['CATALYA_RDS_CREDS', 'CATALYA_STATUS_DB']
+    if not all([k in os.environ for k in required_env]):
+        LOGGER.error(f'one or more missing env: {required_env}')
+        raise HTTPException(status_code=500, detail=f'one or more missing env: {required_env}')
+
+    table_name = os.getenv('CATALYA_STATUS_DB')
+    db_config = json.loads(AwsParamStore().get_param(os.getenv('CATALYA_RDS_CREDS')))
+    status_db = CataliaStatusDb(table_name, db_config)
+
+    already_existed = status_db.table_exists()
+    if not already_existed:
+        status_db.create_table_if_missing()
+        LOGGER.info(f'created status db table: {table_name}')
+    return {'table': table_name, 'already_existed': already_existed, 'created': not already_existed}
