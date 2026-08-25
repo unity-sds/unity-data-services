@@ -5,7 +5,7 @@ from mdps_ds_lib.lib.aws.aws_param_store import AwsParamStore
 
 
 from cumulus_lambda_functions.daac_archiver.daac_archiver_catalia_2 import DaacArchiverCatalia
-from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_status_db import CataliaStatusDb
+from cumulus_lambda_functions.daac_archiver.sql_mws.catalia_status_db import CataliaStatusDb
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.lib.uds_fast_api.internal_ddb_connector import InternalDDBConnector
 from cumulus_lambda_functions.lib.uds_fast_api.web_service_constants import WebServiceConstants
@@ -323,8 +323,9 @@ async def archive_entire_collection_actual(request: Request, collection_id: str)
 @router.get("/{operation_id}/")
 async def get_archive_status(request: Request, operation_id: str):
     LOGGER.debug(f'started get_archive_status with operation_id: {operation_id}')
-    status_ddb = CataliaStatusDb(os.getenv('CATALYA_STATUS_DB', None))
-    existing_statuses = status_ddb.get(operation_id)
+    uds_api_creds = json.loads(AwsParamStore().get_param(os.getenv('CATALYA_RDS_CREDS', 'NA')))
+    status_db = CataliaStatusDb(os.getenv('CATALYA_STATUS_DB'), uds_api_creds)
+    existing_statuses = status_db.get(operation_id)
     if len(existing_statuses) < 1:
         raise HTTPException(status_code=404, detail=f'STATUS DB does not have any entry for {operation_id}')
     return {'status_list': existing_statuses}
