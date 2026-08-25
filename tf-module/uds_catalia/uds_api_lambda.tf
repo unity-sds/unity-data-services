@@ -30,6 +30,7 @@ resource "aws_lambda_function" "uds_api_1" {
       CNM_STORAGE_CLASS = var.CNM_STORAGE_CLASS
       CNM_STORAGE_BUCKET = var.CNM_STORAGE_BUCKET
       CNM_STORAGE_PREFIX = var.CNM_STORAGE_PREFIX
+      CATALYA_RDS_CREDS = var.CATALYA_RDS_CREDS_PARAM_PATH
     }
   }
 
