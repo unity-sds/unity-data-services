@@ -18,23 +18,17 @@
         "SNS:ListSubscriptionsByTopic",
         "SNS:Publish"
       ],
-      "Resource": "arn:aws:sns:${region}:${accountId}:${snsName}"
+      "Resource": "${sns_arn}"
     },
+
     {
-      "Sid": "2",
+      "Sid": "AllowCumulusUat3LambdaProcessingPublish",
       "Effect": "Allow",
       "Principal": {
-        "AWS": ${daacAccountIds}
+        "AWS": "${daac_lambda_2_sns_role}"
       },
-      "Action": [
-        "SNS:Publish"
-      ],
-      "Resource": "arn:aws:sns:${region}:${accountId}:${snsName}",
-      "Condition": {
-        "StringEquals": {
-          "AWS:SourceOwner": "${accountId}"
-        }
-      }
+      "Action": "SNS:Publish",
+      "Resource": "${sns_arn}"
     }
   ]
 }
