@@ -29,7 +29,7 @@ sso_role_name = Project-Power-User
 
 ### Setting up IAM
 1. Using VPC above, `/tf-module/uds_catalia_iam` sets up most of IAM roles needed for lambdas, and others. 
-
+2. *NOTE*: In Variables, there is a `prefix`. The `prefix` value must match between this module and the following modules such has `/tf-module/uds_catalia`
 ### Setting up Bucket (Optional)
 1. This is a legacy bucket where initial workflow requires data to be staged in UDS bucket. 
 2. If needed, `/tf-module/uds_catalia_bucket` can be used to setup a bucket. 
@@ -41,11 +41,11 @@ sso_role_name = Project-Power-User
 
 ### Manually creating Postgres Connection String in Parameter Store
 1. If Aurora V2 is not created, there needs to be a parameter store with the following JSON `{\"DBNAME\":\"xxx\",\"PASSWORD\":\"xxx\",\"PORT\":xxx,\"URL\":\"xxx\",\"USERNAME\":\"xxx\"}`
-2. If this is not created`CATALYA_RDS_CREDS_PARAM_PATH`
-
+``
 ### Setting up Catalia DAAC Delivery
 1. Deploy main resources `/tf-module/uds_catalia` which includes Lambda, API Gateway, SNS/SQS pipeline. 
 2. Lambda zip file needs to be downloaded from https://github.com/unity-sds/unity-data-services/releases where each release has a `cumulus_lambda_functions-<version>-*.zip` file. It is re-used for all lambda functions.
+3. The zip file must be renamed and placed at the `/tf-module/uds_catalia/build/cumulus_lambda_functions_deployment.zip`
 3. `CATALYA_RDS_CREDS_PARAM_PATH` is retrieved from `Deploying Aurora V2 (Optional)` or `Manually creating Postgres Connection String in Parameter Store`
 4. `DAAC_LAMBDA_2_SNS_ROLE` needs to be DAAC role. If unknown, put dummy value at this moment, and update it when needed. 
 
