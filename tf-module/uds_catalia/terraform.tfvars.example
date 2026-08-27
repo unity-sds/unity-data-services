@@ -1,0 +1,22 @@
+account_id="xxx"
+cumulus_lambda_vpc_id="vpc-xxx"
+security_group_ids=null
+cumulus_lambda_subnet_ids=["subnet-xxx", "subnet-xxx"]
+permissions_boundary_arn                 = "arn:aws:iam::xxx:policy/zsmce-tenantOperator-AMI-APIG"
+prefix="catalya-uds-dev"
+uds_base_url="TODO"
+comma_separated_admin_groups="JPL Dev Team"
+buckets = {
+  internal = {
+    name = "catalya-uds-dev-internal"
+    type = "internal"
+  }
+}
+uds_docker_version = "9.15.1"
+UDS_API_BASE_URL="https://xxx.execute-api.us-west-2.amazonaws.com/dev/am-uds-dapa/"
+DPS_MACHINE_TOKEN="xxx"
+CNM_STORAGE_BUCKET="catalya-ds-dev-unity-william-test-1"
+ARCHIVER_TRIGER_SNS_ARN="arn:aws:sns:us-west-2:xxx:maap-uat-workspace-catalog-json"
+log_level="10"
+CATALYA_RDS_CREDS_PARAM_PATH="/catalya-uds-dev/daac-delivery-analysis/rds_credentials"
+DAAC_LAMBDA_2_SNS_ROLE="arn:aws:iam::xxx:role/cnsld-cumulus-uat3-lambda-processing"

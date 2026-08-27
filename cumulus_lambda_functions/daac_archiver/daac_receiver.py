@@ -2,11 +2,12 @@ import json
 import os
 import requests
 from mdps_ds_lib.lib.aws.aws_message_transformers import AwsMessageTransformers
+from mdps_ds_lib.lib.aws.aws_param_store import AwsParamStore
 from mdps_ds_lib.lib.utils.json_validator import JsonValidator
 
 from cumulus_lambda_functions.daac_archiver.cnm_plugins.cnm_plugin_processor import CnmPluginProcessor
 from cumulus_lambda_functions.daac_archiver.cnm_plugins.cnm_plugin_abstract import CnmPluginAbstract
-from cumulus_lambda_functions.daac_archiver.ddb_mws.catalia_status_db import CataliaStatusDb
+from cumulus_lambda_functions.daac_archiver.sql_mws.catalia_status_db import CataliaStatusDb
 from cumulus_lambda_functions.lib.lambda_logger_generator import LambdaLoggerGenerator
 from cumulus_lambda_functions.lib.uds_db.uds_collections import UdsCollections
 
@@ -36,8 +37,9 @@ class DaacReceiver:
             raise ValueError(f"missing ARCHIVAL_STATUS_MECHANISM environment variable or value is not {['UDS', 'FAST_STAC']}")
         if update_type == 'UDS':
             return self.update_stac_uds(cnm_notification_msg)
-        status_ddb = CataliaStatusDb(os.getenv('CATALYA_STATUS_DB', None))
-        existing_statuses = status_ddb.get(cnm_notification_msg['identifier'])
+        uds_api_creds = json.loads(AwsParamStore().get_param(os.getenv('CATALYA_RDS_CREDS', 'NA')))
+        status_db = CataliaStatusDb(os.getenv('CATALYA_STATUS_DB'), uds_api_creds)
+        existing_statuses = status_db.get(cnm_notification_msg['identifier'])
         if len(existing_statuses) < 1:
             raise ValueError(f'unknown collection & granule: {cnm_notification_msg}')
         plugin_processor_params = {
