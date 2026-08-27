@@ -24,16 +24,16 @@
 5. Ask for the value of  `api_key` from the DAAC if applicable. 
 6. Ask for the `archiving_types` from the source users. 
     - If it's empty, everything will be archived.
-    - If `data_type` is present, matching names from STAC's assets' type will be archived. 
-    - If `file_extension` is present, files with same extensions and same `data_type` will be archived. 
-7Run DAAC Handshake config. Example:
+    - If `data_type` is present, matching names from STAC's assets' role will be archived. 
+    - If `file_extension` list is present, files with same extensions and same `data_type` will be archived. 
+7. Run DAAC Handshake config. Example:
 ```
             result = s.post(f'{BASE_URL}/collections/{source_collection}/{target_collection}/archive', json={
                     "api_key": "FAKE",
                     "daac_provider": "gesdisc_tropess_testing",
                     "daac_data_version": "2",
-                    'daac_sns_topic_arn': 'arn:aws:sns:us-west-2:658471154032:gesdisc-cumulus-uat-CNM-ingest',
-                    'daac_role_arn': 'arn:aws:iam::658471154032:role/TROPESS_ingest_deletion',
+                    'daac_sns_topic_arn': 'arn:aws:sns:us-west-2:xxx:gesdisc-cumulus-uat-CNM-ingest',
+                    'daac_role_arn': 'arn:aws:iam::xxx:role/TROPESS_ingest_deletion',
                     'daac_role_session_name': 'tropess_request',
                     "archiving_types": [{
                     "data_type": "data"
@@ -47,7 +47,7 @@
             "Sid": "GesdiscS3Access",
             "Effect": "Allow",
             "Principal": {
-                "AWS": "arn:aws:iam::241130585402:role/cnsld-cumulus-uat3-lambda-processing",
+                "AWS": "arn:aws:iam::xxx:role/cnsld-cumulus-uat3-lambda-processing",
                 "Service": "s3.amazonaws.com"
             },
             "Action": [
@@ -63,5 +63,5 @@
 9. Pass our `SNS ARN` and `S3 data bucket(s) ARN` to the DAAC so that they can update their IAM roles.  
 10. Deploy or update `/tf-module/uds_catalia` where terraform.tfvars is updated for this variable `DAAC_LAMBDA_2_SNS_ROLE`. This will update SNS Access policy to accept messages from DAAC.
 ```
-DAAC_LAMBDA_2_SNS_ROLE="arn:aws:iam::241130585402:role/cnsld-cumulus-uat3-lambda-processing"
+DAAC_LAMBDA_2_SNS_ROLE="arn:aws:iam::xxx:role/cnsld-cumulus-uat3-lambda-processing"
 ```
