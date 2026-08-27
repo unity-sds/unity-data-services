@@ -14,7 +14,7 @@ install_requires = [
 
 setup(
     name="cumulus_lambda_functions",
-    version="10.0.0",
+    version="10.1.0",
     packages=find_packages(),
     install_requires=install_requires,
     package_data={
